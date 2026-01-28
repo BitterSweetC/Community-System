@@ -1,0 +1,161 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Inter:wght@300;400;500;600&display=swap');
+
+:root {
+  /* Premium Dark Theme Palette inspired by Land of Ride */
+  --color-bg: #F9FAFB;
+  --color-text: #111827;
+  --color-text-light: #6B7280;
+  
+  --color-primary: #1F2937;     /* Almost Black */
+  --color-accent: #D97706;      /* Amber 600 - for refined highlights */
+  
+  --color-surface: #FFFFFF;
+  --color-border: #E5E7EB;
+  
+  /* Status Colors */
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-error: #EF4444;
+  
+  /* Typography */
+  --font-heading: 'Montserrat', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  
+  /* Spacing & Radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  
+  /* Shadows - Subtle & Premium */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-float: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.6;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  color: var(--color-primary);
+  margin-top: 0;
+  line-height: 1.2;
+}
+
+/* Premium Container */
+.premium-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* Button Overrides - Sharp/Minimalist */
+.el-button {
+  font-family: var(--font-heading) !important;
+  font-weight: 600 !important;
+  border-radius: var(--radius-sm) !important; /* Sharper corners */
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 12px 24px !important;
+  height: auto !important;
+  transition: all 0.3s ease !important;
+}
+
+.el-button--primary {
+  background-color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+  color: white !important;
+}
+
+.el-button--primary:hover {
+  background-color: black !important;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.el-button--default {
+  border: 1px solid var(--color-border) !important;
+  color: var(--color-text) !important;
+}
+
+.el-button--default:hover {
+  border-color: var(--color-primary) !important;
+  color: var(--color-primary) !important;
+}
+
+/* Card Overrides - Clean & Image First */
+.el-card {
+  border: none !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-sm) !important;
+  transition: transform 0.4s ease, box-shadow 0.4s ease !important;
+  overflow: hidden;
+}
+
+.el-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg) !important;
+}
+
+/* Tag Overrides - Minimal */
+.el-tag {
+  border-radius: var(--radius-sm) !important;
+  font-weight: 600 !important;
+  border: none !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.7rem !important;
+}
+
+.el-tag--success {
+  background-color: #ECFDF5 !important;
+  color: var(--color-success) !important;
+}
+
+.el-tag--warning {
+  background-color: #FFFBEB !important;
+  color: var(--color-warning) !important;
+}
+
+/* Table Overrides */
+.el-table {
+  --el-table-header-bg-color: #F9FAFB !important;
+  --el-table-header-text-color: var(--color-text-light) !important;
+  --el-table-row-hover-bg-color: #F3F4F6 !important;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.el-table th {
+  font-family: var(--font-heading) !important;
+  font-weight: 600 !important;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #D1D5DB;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9CA3AF;
+}
