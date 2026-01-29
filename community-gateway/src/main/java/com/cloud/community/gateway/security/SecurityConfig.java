@@ -39,6 +39,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll() // Allow auth endpoints
                         .requestMatchers("/api/public/**").permitAll() // Allow public endpoints
+                        .requestMatchers("/api/clubs/my").authenticated() // Explicitly secure /clubs/my
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/clubs", "/api/clubs/**").permitAll() // Allow public access to club info
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/recruit/batches", "/api/recruit/batches/**").permitAll() // Allow public access to recruit batches
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/recruit/fields", "/api/recruit/fields/**").permitAll() // Allow public access to form fields

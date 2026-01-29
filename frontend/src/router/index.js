@@ -111,6 +111,38 @@ const router = createRouter({
             path: 'notices/:clubId?', // Optional clubId for club-specific notices
             name: 'admin-notices',
             component: () => import('@/views/admin/NoticeManagement.vue')
+        },
+        {
+            path: 'activities/:clubId?',
+            name: 'admin-activities',
+            component: () => import('@/views/admin/ActivityManagement.vue')
+        }
+      ]
+    },
+    {
+      path: '/clubadmin',
+      component: () => import('@/views/admin/Layout.vue'),
+      meta: { requiresAuth: true, role: 'CLUB_ADMIN' },
+      children: [
+        {
+          path: '',
+          name: 'club-admin-dashboard',
+          component: () => import('@/views/admin/ClubAdminDashboard.vue')
+        },
+        {
+            path: 'recruit/:clubId',
+            name: 'club-admin-recruit',
+            component: () => import('@/views/admin/RecruitManagement.vue')
+        },
+        {
+            path: 'notices/:clubId?',
+            name: 'club-admin-notices',
+            component: () => import('@/views/admin/NoticeManagement.vue')
+        },
+        {
+            path: 'activities/:clubId?',
+            name: 'club-admin-activities',
+            component: () => import('@/views/admin/ActivityManagement.vue')
         }
       ]
     }
@@ -122,7 +154,26 @@ router.beforeEach((to, from, next) => {
   if (to.meta.requiresAuth && !authStore.token) {
     next('/login')
   } else {
-    // Role check logic can be added here
+    // Role based authorization
+    if (to.meta.role) {
+      const userRoles = authStore.user?.roles || []
+      const hasRole = userRoles.some(r => {
+        const roleCode = typeof r === 'string' ? r : r.code
+        return roleCode === to.meta.role
+      })
+      
+      if (!hasRole) {
+        // Redirect unauthorized access to appropriate page or home
+        if (userRoles.some(r => (typeof r === 'string' ? r : r.code) === 'CLUB_ADMIN')) {
+             if (to.path.startsWith('/admin')) {
+                 next('/clubadmin')
+                 return
+             }
+        }
+        next('/home')
+        return
+      }
+    }
     next()
   }
 })

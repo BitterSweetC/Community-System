@@ -90,4 +90,10 @@ public class ActivityServiceImpl implements ActivityService {
     public List<ActivitySignup> getSignups(Long activityId) {
         return signupRepository.findByActivityId(activityId);
     }
+
+    @Override
+    @Transactional
+    public void deleteActivity(Long id) {
+        activityRepository.deleteById(id);
+    }
 }

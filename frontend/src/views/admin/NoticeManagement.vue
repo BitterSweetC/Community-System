@@ -74,7 +74,7 @@ const form = ref({
   title: '',
   content: '',
   scope: 'PUBLIC',
-  club: clubId ? { id: clubId } : null
+  clubId: clubId ? Number(clubId) : null
 })
 
 const loadNotices = async () => {
@@ -100,7 +100,8 @@ const submitNotice = async () => {
   
   try {
     const payload = { ...form.value }
-    if (clubId) payload.club = { id: clubId }
+    // If clubId is present in route/props, ensure it's in payload
+    if (clubId) payload.clubId = clubId
     
     await axios.post('/notices', payload)
     ElMessage.success('发布成功')

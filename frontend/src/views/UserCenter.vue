@@ -23,17 +23,17 @@
             <span>消息通知</span>
           </el-menu-item>
           <!-- Role Based Items -->
-          <el-menu-item v-if="isClubAdmin" index="/user/create-club">
-             <el-icon><Plus /></el-icon>
-             <span>创建社团</span>
-          </el-menu-item>
-          <el-menu-item v-if="isClubAdmin" index="/admin/clubs">
+          <el-menu-item v-if="isClubAdmin" index="/clubadmin">
              <el-icon><School /></el-icon>
              <span>我的社团管理</span>
           </el-menu-item>
           <el-menu-item v-if="isStudent" index="/user/create-club">
             <el-icon><Plus /></el-icon>
             <span>申请创建社团</span>
+          </el-menu-item>
+          <el-menu-item index="/home">
+            <el-icon><HomeFilled /></el-icon>
+            <span>返回首页</span>
           </el-menu-item>
         </el-menu>
       </el-aside>
@@ -52,7 +52,7 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { User, Document, Bell, Plus, School } from '@element-plus/icons-vue'
+import { User, Document, Bell, Plus, School, HomeFilled } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const authStore = useAuthStore()

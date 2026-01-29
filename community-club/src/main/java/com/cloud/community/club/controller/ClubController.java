@@ -31,8 +31,13 @@ public class ClubController {
     private final PermissionService permissionService;
 
     private User getCurrentUser() {
-        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        return userService.findByUsername(userDetails.getUsername()).orElseThrow();
+        if (SecurityContextHolder.getContext().getAuthentication() == null ||
+            !SecurityContextHolder.getContext().getAuthentication().isAuthenticated() ||
+            "anonymousUser".equals(SecurityContextHolder.getContext().getAuthentication().getPrincipal())) {
+            throw new RuntimeException("User not authenticated");
+        }
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        return userService.findByUsername(username).orElseThrow(() -> new RuntimeException("User not found: " + username));
     }
 
     @PostMapping

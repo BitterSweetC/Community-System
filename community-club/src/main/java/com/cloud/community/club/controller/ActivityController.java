@@ -100,4 +100,17 @@ public class ActivityController {
         }
         return Result.success(activityService.getSignups(id));
     }
+
+    @DeleteMapping("/{id}")
+    public Result<Void> deleteActivity(@PathVariable Long id) {
+        User user = getCurrentUser();
+        Activity activity = activityService.getActivityById(id);
+        if (activity.getClub() != null) {
+            permissionService.checkClubAdmin(user.getId(), activity.getClub().getId());
+        } else {
+            permissionService.checkSystemAdmin(user.getId());
+        }
+        activityService.deleteActivity(id);
+        return Result.success();
+    }
 }

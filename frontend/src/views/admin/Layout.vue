@@ -9,7 +9,7 @@
           text-color="#fff"
         >
           <el-menu-item index="/admin">仪表盘</el-menu-item>
-          <el-menu-item index="/admin/clubs">社团管理</el-menu-item>
+          <el-menu-item v-if="isAdmin" index="/admin/clubs">社团管理</el-menu-item>
           <!-- Simplified: Recruit management usually linked from club list or separate -->
           <el-menu-item @click="logout">退出登录</el-menu-item>
         </el-menu>
@@ -24,9 +24,15 @@
 <script setup>
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
+import { computed } from 'vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
+
+const isAdmin = computed(() => {
+    const roles = authStore.user?.roles || []
+    return roles.some(r => (typeof r === 'string' ? r : r.code) === 'ADMIN')
+})
 
 const logout = () => {
   authStore.logout()
