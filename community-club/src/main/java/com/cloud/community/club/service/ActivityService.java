@@ -16,5 +16,6 @@ public interface ActivityService {
     void signup(Long activityId, Long userId);
     void signIn(Long activityId, Long userId);
     List<ActivitySignup> getSignups(Long activityId);
+    List<ActivitySignup> getUserSignups(Long userId);
     void deleteActivity(Long id);
 }

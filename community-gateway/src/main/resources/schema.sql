@@ -2,6 +2,7 @@
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- Drop tables if they exist
+DROP TABLE IF EXISTS `t_notification`;
 DROP TABLE IF EXISTS `t_audit_log`;
 DROP TABLE IF EXISTS `t_notice_read`;
 DROP TABLE IF EXISTS `t_notice`;
@@ -32,6 +33,7 @@ CREATE TABLE `t_user` (
   `email` varchar(100) DEFAULT NULL,
   `mobile` varchar(20) DEFAULT NULL,
   `avatar_url` varchar(255) DEFAULT NULL,
+  `interests` varchar(500) DEFAULT NULL,
   `status` varchar(20) NOT NULL DEFAULT 'ACTIVE',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_username` (`username`)
@@ -74,6 +76,8 @@ CREATE TABLE `t_club` (
   `founded_year` int DEFAULT NULL,
   `status` varchar(20) NOT NULL DEFAULT 'PENDING',
   `created_by` bigint NOT NULL,
+  `dissolution_reason` varchar(255) DEFAULT NULL,
+  `dissolution_date` datetime(6) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_club_name` (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -248,4 +252,19 @@ CREATE TABLE `t_audit_log` (
   `detail` text,
   `ip` varchar(50) DEFAULT NULL,
   PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 16. Notification Table (Station Letter)
+CREATE TABLE `t_notification` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `created_at` datetime(6) NOT NULL,
+  `updated_at` datetime(6) NOT NULL,
+  `user_id` bigint NOT NULL,
+  `title` varchar(200) NOT NULL,
+  `content` text NOT NULL,
+  `type` varchar(20) NOT NULL,
+  `is_read` bit(1) NOT NULL DEFAULT b'0',
+  PRIMARY KEY (`id`),
+  KEY `idx_notify_user` (`user_id`),
+  CONSTRAINT `fk_notify_user` FOREIGN KEY (`user_id`) REFERENCES `t_user` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

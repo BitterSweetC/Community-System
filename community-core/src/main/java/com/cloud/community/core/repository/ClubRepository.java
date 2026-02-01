@@ -3,9 +3,11 @@ package com.cloud.community.core.repository;
 import com.cloud.community.core.entity.Club;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface ClubRepository extends JpaRepository<Club, Long> {
+    List<Club> findByStatusAndDissolutionDateBefore(String status, LocalDateTime date);
     List<Club> findByStatus(String status);
     List<Club> findByCreatedBy(Long userId);
     List<Club> findByNameContainingIgnoreCase(String name);

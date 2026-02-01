@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -12,6 +13,12 @@ import java.util.Set;
 @Entity
 @Table(name = "t_club")
 public class Club extends BaseEntity {
+
+    public static final String STATUS_PENDING = "PENDING";
+    public static final String STATUS_ACTIVE = "ACTIVE";
+    public static final String STATUS_DISSOLVING = "DISSOLVING";
+    public static final String STATUS_DISSOLVED = "DISSOLVED";
+    public static final String STATUS_REJECTED = "REJECTED";
 
     @Column(nullable = false, unique = true, length = 100)
     private String name;
@@ -36,6 +43,12 @@ public class Club extends BaseEntity {
 
     @Column(name = "created_by", nullable = false)
     private Long createdBy;
+
+    @Column(name = "dissolution_reason")
+    private String dissolutionReason;
+
+    @Column(name = "dissolution_date")
+    private LocalDateTime dissolutionDate;
 
     @ElementCollection
     @CollectionTable(name = "t_club_tag", joinColumns = @JoinColumn(name = "club_id"))

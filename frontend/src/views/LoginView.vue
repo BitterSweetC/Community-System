@@ -19,14 +19,14 @@
         
         <el-form :model="form" label-position="top" size="large">
           <el-form-item label="学号/职工号">
-            <el-input v-model="form.username" placeholder="请输入账号">
+            <el-input v-model="form.username" placeholder="请输入账号" @keyup.enter="handleLogin">
                 <template #prefix>
                     <el-icon><User /></el-icon>
                 </template>
             </el-input>
           </el-form-item>
           <el-form-item label="密码">
-            <el-input v-model="form.password" type="password" placeholder="请输入密码" show-password>
+            <el-input v-model="form.password" type="password" placeholder="请输入密码" show-password @keyup.enter="handleLogin">
                 <template #prefix>
                     <el-icon><Lock /></el-icon>
                 </template>

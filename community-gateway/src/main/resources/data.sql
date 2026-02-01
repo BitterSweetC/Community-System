@@ -117,3 +117,19 @@ INSERT INTO `t_notice` (`club_id`, `title`, `content`, `scope`, `published_by`, 
 SELECT c.id, '编程俱乐部招新启动', '欢迎各位同学报名参加！', 'PUBLIC', u.id, NOW(), 'PUBLISHED', NOW(), NOW()
 FROM `t_club` c, `t_user` u 
 WHERE c.name = '编程俱乐部' AND u.username = 'club_admin';
+
+-- 10. Initialize Notifications (Station Letters)
+-- Send welcome message to all users
+INSERT INTO `t_notification` (`user_id`, `title`, `content`, `type`, `is_read`, `created_at`, `updated_at`)
+SELECT id, '欢迎加入校园社团系统', '亲爱的同学，欢迎使用本系统。您可以浏览社团、参加活动或申请创建自己的社团。', 'SYSTEM', 0, NOW(), NOW()
+FROM `t_user`;
+
+-- Send specific message to student
+INSERT INTO `t_notification` (`user_id`, `title`, `content`, `type`, `is_read`, `created_at`, `updated_at`)
+SELECT id, '社团推荐提醒', '根据您的兴趣，为您推荐“编程俱乐部”，快来看看吧！', 'CLUB', 0, DATE_SUB(NOW(), INTERVAL 1 HOUR), NOW()
+FROM `t_user` WHERE username = 'student';
+
+-- Send specific message to club_admin
+INSERT INTO `t_notification` (`user_id`, `title`, `content`, `type`, `is_read`, `created_at`, `updated_at`)
+SELECT id, '社团审核通过', '恭喜！您申请的“编程俱乐部”已通过审核，现在可以开始招新了。', 'SYSTEM', 0, DATE_SUB(NOW(), INTERVAL 1 DAY), NOW()
+FROM `t_user` WHERE username = 'club_admin';

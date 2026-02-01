@@ -54,6 +54,7 @@ public class NoticeController {
         User user = getCurrentUser();
         if (notice.getClubId() != null) {
             permissionService.checkClubAdmin(user.getId(), notice.getClubId());
+            permissionService.checkClubActive(notice.getClubId());
         } else {
             permissionService.checkSystemAdmin(user.getId());
         }
@@ -70,6 +71,7 @@ public class NoticeController {
         
         if (notice.getClubId() != null) {
             permissionService.checkClubAdmin(user.getId(), notice.getClubId());
+            permissionService.checkClubActive(notice.getClubId());
         } else {
             permissionService.checkSystemAdmin(user.getId());
         }

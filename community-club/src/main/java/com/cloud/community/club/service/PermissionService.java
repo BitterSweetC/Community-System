@@ -14,4 +14,10 @@ public interface PermissionService {
      * Check if the user is a global ADMIN.
      */
     void checkSystemAdmin(Long userId);
+
+    /**
+     * Check if the club is active (not dissolved or pending).
+     * Throws RuntimeException if club is not active.
+     */
+    void checkClubActive(Long clubId);
 }

@@ -31,7 +31,7 @@
           <el-button 
             type="primary" 
             size="small" 
-            @click="$router.push(`/clubs/${scope.row.id}`)"
+            @click="showDetail(scope.row)"
           >
             社团详情
           </el-button>
@@ -57,6 +57,24 @@
         @current-change="load"
       />
     </div>
+
+    <!-- Club Detail Dialog -->
+    <el-dialog v-model="detailDialogVisible" title="社团详情" width="600px">
+      <el-descriptions v-if="currentClub" :column="1" border>
+        <el-descriptions-item label="ID">{{ currentClub.id }}</el-descriptions-item>
+        <el-descriptions-item label="社团名称">{{ currentClub.name }}</el-descriptions-item>
+        <el-descriptions-item label="社团分类">{{ currentClub.category }}</el-descriptions-item>
+        <el-descriptions-item label="成立年份">{{ currentClub.foundedYear }}</el-descriptions-item>
+        <el-descriptions-item label="当前状态">
+          <el-tag :type="getStatusType(currentClub.status)">{{ currentClub.status }}</el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="社团简介">
+          <div style="white-space: pre-wrap;">{{ currentClub.description || '暂无简介' }}</div>
+        </el-descriptions-item>
+        <el-descriptions-item label="创建时间">{{ formatDate(currentClub.createdAt) }}</el-descriptions-item>
+        <el-descriptions-item label="更新时间">{{ formatDate(currentClub.updatedAt) }}</el-descriptions-item>
+      </el-descriptions>
+    </el-dialog>
   </div>
 </template>
 
@@ -71,6 +89,25 @@ const loading = ref(false)
 const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
+
+const detailDialogVisible = ref(false)
+const currentClub = ref(null)
+
+const showDetail = async (club) => {
+  try {
+    const res = await axios.get(`/clubs/${club.id}`)
+    currentClub.value = res
+    detailDialogVisible.value = true
+  } catch (error) {
+    ElMessage.error('获取详情失败')
+  }
+}
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return '-'
+  return new Date(dateStr).toLocaleString()
+}
+
 
 const load = async () => {
   loading.value = true

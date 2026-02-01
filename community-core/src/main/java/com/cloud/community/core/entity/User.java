@@ -31,6 +31,9 @@ public class User extends BaseEntity {
     @Column(name = "avatar_url")
     private String avatarUrl;
 
+    @Column(length = 500)
+    private String interests;
+
     @Column(nullable = false, length = 20)
     private String status = "ACTIVE";
 

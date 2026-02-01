@@ -154,8 +154,8 @@
           <h2>社团招新专区</h2>
           <p>加入我们，共创精彩</p>
         </div>
-        <el-row :gutter="24">
-          <el-col :xs="24" :sm="12" :md="8" :lg="6" v-for="club in clubs.slice(0, 4)" :key="club.id">
+        <el-row :gutter="24" v-if="recruitingClubs.length > 0">
+          <el-col :xs="24" :sm="12" :md="8" :lg="6" v-for="club in recruitingClubs" :key="club.id">
              <el-card class="recruit-poster-card" shadow="hover">
                <div class="poster-header" :style="{ background: getRandomColor(club.id) }">
                  <h3>{{ club.name }}</h3>
@@ -167,6 +167,7 @@
              </el-card>
           </el-col>
         </el-row>
+        <el-empty v-else description="暂无招新的社团" />
       </div>
     </div>
 
@@ -191,9 +192,33 @@
         </div>
       </div>
       <div class="footer-bottom">
-        <p>&copy; 2024 Community System. All rights reserved.</p>
+        <p>&copy; 2024 校园社团管理系统. 版权所有。</p>
       </div>
     </footer>
+
+    <!-- Chat Widget -->
+    <ChatWidget />
+
+    <!-- Interest Selection Dialog -->
+    <el-dialog
+      v-model="showInterestDialog"
+      title="选择您的兴趣爱好"
+      width="600px"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      center
+    >
+      <div class="interest-dialog-content">
+        <p class="dialog-desc">选择您感兴趣的领域，我们将为您推荐相关的社团和活动。</p>
+        <InterestSelector v-model="selectedInterests" />
+      </div>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="showInterestDialog = false">暂不选择</el-button>
+          <el-button type="primary" @click="saveInterests" :loading="savingInterests">保存</el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -204,6 +229,7 @@ import { useAuthStore } from '@/stores/auth'
 import axios from '@/api/axios'
 import { Search, Calendar, Plus, Bell } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import InterestSelector from '@/components/InterestSelector.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -213,8 +239,27 @@ const activities = ref([])
 const featuredActivities = ref([])
 const calendarDate = ref(new Date())
 const calendarActivities = ref([])
+const recruitingClubs = ref([])
+
+// Interest Dialog State
+const showInterestDialog = ref(false)
+const selectedInterests = ref([])
+const savingInterests = ref(false)
 
 onMounted(async () => {
+  // Check if user needs to set interests
+  if (authStore.user && !authStore.user.interests) {
+    // Double check with backend to be sure
+    try {
+      const userRes = await axios.get('/users/me')
+      if (userRes && !userRes.interests) {
+        showInterestDialog.value = true
+      }
+    } catch (e) {
+      console.warn('Failed to check user interests', e)
+    }
+  }
+
   try {
     // 1. Fetch Clubs
     const clubRes = await axios.get('/clubs')
@@ -243,6 +288,23 @@ onMounted(async () => {
             calendarActivities.value = calRes.list
         }
     } catch (e) { console.warn("Failed to fetch activities", e) }
+
+    // Fetch recruiting clubs
+    try {
+        const recruitRes = await axios.get('/recruit/active-clubs')
+        if (recruitRes) {
+            if (Array.isArray(recruitRes)) {
+                recruitingClubs.value = recruitRes
+            } else if (recruitRes.list && Array.isArray(recruitRes.list)) {
+                recruitingClubs.value = recruitRes.list
+            } else if (recruitRes.content && Array.isArray(recruitRes.content)) {
+                recruitingClubs.value = recruitRes.content
+            } else {
+                // Keep empty array if format is not recognized to avoid template errors
+                console.warn("Unexpected response format for recruiting clubs", recruitRes)
+            }
+        }
+    } catch (e) { console.warn("Failed to fetch recruiting clubs", e) }
 
   } catch (error) {
     console.error(error)
@@ -282,9 +344,52 @@ const formatDate = (dateStr) => {
 
 const colors = ['#1F2937', '#374151', '#4B5563', '#111827', '#000000', '#4f46e5', '#059669', '#d97706']
 const getRandomColor = (id) => colors[id % colors.length]
+
+const saveInterests = async () => {
+  if (selectedInterests.value.length === 0) {
+    ElMessage.warning('请至少选择一个兴趣')
+    return
+  }
+  
+  savingInterests.value = true
+  try {
+    const interestsStr = selectedInterests.value.join(',')
+    
+    // First get current user data to avoid overwriting other fields with nulls if update endpoint is partial
+    // Assuming backend supports partial updates via PUT or we need to send full object. 
+    // The UserController.updateProfile uses PUT and checks for nulls, so we can just send what we update.
+    // BUT, we need to be safe. Let's re-use the update logic from UserProfileView roughly.
+    
+    // We can just send the interests field if the backend implementation supports it (which we checked earlier, it does)
+    await axios.put('/users/me', {
+      interests: interestsStr
+    })
+    
+    // Update local store
+    const updatedUser = { ...authStore.user, interests: interestsStr }
+    authStore.setUser(updatedUser)
+    
+    ElMessage.success('兴趣保存成功')
+    showInterestDialog.value = false
+  } catch (error) {
+    ElMessage.error('保存失败: ' + (error.response?.data?.message || error.message))
+  } finally {
+    savingInterests.value = false
+  }
+}
 </script>
 
 <style scoped>
+.interest-dialog-content {
+  padding: 10px 0;
+}
+
+.dialog-desc {
+  color: #6b7280;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
 .home-container {
   background-color: #f9fafb;
 }

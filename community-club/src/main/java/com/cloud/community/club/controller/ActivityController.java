@@ -8,6 +8,7 @@ import com.cloud.community.core.entity.Club;
 import com.cloud.community.core.entity.User;
 import com.cloud.community.core.model.dto.ActivityCreateDTO;
 import com.cloud.community.core.model.vo.ActivityVO;
+import com.cloud.community.core.model.vo.MySignupActivityVO;
 import com.cloud.community.club.service.ActivityService;
 import com.cloud.community.club.service.PermissionService;
 import com.cloud.community.club.service.UserService;
@@ -99,6 +100,13 @@ public class ActivityController {
             permissionService.checkSystemAdmin(user.getId());
         }
         return Result.success(activityService.getSignups(id));
+    }
+
+    @GetMapping("/my-signups")
+    public Result<List<MySignupActivityVO>> getMySignups() {
+        User user = getCurrentUser();
+        List<ActivitySignup> signups = activityService.getUserSignups(user.getId());
+        return Result.success(signups.stream().map(MySignupActivityVO::from).toList());
     }
 
     @DeleteMapping("/{id}")

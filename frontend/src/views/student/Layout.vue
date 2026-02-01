@@ -3,34 +3,43 @@
     <el-header class="header" :class="{ 'scrolled': isScrolled }">
       <div class="header-content premium-container">
         <div class="logo">
-          <span class="logo-text">COMMUNITY</span>
+          <span class="logo-text">校园社团</span>
         </div>
         <div class="nav">
-          <router-link to="/home" class="nav-item">Explore</router-link>
+          <router-link to="/home" class="nav-item">探索</router-link>
           <template v-if="authStore.token">
-              <router-link to="/user/create-club" class="nav-item">Start a Club</router-link>
+              <router-link to="/user/create-club" class="nav-item">创建社团</router-link>
               <router-link to="/user/notifications" class="nav-icon">
-                <el-badge is-dot class="notification-badge">
+                <el-badge :is-dot="unreadCount > 0" class="notification-badge">
                    <span>🔔</span>
                 </el-badge>
               </router-link>
               <div class="user-profile">
-                <router-link to="/user/profile" class="user-info-link">
-                  <el-avatar 
-                    :size="32" 
-                    :src="authStore.user.avatarUrl" 
-                    class="user-avatar"
-                  >
-                    {{ (authStore.user.realName || authStore.user.username || 'U').charAt(0).toUpperCase() }}
-                  </el-avatar>
-                  <span class="user-info">{{ authStore.user.realName || authStore.user.username }}</span>
-                </router-link>
-                <el-button class="logout-btn" link @click="handleLogout">LOGOUT</el-button>
+                <el-dropdown trigger="hover" @command="handleCommand">
+                  <div class="user-info-link dropdown-trigger">
+                    <el-avatar 
+                      :size="32" 
+                      :src="authStore.user.avatarUrl" 
+                      class="user-avatar"
+                    >
+                      {{ (authStore.user.realName || authStore.user.username || 'U').charAt(0).toUpperCase() }}
+                    </el-avatar>
+                    <span class="user-info">{{ authStore.user.realName || authStore.user.username }}</span>
+                    <el-icon class="el-icon--right"><arrow-down /></el-icon>
+                  </div>
+                  <template #dropdown>
+                    <el-dropdown-menu>
+                      <el-dropdown-item command="profile">个人资料</el-dropdown-item>
+                      <el-dropdown-item command="messages">我的消息</el-dropdown-item>
+                      <el-dropdown-item divided command="logout">退出登录</el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
               </div>
           </template>
           <template v-else>
-              <router-link to="/login" class="nav-item">Login</router-link>
-              <router-link to="/register" class="nav-btn">JOIN US</router-link>
+              <router-link to="/login" class="nav-item">登录</router-link>
+              <router-link to="/register" class="nav-btn">加入我们</router-link>
           </template>
         </div>
       </div>
@@ -42,6 +51,7 @@
         </transition>
       </router-view>
     </el-main>
+    <ChatWidget />
   </div>
 </template>
 
@@ -49,6 +59,7 @@
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
 import { ref, onMounted, onUnmounted } from 'vue'
+import ChatWidget from '@/components/ChatWidget.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -57,6 +68,20 @@ const isScrolled = ref(false)
 const handleLogout = () => {
   authStore.logout()
   router.push('/login')
+}
+
+const handleCommand = (command) => {
+  switch (command) {
+    case 'profile':
+      router.push('/user/profile')
+      break
+    case 'messages':
+      router.push('/user/notifications')
+      break
+    case 'logout':
+      handleLogout()
+      break
+  }
 }
 
 const handleScroll = () => {
@@ -77,6 +102,7 @@ onUnmounted(() => {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  position: relative; /* Ensure child absolute positioning works relative to layout */
 }
 
 .header {
@@ -179,10 +205,18 @@ onUnmounted(() => {
   text-decoration: none;
   color: inherit;
   transition: color 0.2s;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  outline: none;
 }
 
 .user-info-link:hover {
   color: var(--color-primary);
+}
+
+.el-dropdown-link:focus {
+  outline: none;
 }
 
 .admin-link {
@@ -201,12 +235,6 @@ onUnmounted(() => {
 .admin-link:hover {
   background-color: var(--color-primary);
   color: white;
-}
-
-.logout-btn {
-  color: inherit !important;
-  font-size: 0.75rem !important;
-  padding: 0 !important;
 }
 
 .main-content {

@@ -1,7 +1,8 @@
 <template>
-  <div v-if="club" class="club-detail-container">
-    <!-- Club Hero -->
-    <div class="club-hero">
+  <div class="club-detail-wrapper">
+    <div v-if="club" class="club-detail-container">
+      <!-- Club Hero -->
+      <div class="club-hero">
       <div class="hero-overlay"></div>
       <div class="hero-content premium-container">
         <div class="hero-header">
@@ -123,6 +124,9 @@
         </span>
       </template>
     </el-dialog>
+    </div>
+
+    <ChatWidget />
   </div>
 </template>
 
@@ -132,6 +136,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import axios from '@/api/axios'
 import { ElMessage } from 'element-plus'
+import ChatWidget from '@/components/ChatWidget.vue'
 
 const route = useRoute()
 const router = useRouter()

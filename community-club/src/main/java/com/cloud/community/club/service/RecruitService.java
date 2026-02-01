@@ -1,5 +1,6 @@
 package com.cloud.community.club.service;
 
+import com.cloud.community.core.entity.Club;
 import com.cloud.community.core.entity.RecruitApplication;
 import com.cloud.community.core.entity.RecruitBatch;
 import com.cloud.community.core.entity.RecruitFormField;
@@ -11,6 +12,8 @@ public interface RecruitService {
     List<RecruitBatch> getBatchesByClub(Long clubId);
     RecruitBatch getBatchById(Long batchId);
     
+    List<Club> getRecruitingClubs();
+
     void addFormField(RecruitFormField field, Long operatorId);
     List<RecruitFormField> getFormFields(Long batchId);
     

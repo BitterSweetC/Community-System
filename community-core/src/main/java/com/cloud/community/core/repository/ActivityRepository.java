@@ -8,4 +8,6 @@ import java.util.List;
 public interface ActivityRepository extends JpaRepository<Activity, Long> {
     List<Activity> findByClubId(Long clubId);
     org.springframework.data.domain.Page<Activity> findByClubId(Long clubId, org.springframework.data.domain.Pageable pageable);
+
+    boolean existsByClubIdAndStatusIn(Long clubId, java.util.Collection<String> statuses);
 }

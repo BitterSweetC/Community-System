@@ -128,4 +128,37 @@ public class ClubController {
         clubService.removeMember(id, userId);
         return Result.success();
     }
+
+    @PostMapping("/{id}/dissolve")
+    public Result<Void> applyDissolution(@PathVariable Long id, @RequestBody java.util.Map<String, String> body) {
+        User user = getCurrentUser();
+        permissionService.checkClubAdmin(user.getId(), id);
+        String reason = body.get("reason");
+        clubService.applyDissolution(id, user.getId(), reason);
+        return Result.success();
+    }
+
+    @PostMapping("/{id}/dissolve/withdraw")
+    public Result<Void> withdrawDissolution(@PathVariable Long id) {
+        User user = getCurrentUser();
+        permissionService.checkClubAdmin(user.getId(), id);
+        clubService.withdrawDissolution(id, user.getId());
+        return Result.success();
+    }
+
+    @DeleteMapping("/{id}/force")
+    public Result<Void> forceDissolve(@PathVariable Long id, @RequestParam(required = false, defaultValue = "System Admin Force Delete") String reason) {
+        User user = getCurrentUser();
+        permissionService.checkSystemAdmin(user.getId());
+        clubService.forceDissolve(id, user.getId(), reason);
+        return Result.success();
+    }
+
+    @PostMapping("/{id}/recover")
+    public Result<Void> recoverClub(@PathVariable Long id) {
+        User user = getCurrentUser();
+        permissionService.checkSystemAdmin(user.getId());
+        clubService.recoverClub(id, user.getId());
+        return Result.success();
+    }
 }

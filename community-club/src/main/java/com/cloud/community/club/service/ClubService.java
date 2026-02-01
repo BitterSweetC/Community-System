@@ -27,4 +27,10 @@ public interface ClubService {
     void updateMemberRole(Long clubId, Long userId, String role);
     void removeMember(Long clubId, Long userId);
     List<Member> getClubMembers(Long clubId);
+
+    // Dissolution
+    void applyDissolution(Long clubId, Long userId, String reason);
+    void withdrawDissolution(Long clubId, Long userId);
+    void forceDissolve(Long clubId, Long adminId, String reason);
+    void recoverClub(Long clubId, Long adminId);
 }

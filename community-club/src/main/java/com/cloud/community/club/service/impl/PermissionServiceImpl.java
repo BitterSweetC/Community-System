@@ -1,5 +1,7 @@
 package com.cloud.community.club.service.impl;
 
+import com.cloud.community.core.entity.Club;
+import com.cloud.community.core.repository.ClubRepository;
 import com.cloud.community.club.service.PermissionService;
 import com.cloud.community.core.entity.Member;
 import com.cloud.community.core.entity.User;
@@ -15,6 +17,7 @@ public class PermissionServiceImpl implements PermissionService {
 
     private final MemberRepository memberRepository;
     private final UserRepository userRepository;
+    private final ClubRepository clubRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -48,6 +51,21 @@ public class PermissionServiceImpl implements PermissionService {
                 .anyMatch(r -> "ADMIN".equals(r.getCode()));
         if (!isGlobalAdmin) {
             throw new RuntimeException("Insufficient permissions: System Admin required.");
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public void checkClubActive(Long clubId) {
+        Club club = clubRepository.findById(clubId)
+                .orElseThrow(() -> new RuntimeException("Club not found"));
+        
+        if (Club.STATUS_DISSOLVED.equals(club.getStatus()) || Club.STATUS_DISSOLVING.equals(club.getStatus())) {
+            throw new RuntimeException("Operation denied: Club is dissolved or in dissolution process.");
+        }
+        
+        if (!Club.STATUS_ACTIVE.equals(club.getStatus())) {
+            throw new RuntimeException("Operation denied: Club is not active.");
         }
     }
 }

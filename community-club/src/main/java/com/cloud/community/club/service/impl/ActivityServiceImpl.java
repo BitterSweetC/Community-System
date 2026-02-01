@@ -7,6 +7,8 @@ import com.cloud.community.core.repository.ActivityRepository;
 import com.cloud.community.core.repository.ActivitySignupRepository;
 import com.cloud.community.core.repository.UserRepository;
 import com.cloud.community.club.service.ActivityService;
+import com.cloud.community.club.service.NotificationService;
+import com.cloud.community.club.service.PermissionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,10 +22,13 @@ public class ActivityServiceImpl implements ActivityService {
     private final ActivityRepository activityRepository;
     private final ActivitySignupRepository signupRepository;
     private final UserRepository userRepository;
+    private final PermissionService permissionService;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional
     public Activity createActivity(Activity activity) {
+        permissionService.checkClubActive(activity.getClub().getId());
         return activityRepository.save(activity);
     }
 
@@ -70,6 +75,14 @@ public class ActivityServiceImpl implements ActivityService {
         signup.setStatus("SIGNED");
         
         signupRepository.save(signup);
+
+        // Send notification
+        notificationService.sendNotification(
+            userId, 
+            "活动报名成功", 
+            "您已成功报名活动：" + activity.getTitle(), 
+            "ACTIVITY"
+        );
     }
 
     @Override
@@ -84,6 +97,14 @@ public class ActivityServiceImpl implements ActivityService {
         
         signup.setStatus("SIGNED_IN");
         signupRepository.save(signup);
+
+        // Send notification
+        notificationService.sendNotification(
+            userId, 
+            "活动签到成功", 
+            "您已成功签到活动：" + signup.getActivity().getTitle(), 
+            "ACTIVITY"
+        );
     }
 
     @Override
@@ -92,8 +113,15 @@ public class ActivityServiceImpl implements ActivityService {
     }
 
     @Override
+    public List<ActivitySignup> getUserSignups(Long userId) {
+        return signupRepository.findByUserId(userId);
+    }
+
+    @Override
     @Transactional
     public void deleteActivity(Long id) {
+        Activity activity = getActivityById(id);
+        permissionService.checkClubActive(activity.getClub().getId());
         activityRepository.deleteById(id);
     }
 }

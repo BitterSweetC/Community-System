@@ -42,6 +42,11 @@ public class UserController {
         throw new RuntimeException("Invalid authentication principal");
     }
 
+    @GetMapping("/me")
+    public Result<User> getCurrentUserProfile() {
+        return Result.success(getCurrentUser());
+    }
+
     @PutMapping("/me")
     public Result<User> updateProfile(@RequestBody User userRequest) {
         User currentUser = getCurrentUser();
@@ -51,6 +56,7 @@ public class UserController {
         if (userRequest.getAvatarUrl() != null) currentUser.setAvatarUrl(userRequest.getAvatarUrl());
         if (userRequest.getMobile() != null) currentUser.setMobile(userRequest.getMobile());
         if (userRequest.getEmail() != null) currentUser.setEmail(userRequest.getEmail());
+        if (userRequest.getInterests() != null) currentUser.setInterests(userRequest.getInterests());
         
         userRepository.save(currentUser);
         return Result.success(currentUser);

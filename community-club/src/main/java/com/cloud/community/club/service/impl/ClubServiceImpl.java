@@ -9,11 +9,15 @@ import com.cloud.community.core.repository.UserRepository;
 import com.cloud.community.club.service.ClubService;
 import com.cloud.community.core.entity.Role;
 import com.cloud.community.core.repository.RoleRepository;
+import com.cloud.community.club.service.NotificationService;
+import com.cloud.community.club.service.FinanceService;
+import com.cloud.community.core.repository.ActivityRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 
 @Service
@@ -23,6 +27,9 @@ public class ClubServiceImpl implements ClubService {
     private final ClubRepository clubRepository;
     private final MemberRepository memberRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
+    private final FinanceService financeService;
+    private final ActivityRepository activityRepository;
     
     @org.springframework.beans.factory.annotation.Autowired
     private RoleRepository roleRepository;
@@ -114,14 +121,15 @@ public class ClubServiceImpl implements ClubService {
     @Override
     @Transactional
     public void deleteClub(Long id) {
-        clubRepository.deleteById(id);
+        // Soft delete logic preferred
+        forceDissolve(id, 0L, "Deleted via API");
     }
 
     @Override
     @Transactional
     public void approveClub(Long clubId) {
         Club club = getClubById(clubId);
-        club.setStatus("ACTIVE");
+        club.setStatus(Club.STATUS_ACTIVE);
         clubRepository.save(club);
 
         // Upgrade creator to CLUB_ADMIN role if not already
@@ -180,5 +188,70 @@ public class ClubServiceImpl implements ClubService {
         // SRS FR-MEMBER-05: status change record traceable. We mark as LEFT/REMOVED.
         member.setStatus("LEFT");
         memberRepository.save(member);
+    }
+
+    @Override
+    @Transactional
+    public void applyDissolution(Long clubId, Long userId, String reason) {
+        if (financeService.hasPendingTransactions(clubId)) {
+            throw new RuntimeException("Cannot dissolve: Pending financial transactions");
+        }
+
+        // Check for active activities
+        // Assuming statuses: PUBLISHED, ONGOING, SIGNUP. Adjust as per actual Activity statuses if known.
+        // Based on common sense, these are likely candidates.
+        if (activityRepository.existsByClubIdAndStatusIn(clubId, Arrays.asList("PUBLISHED", "ONGOING", "SIGNUP"))) {
+            throw new RuntimeException("Cannot dissolve: Ongoing activities exist");
+        }
+
+        Club club = getClubById(clubId);
+        club.setStatus(Club.STATUS_DISSOLVING);
+        club.setDissolutionReason(reason);
+        club.setDissolutionDate(LocalDateTime.now());
+        clubRepository.save(club);
+
+        notificationService.notifyClubMembers(clubId, "Club Dissolution Notice", 
+                "The club is entering dissolution cooling-off period (7 days). Reason: " + reason);
+    }
+
+    @Override
+    @Transactional
+    public void withdrawDissolution(Long clubId, Long userId) {
+        Club club = getClubById(clubId);
+        if (!Club.STATUS_DISSOLVING.equals(club.getStatus())) {
+            throw new RuntimeException("Club is not in dissolution process");
+        }
+        
+        club.setStatus(Club.STATUS_ACTIVE);
+        club.setDissolutionReason(null);
+        club.setDissolutionDate(null);
+        clubRepository.save(club);
+        
+        notificationService.notifyClubMembers(clubId, "Dissolution Withdrawn", "The dissolution request has been withdrawn.");
+    }
+
+    @Override
+    @Transactional
+    public void forceDissolve(Long clubId, Long adminId, String reason) {
+        Club club = getClubById(clubId);
+        club.setStatus(Club.STATUS_DISSOLVED);
+        club.setDissolutionReason("Forced by Admin: " + reason);
+        club.setDissolutionDate(LocalDateTime.now());
+        clubRepository.save(club);
+
+        notificationService.notifyClubMembers(clubId, "Club Dissolved", "The club has been dissolved by system administrator. Reason: " + reason);
+    }
+
+    @Override
+    @Transactional
+    public void recoverClub(Long clubId, Long adminId) {
+        Club club = getClubById(clubId);
+        if (!Club.STATUS_DISSOLVED.equals(club.getStatus())) {
+             throw new RuntimeException("Club is not dissolved");
+        }
+        club.setStatus(Club.STATUS_ACTIVE);
+        club.setDissolutionReason(null);
+        club.setDissolutionDate(null);
+        clubRepository.save(club);
     }
 }

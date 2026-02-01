@@ -1,5 +1,6 @@
 package com.cloud.community.club.service.impl;
 
+import com.cloud.community.core.entity.Club;
 import com.cloud.community.club.service.PermissionService;
 import com.cloud.community.core.entity.RecruitApplication;
 import com.cloud.community.core.entity.RecruitBatch;
@@ -29,6 +30,7 @@ public class RecruitServiceImpl implements RecruitService {
     @Transactional
     public RecruitBatch createBatch(RecruitBatch batch, Long operatorId) {
         permissionService.checkClubAdmin(operatorId, batch.getClub().getId());
+        permissionService.checkClubActive(batch.getClub().getId());
         return batchRepository.save(batch);
     }
 
@@ -44,11 +46,18 @@ public class RecruitServiceImpl implements RecruitService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public java.util.List<Club> getRecruitingClubs() {
+        return batchRepository.findClubsWithActiveRecruitment(java.time.LocalDateTime.now());
+    }
+
+    @Override
     @Transactional
     public void addFormField(RecruitFormField field, Long operatorId) {
         RecruitBatch batch = batchRepository.findById(field.getBatch().getId())
                 .orElseThrow(() -> new RuntimeException("Recruit Batch not found"));
         permissionService.checkClubAdmin(operatorId, batch.getClub().getId());
+        permissionService.checkClubActive(batch.getClub().getId());
         formFieldRepository.save(field);
     }
 
@@ -65,6 +74,7 @@ public class RecruitServiceImpl implements RecruitService {
                 .orElseThrow(() -> new RuntimeException("Recruit Batch not found"));
         
         // 2. Check if batch is active
+        permissionService.checkClubActive(batch.getClub().getId());
         java.time.LocalDateTime now = java.time.LocalDateTime.now();
         if (now.isBefore(batch.getStartTime())) {
             throw new RuntimeException("Recruitment has not started yet");
@@ -106,6 +116,7 @@ public class RecruitServiceImpl implements RecruitService {
                 .orElseThrow(() -> new RuntimeException("Application not found"));
         
         permissionService.checkClubAdmin(operatorId, app.getBatch().getClub().getId());
+        permissionService.checkClubActive(app.getBatch().getClub().getId());
         
         app.setFirstReviewStatus(pass ? "PASSED" : "REJECTED");
         app.setFirstReviewComment(comment);
@@ -119,6 +130,7 @@ public class RecruitServiceImpl implements RecruitService {
                 .orElseThrow(() -> new RuntimeException("Application not found"));
         
         permissionService.checkClubAdmin(operatorId, app.getBatch().getClub().getId());
+        permissionService.checkClubActive(app.getBatch().getClub().getId());
         
         app.setFinalReviewStatus(pass ? "PASSED" : "REJECTED");
         app.setFinalReviewComment(comment);

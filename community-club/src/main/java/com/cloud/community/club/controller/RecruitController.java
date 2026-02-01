@@ -1,18 +1,21 @@
 package com.cloud.community.club.controller;
 
 import com.cloud.community.core.common.Result;
+import com.cloud.community.core.entity.Club;
 import com.cloud.community.core.entity.RecruitApplication;
 import com.cloud.community.core.entity.RecruitBatch;
 import com.cloud.community.core.entity.RecruitFormField;
 import com.cloud.community.core.entity.User;
 import com.cloud.community.club.service.RecruitService;
 import com.cloud.community.club.service.UserService;
+import com.cloud.community.core.model.vo.ClubVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/recruit")
@@ -88,5 +91,12 @@ public class RecruitController {
         User user = getCurrentUser();
         recruitService.reviewApplicationFinal(id, pass, comment, user.getId());
         return Result.success();
+    }
+
+    @GetMapping("/active-clubs")
+    public Result<List<ClubVO>> getRecruitingClubs() {
+        return Result.success(recruitService.getRecruitingClubs().stream()
+                .map(ClubVO::from)
+                .collect(Collectors.toList()));
     }
 }
