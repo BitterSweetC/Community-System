@@ -1,7 +1,6 @@
 package com.cloud.community.club.controller;
 
 import com.cloud.community.core.common.Result;
-import com.cloud.community.core.entity.Club;
 import com.cloud.community.core.repository.ActivityRepository;
 import com.cloud.community.core.repository.ClubRepository;
 import com.cloud.community.core.repository.MemberRepository;
@@ -13,8 +12,12 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 @RestController
 @RequestMapping("/api/stats")
@@ -36,38 +39,39 @@ public class StatsController {
         stats.put("totalUsers", userRepository.count());
         stats.put("totalActivities", activityRepository.count());
         
-        long activeClubs = clubRepository.findAll().stream()
-                .filter(c -> "ACTIVE".equals(c.getStatus()))
-                .count();
-        stats.put("activeClubs", activeClubs);
+        // Optimized: Count directly in DB
+        stats.put("activeClubs", clubRepository.countByStatus("ACTIVE"));
         
         // 2. Club Status Distribution
-        Map<String, Long> clubStatusDistribution = clubRepository.findAll().stream()
-                .collect(java.util.stream.Collectors.groupingBy(
-                        Club::getStatus,
-                        java.util.stream.Collectors.counting()
-                ));
+        // Optimized: Group By in DB
+        Map<String, Long> clubStatusDistribution = new HashMap<>();
+        List<Object[]> statusCounts = clubRepository.countStatusDistribution();
+        for (Object[] row : statusCounts) {
+            String status = (String) row[0];
+            Number count = (Number) row[1];
+            clubStatusDistribution.put(status, count.longValue());
+        }
         stats.put("clubStatusDistribution", clubStatusDistribution);
         
-        // 3. User Growth (Last 7 Days) - Assuming created_at exists on User, otherwise mock or skip
-        // Note: User entity extends BaseEntity so it has getCreatedAt()
-        java.time.LocalDateTime now = java.time.LocalDateTime.now();
-        Map<String, Long> userGrowth = new java.util.TreeMap<>();
-        java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("MM-dd");
+        // 3. User Growth (Last 7 Days)
+        // Optimized: Group By in DB
+        LocalDateTime now = LocalDateTime.now();
+        Map<String, Long> userGrowth = new TreeMap<>();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM-dd");
         
         // Initialize last 7 days
         for (int i = 6; i >= 0; i--) {
             userGrowth.put(now.minusDays(i).format(formatter), 0L);
         }
         
-        // This is inefficient for large datasets, but acceptable for demo/small scale
-        // In production, use a native query with group by date
-        userRepository.findAll().stream()
-                .filter(u -> u.getCreatedAt() != null && u.getCreatedAt().isAfter(now.minusDays(7)))
-                .forEach(u -> {
-                    String dateKey = u.getCreatedAt().format(formatter);
-                    userGrowth.put(dateKey, userGrowth.getOrDefault(dateKey, 0L) + 1);
-                });
+        List<Object[]> growthCounts = userRepository.countUserGrowth(now.minusDays(7));
+        for (Object[] row : growthCounts) {
+            String dateStr = (String) row[0]; // "MM-dd" from SQL
+            Number count = (Number) row[1];
+            if (userGrowth.containsKey(dateStr)) {
+                userGrowth.put(dateStr, count.longValue());
+            }
+        }
         stats.put("userGrowth", userGrowth);
 
         return Result.success(stats);
@@ -79,28 +83,28 @@ public class StatsController {
         Map<String, Object> stats = new HashMap<>();
         
         // 1. Basic counts
-        java.util.List<com.cloud.community.core.entity.Member> members = memberRepository.findByClubId(clubId);
-        java.util.List<com.cloud.community.core.entity.Activity> activities = activityRepository.findByClubId(clubId);
-        
-        long memberCount = members.size();
-        long activityCount = activities.size();
+        // Optimized: Count directly in DB
+        long memberCount = memberRepository.countByClubId(clubId);
+        long activityCount = activityRepository.countByClubId(clubId);
         
         stats.put("memberCount", memberCount);
         stats.put("activityCount", activityCount);
         
         // 2. Role Distribution
-        Map<String, Long> roleDistribution = members.stream()
-                .collect(java.util.stream.Collectors.groupingBy(
-                        com.cloud.community.core.entity.Member::getRoleCode,
-                        java.util.stream.Collectors.counting()
-                ));
+        // Optimized: Group By in DB
+        Map<String, Long> roleDistribution = new HashMap<>();
+        List<Object[]> roleCounts = memberRepository.countRoleDistribution(clubId);
+        for (Object[] row : roleCounts) {
+            String role = (String) row[0];
+            Number count = (Number) row[1];
+            roleDistribution.put(role, count.longValue());
+        }
         stats.put("roleDistribution", roleDistribution);
         
         // 3. Activity Status (Upcoming vs Past)
-        java.time.LocalDateTime now = java.time.LocalDateTime.now();
-        long upcomingActivities = activities.stream()
-                .filter(a -> a.getStartTime().isAfter(now))
-                .count();
+        LocalDateTime now = LocalDateTime.now();
+        // Optimized: Count directly in DB
+        long upcomingActivities = activityRepository.countByClubIdAndStartTimeAfter(clubId, now);
         long pastActivities = activityCount - upcomingActivities;
         
         Map<String, Long> activityStats = new HashMap<>();
@@ -109,20 +113,23 @@ public class StatsController {
         stats.put("activityStats", activityStats);
 
         // 4. Recent Joins (Last 7 days)
-        Map<String, Long> recentJoins = new java.util.TreeMap<>();
-        java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("MM-dd");
+        // Optimized: Group By in DB
+        Map<String, Long> recentJoins = new TreeMap<>();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM-dd");
         
         // Initialize last 7 days with 0
         for (int i = 6; i >= 0; i--) {
             recentJoins.put(now.minusDays(i).format(formatter), 0L);
         }
         
-        members.stream()
-                .filter(m -> m.getJoinAt() != null && m.getJoinAt().isAfter(now.minusDays(7)))
-                .forEach(m -> {
-                    String dateKey = m.getJoinAt().format(formatter);
-                    recentJoins.put(dateKey, recentJoins.getOrDefault(dateKey, 0L) + 1);
-                });
+        List<Object[]> joinCounts = memberRepository.countMemberJoinTrend(clubId, now.minusDays(7));
+        for (Object[] row : joinCounts) {
+            String dateStr = (String) row[0];
+            Number count = (Number) row[1];
+            if (recentJoins.containsKey(dateStr)) {
+                recentJoins.put(dateStr, count.longValue());
+            }
+        }
                 
         stats.put("recentJoins", recentJoins);
         

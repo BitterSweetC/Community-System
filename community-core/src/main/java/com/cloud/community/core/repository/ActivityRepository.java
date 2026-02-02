@@ -10,4 +10,8 @@ public interface ActivityRepository extends JpaRepository<Activity, Long> {
     org.springframework.data.domain.Page<Activity> findByClubId(Long clubId, org.springframework.data.domain.Pageable pageable);
 
     boolean existsByClubIdAndStatusIn(Long clubId, java.util.Collection<String> statuses);
+
+    long countByClubId(Long clubId);
+
+    long countByClubIdAndStartTimeAfter(Long clubId, java.time.LocalDateTime time);
 }

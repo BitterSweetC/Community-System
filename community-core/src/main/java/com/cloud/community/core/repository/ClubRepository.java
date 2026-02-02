@@ -20,4 +20,9 @@ public interface ClubRepository extends JpaRepository<Club, Long> {
     org.springframework.data.domain.Page<Club> findByCategoryAndStatus(String category, String status, org.springframework.data.domain.Pageable pageable);
     org.springframework.data.domain.Page<Club> findByNameContainingIgnoreCaseAndCategoryAndStatus(String name, String category, String status, org.springframework.data.domain.Pageable pageable);
     org.springframework.data.domain.Page<Club> findByNameContainingIgnoreCaseAndStatus(String name, String status, org.springframework.data.domain.Pageable pageable);
+
+    long countByStatus(String status);
+
+    @org.springframework.data.jpa.repository.Query("SELECT c.status, COUNT(c) FROM Club c GROUP BY c.status")
+    List<Object[]> countStatusDistribution();
 }
