@@ -3,7 +3,7 @@ package com.cloud.community.gateway.controller;
 import com.cloud.community.core.common.Result;
 import com.cloud.community.core.entity.User;
 import com.cloud.community.gateway.security.JwtUtils;
-import com.cloud.community.club.service.UserService;
+import com.cloud.community.user.service.UserService;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;

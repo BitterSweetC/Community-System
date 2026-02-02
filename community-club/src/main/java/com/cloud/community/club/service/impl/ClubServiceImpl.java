@@ -9,7 +9,7 @@ import com.cloud.community.core.repository.UserRepository;
 import com.cloud.community.club.service.ClubService;
 import com.cloud.community.core.entity.Role;
 import com.cloud.community.core.repository.RoleRepository;
-import com.cloud.community.club.service.NotificationService;
+import com.cloud.community.notice.service.NotificationService;
 import com.cloud.community.club.service.FinanceService;
 import com.cloud.community.core.repository.ActivityRepository;
 import lombok.RequiredArgsConstructor;

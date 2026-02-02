@@ -21,6 +21,10 @@
         <module>community-admin</module>
         <module>community-club</module>
         <module>community-gateway</module>
+        <module>community-user</module>
+        <module>community-notice</module>
+        <module>community-activity</module>
+        <module>community-recruit</module>
     </modules>
 
     <properties>

@@ -21,5 +21,25 @@
             <groupId>com.cloud</groupId>
             <artifactId>community-club</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.cloud</groupId>
+            <artifactId>community-user</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.cloud</groupId>
+            <artifactId>community-activity</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.cloud</groupId>
+            <artifactId>community-recruit</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.cloud</groupId>
+            <artifactId>community-notice</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 </project>
