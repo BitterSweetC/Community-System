@@ -1,6 +1,7 @@
 package com.cloud.community.activity.service;
 
 import com.cloud.community.core.entity.Activity;
+import com.cloud.community.core.entity.ActivityAttendance;
 import com.cloud.community.core.entity.ActivitySignup;
 
 import java.util.List;
@@ -16,6 +17,7 @@ public interface ActivityService {
     void signup(Long activityId, Long userId);
     void signIn(Long activityId, Long userId);
     List<ActivitySignup> getSignups(Long activityId);
+    List<ActivityAttendance> getAttendances(Long activityId);
     List<ActivitySignup> getUserSignups(Long userId);
     void deleteActivity(Long id);
 }

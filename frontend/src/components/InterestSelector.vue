@@ -3,27 +3,22 @@
     <div 
       v-for="interest in displayInterests" 
       :key="interest.name"
-      class="interest-tag"
+      class="interest-card"
       :class="{ 
         'selected': isSelected(interest.name), 
         'readonly': readonly,
         'clickable': !readonly
       }"
-      :style="isSelected(interest.name) ? { backgroundColor: interest.color, borderColor: interest.color } : {}"
+      :style="isSelected(interest.name) ? { borderColor: interest.color } : {}"
       @click="toggleInterest(interest.name)"
     >
       <div class="icon-circle" :style="{ 
-        backgroundColor: isSelected(interest.name) ? '#fff' : interest.color,
-        color: isSelected(interest.name) ? interest.color : '#fff'
+        backgroundColor: interest.color,
+        color: '#fff'
       }">
         {{ interest.name.charAt(0).toUpperCase() }}
       </div>
       <span class="interest-name">{{ interest.name }}</span>
-      
-      <!-- Check mark for selected items -->
-      <div v-if="isSelected(interest.name)" class="check-mark">
-        <el-icon><Check /></el-icon>
-      </div>
     </div>
   </div>
 </template>
@@ -111,82 +106,76 @@ const toggleInterest = (name) => {
 .interest-selector {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 16px;
 }
 
-.interest-tag {
+.interest-card {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  padding: 6px 16px 6px 6px; /* Left padding smaller for icon */
-  background-color: #fff;
-  border: 1px solid #dcdfe6;
-  border-radius: 9999px; /* Capsule shape */
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  padding: 8px;
+  
+  /* Glassmorphism Style */
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+  
+  border-radius: 50%;
   cursor: default;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   user-select: none;
   position: relative; /* For check mark positioning */
+  box-sizing: border-box;
 }
 
-.interest-tag.clickable {
+.interest-card.clickable {
   cursor: pointer;
 }
 
-.interest-tag.clickable:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+.interest-card.clickable:hover {
+  border-color: rgba(255, 255, 255, 0.9);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.15);
+  background: rgba(255, 255, 255, 0.4);
 }
 
-.interest-tag.selected {
-  /* Default style if no inline style applied, but we use inline style for color */
-  border-color: transparent;
-  color: white;
-  padding-right: 24px; /* Space for check mark */
+.interest-card.selected {
+  /* Border color is set by inline style to match interest color */
+  background: rgba(255, 255, 255, 0.6);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.15);
+  border-width: 2px;
 }
 
 .icon-circle {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 8px;
+  margin-bottom: 4px; /* Space between icon and text */
   font-size: 12px;
   font-weight: bold;
   color: white;
   transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .interest-name {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 500;
+  color: #606266;
+  text-align: center;
 }
 
-.check-mark {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  background-color: white;
-  color: var(--color-primary, #409EFF); /* Or inherit from parent color if possible, but simple white bg is safer */
-  border-radius: 50%;
-  width: 16px;
-  height: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-  border: 1px solid #eee;
-}
-
-/* Adjust checkmark color to match interest color? 
-   Since we can't easily access the parent's inline color here, 
-   we can use a neutral color or rely on the parent's text color if we use currentColor.
-   Let's try using the text color of the tag (which is white) for checkmark BG, and tag BG for checkmark color?
-   No, tag text is white. 
-   Let's make checkmark: White Background, Gray Icon or Black Icon.
-*/
-.check-mark {
-  color: #67c23a; /* Success green */
+.interest-card.selected .interest-name {
+  color: #303133;
+  font-weight: 600;
 }
 </style>

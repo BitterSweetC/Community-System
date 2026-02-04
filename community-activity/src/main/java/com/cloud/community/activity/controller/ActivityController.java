@@ -7,17 +7,24 @@ import com.cloud.community.core.entity.ActivitySignup;
 import com.cloud.community.core.entity.Club;
 import com.cloud.community.core.entity.User;
 import com.cloud.community.core.model.dto.ActivityCreateDTO;
+import com.cloud.community.core.entity.ActivityAttendance;
+import com.cloud.community.core.model.vo.ActivityCheckInExportVO;
 import com.cloud.community.core.model.vo.ActivityVO;
 import com.cloud.community.core.model.vo.MySignupActivityVO;
+import com.alibaba.excel.EasyExcel;
 import com.cloud.community.activity.service.ActivityService;
 import com.cloud.community.user.service.PermissionService;
 import com.cloud.community.user.service.UserService;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @RestController
@@ -100,6 +107,40 @@ public class ActivityController {
             permissionService.checkSystemAdmin(user.getId());
         }
         return Result.success(activityService.getSignups(id));
+    }
+
+    @GetMapping("/{id}/checkins/export")
+    public void exportCheckIns(@PathVariable Long id, HttpServletResponse response) throws IOException {
+        User user = getCurrentUser();
+        Activity activity = activityService.getActivityById(id);
+        if (activity.getClub() != null) {
+            permissionService.checkClubAdmin(user.getId(), activity.getClub().getId());
+        } else {
+            permissionService.checkSystemAdmin(user.getId());
+        }
+
+        List<ActivityAttendance> attendances = activityService.getAttendances(id);
+
+        List<ActivityCheckInExportVO> exportList = attendances.stream().map(a -> {
+            ActivityCheckInExportVO vo = new ActivityCheckInExportVO();
+            vo.setActivityName(a.getActivity().getTitle());
+            vo.setStudentId(a.getUser().getUsername());
+            vo.setRealName(a.getUser().getRealName());
+            vo.setSignTime(a.getSignTime().toString());
+            vo.setSource(a.getSource());
+            return vo;
+        }).toList();
+
+        response.setContentType("application/vnd.ms-excel");
+        response.setCharacterEncoding("utf-8");
+        String fileName = URLEncoder.encode("Activity_CheckIns", StandardCharsets.UTF_8).replaceAll("\\+", "%20");
+        response.setHeader("Content-disposition", "attachment;filename*=utf-8''" + fileName + ".xlsx");
+
+        EasyExcel.write(response.getOutputStream(), ActivityCheckInExportVO.class)
+                .sheet("CheckIns")
+                .doWrite(exportList);
+        
+        response.getOutputStream().flush();
     }
 
     @GetMapping("/my-signups")

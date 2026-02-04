@@ -1,8 +1,10 @@
 package com.cloud.community.activity.service.impl;
 
 import com.cloud.community.core.entity.Activity;
+import com.cloud.community.core.entity.ActivityAttendance;
 import com.cloud.community.core.entity.ActivitySignup;
 import com.cloud.community.core.entity.User;
+import com.cloud.community.core.repository.ActivityAttendanceRepository;
 import com.cloud.community.core.repository.ActivityRepository;
 import com.cloud.community.core.repository.ActivitySignupRepository;
 import com.cloud.community.core.repository.UserRepository;
@@ -13,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -21,6 +24,7 @@ public class ActivityServiceImpl implements ActivityService {
 
     private final ActivityRepository activityRepository;
     private final ActivitySignupRepository signupRepository;
+    private final ActivityAttendanceRepository attendanceRepository;
     private final UserRepository userRepository;
     private final PermissionService permissionService;
     private final NotificationService notificationService;
@@ -98,6 +102,14 @@ public class ActivityServiceImpl implements ActivityService {
         signup.setStatus("SIGNED_IN");
         signupRepository.save(signup);
 
+        // Record attendance
+        ActivityAttendance attendance = new ActivityAttendance();
+        attendance.setActivity(signup.getActivity());
+        attendance.setUser(signup.getUser());
+        attendance.setSignTime(LocalDateTime.now());
+        attendance.setSource("WEB"); // Default source
+        attendanceRepository.save(attendance);
+
         // Send notification
         notificationService.sendNotification(
             userId, 
@@ -110,6 +122,11 @@ public class ActivityServiceImpl implements ActivityService {
     @Override
     public List<ActivitySignup> getSignups(Long activityId) {
         return signupRepository.findByActivityId(activityId);
+    }
+
+    @Override
+    public List<ActivityAttendance> getAttendances(Long activityId) {
+        return attendanceRepository.findByActivityId(activityId);
     }
 
     @Override

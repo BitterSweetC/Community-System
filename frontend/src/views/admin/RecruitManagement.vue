@@ -16,6 +16,9 @@
       </el-tab-pane>
       
       <el-tab-pane label="申请审核" name="applications">
+        <div style="margin-bottom: 20px" v-if="applications.length > 0">
+           <el-button type="success" @click="exportApplications">导出报名表</el-button>
+        </div>
         <el-table :data="applications">
            <el-table-column prop="user.username" label="用户" />
            <el-table-column prop="firstReviewStatus" label="初审" />
@@ -58,6 +61,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from '@/api/axios'
+import { ElMessage } from 'element-plus'
 
 const route = useRoute()
 const clubId = route.params.clubId
@@ -65,6 +69,7 @@ const activeTab = ref('batches')
 const batches = ref([])
 const applications = ref([])
 const createBatchDialog = ref(false)
+const currentBatchId = ref(null)
 const batchForm = ref({
   title: '',
   startTime: '',
@@ -83,8 +88,30 @@ const submitBatch = async () => {
 }
 
 const loadApplications = async (batchId) => {
+  currentBatchId.value = batchId
   applications.value = await axios.get(`/recruit/applications?batchId=${batchId}`)
   activeTab.value = 'applications'
+}
+
+const exportApplications = async () => {
+  if (!currentBatchId.value) {
+    ElMessage.warning('请先选择一个招新批次')
+    return
+  }
+  try {
+    const res = await axios.get(`/recruit/batches/${currentBatchId.value}/applications/export`, {
+      responseType: 'blob'
+    })
+    const url = window.URL.createObjectURL(new Blob([res]))
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', `Recruitment_Applications_${currentBatchId.value}.xlsx`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  } catch (error) {
+    ElMessage.error('导出失败')
+  }
 }
 
 const review = async (id, stage, pass) => {

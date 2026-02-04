@@ -8,7 +8,7 @@
     <el-tabs v-model="activeTab" class="notification-tabs">
       <el-tab-pane label="All" name="all">
         <div class="notification-list">
-            <el-card v-for="item in notifications" :key="item.id" class="notification-item" :class="{ unread: !item.read }">
+            <el-card v-for="item in notifications" :key="item.id" class="notification-item" :class="{ unread: !item.isRead }">
                 <div class="notification-icon">
                     <span v-if="item.type === 'SYSTEM'">🔔</span>
                     <span v-else-if="item.type === 'CLUB'">📢</span>
@@ -20,7 +20,7 @@
                     <span class="notification-time">{{ formatDate(item.createdAt) }}</span>
                 </div>
                 <div class="notification-action">
-                    <el-button v-if="!item.read" size="small" circle icon="Check" @click="markRead(item)" />
+                    <el-button v-if="!item.isRead" size="small" circle icon="Check" @click="markRead(item)" />
                 </div>
             </el-card>
             <el-empty v-if="notifications.length === 0" description="No notifications" />
@@ -38,7 +38,9 @@
 import { ref, onMounted } from 'vue'
 import axios from '@/api/axios'
 import { ElMessage } from 'element-plus'
+import { useNotificationStore } from '@/stores/notification'
 
+const notificationStore = useNotificationStore()
 const activeTab = ref('all')
 const notifications = ref([])
 
@@ -72,7 +74,8 @@ const markRead = async (item) => {
     console.log('Marking as read:', item)
     try {
         await axios.put(`/notifications/${item.id}/read`)
-        item.read = true
+        item.isRead = true
+        notificationStore.decrementCount()
         ElMessage.success('已标记为已读')
     } catch (e) {
         console.error('Failed to mark as read', e)
@@ -83,7 +86,8 @@ const markRead = async (item) => {
 const markAllRead = async () => {
     try {
         await axios.put('/notifications/read-all')
-        notifications.value.forEach(n => n.read = true)
+        notifications.value.forEach(n => n.isRead = true)
+        notificationStore.clearCount()
         ElMessage.success('全部已读')
     } catch (e) {
         console.error('Failed to mark all as read', e)

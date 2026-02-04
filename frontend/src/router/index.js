@@ -145,6 +145,11 @@ const router = createRouter({
             component: () => import('@/views/admin/RecruitManagement.vue')
         },
         {
+            path: 'members/:clubId',
+            name: 'club-admin-members',
+            component: () => import('@/views/admin/MemberManagement.vue')
+        },
+        {
             path: 'notices/:clubId?',
             name: 'club-admin-notices',
             component: () => import('@/views/admin/NoticeManagement.vue')

@@ -10,7 +10,7 @@
           <template v-if="authStore.token">
               <router-link to="/user/create-club" class="nav-item">创建社团</router-link>
               <router-link to="/user/notifications" class="nav-icon">
-                <el-badge :is-dot="unreadCount > 0" class="notification-badge">
+                <el-badge :value="notificationStore.unreadCount" :hidden="notificationStore.unreadCount === 0" class="notification-badge">
                    <span>🔔</span>
                 </el-badge>
               </router-link>
@@ -57,13 +57,24 @@
 
 <script setup>
 import { useAuthStore } from '@/stores/auth'
+import { useNotificationStore } from '@/stores/notification'
 import { useRouter } from 'vue-router'
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import ChatWidget from '@/components/ChatWidget.vue'
 
 const authStore = useAuthStore()
+const notificationStore = useNotificationStore()
 const router = useRouter()
 const isScrolled = ref(false)
+
+// Watch for token changes to re-fetch when user logs in
+watch(() => authStore.token, (newToken) => {
+  if (newToken) {
+    notificationStore.fetchUnreadCount()
+  } else {
+    notificationStore.clearCount()
+  }
+})
 
 const handleLogout = () => {
   authStore.logout()
@@ -90,6 +101,9 @@ const handleScroll = () => {
 
 onMounted(() => {
   window.addEventListener('scroll', handleScroll)
+  if (authStore.token) {
+    notificationStore.fetchUnreadCount()
+  }
 })
 
 onUnmounted(() => {

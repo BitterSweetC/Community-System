@@ -1,0 +1,28 @@
+version: '3.8'
+services:
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    container_name: community-rabbitmq
+    ports:
+      - "5672:5672"   # AMQP port
+      - "15672:15672" # Management UI
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    restart: always
+
+  redis:
+    image: redis:7.2
+    container_name: community-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --requirepass ""
+    volumes:
+      - redis_data:/data
+    restart: always
+
+volumes:
+  rabbitmq_data:
+  redis_data:

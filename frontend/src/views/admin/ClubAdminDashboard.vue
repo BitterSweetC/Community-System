@@ -33,6 +33,14 @@
                   size="small" 
                   :disabled="isClubDisabled(club.status)"
                   :title="isClubDisabled(club.status) ? '社团处于非活跃状态，功能已冻结' : ''"
+                  @click.stop="$router.push(`/clubadmin/members/${club.id}`)"
+                >
+                  成员管理
+                </el-button>
+                <el-button 
+                  size="small" 
+                  :disabled="isClubDisabled(club.status)"
+                  :title="isClubDisabled(club.status) ? '社团处于非活跃状态，功能已冻结' : ''"
                   @click.stop="$router.push(`/clubadmin/notices/${club.id}`)"
                 >
                   发布公告

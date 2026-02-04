@@ -8,11 +8,17 @@ import com.cloud.community.core.entity.User;
 import com.cloud.community.recruit.service.RecruitService;
 import com.cloud.community.user.service.UserService;
 import com.cloud.community.core.model.vo.ClubVO;
+import com.cloud.community.core.model.vo.RecruitApplicationExportVO;
+import com.alibaba.excel.EasyExcel;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -97,5 +103,33 @@ public class RecruitController {
         return Result.success(recruitService.getRecruitingClubs().stream()
                 .map(ClubVO::from)
                 .collect(Collectors.toList()));
+    }
+
+    @GetMapping("/batches/{batchId}/applications/export")
+    public void exportApplications(@PathVariable Long batchId, HttpServletResponse response) throws IOException {
+        User user = getCurrentUser();
+        List<RecruitApplication> applications = recruitService.getApplicationsByBatch(batchId, user.getId());
+
+        List<RecruitApplicationExportVO> exportList = applications.stream().map(app -> {
+            RecruitApplicationExportVO vo = new RecruitApplicationExportVO();
+            vo.setBatchName(app.getBatch().getTitle());
+            vo.setStudentId(app.getUser().getUsername());
+            vo.setRealName(app.getUser().getRealName());
+            vo.setFirstReviewStatus(app.getFirstReviewStatus());
+            vo.setFinalReviewStatus(app.getFinalReviewStatus());
+            vo.setCreateTime(app.getCreatedAt().toString());
+            return vo;
+        }).collect(Collectors.toList());
+
+        response.setContentType("application/vnd.ms-excel");
+        response.setCharacterEncoding("utf-8");
+        String fileName = URLEncoder.encode("Recruitment_Applications", StandardCharsets.UTF_8).replaceAll("\\+", "%20");
+        response.setHeader("Content-disposition", "attachment;filename*=utf-8''" + fileName + ".xlsx");
+
+        EasyExcel.write(response.getOutputStream(), RecruitApplicationExportVO.class)
+                .sheet("Applications")
+                .doWrite(exportList);
+        
+        response.getOutputStream().flush();
     }
 }

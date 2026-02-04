@@ -27,5 +27,9 @@
             <artifactId>community-user</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>easyexcel</artifactId>
+        </dependency>
     </dependencies>
 </project>

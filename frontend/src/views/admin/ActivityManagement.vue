@@ -19,8 +19,9 @@
         </template>
       </el-table-column>
       <el-table-column prop="location" label="地点" />
-      <el-table-column label="操作">
+      <el-table-column label="操作" width="250">
         <template #default="scope">
+          <el-button type="success" size="small" @click="exportCheckIns(scope.row.id)">导出签到</el-button>
           <el-popconfirm 
             title="确定要删除这个活动吗？"
             @confirm="deleteActivity(scope.row.id)"
@@ -162,6 +163,23 @@ const deleteActivity = async (id) => {
     loadActivities()
   } catch (error) {
     ElMessage.error('删除失败')
+  }
+}
+
+const exportCheckIns = async (activityId) => {
+  try {
+    const res = await axios.get(`/activities/${activityId}/checkins/export`, {
+      responseType: 'blob'
+    })
+    const url = window.URL.createObjectURL(new Blob([res]))
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', `Activity_CheckIns_${activityId}.xlsx`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  } catch (error) {
+    ElMessage.error('导出失败')
   }
 }
 

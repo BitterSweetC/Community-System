@@ -7,16 +7,22 @@ import com.cloud.community.core.entity.Member;
 import com.cloud.community.core.entity.User;
 import com.cloud.community.core.model.dto.ClubCreateDTO;
 import com.cloud.community.core.model.dto.ClubUpdateDTO;
+import com.cloud.community.core.model.vo.ClubMemberExportVO;
 import com.cloud.community.core.model.vo.ClubVO;
+import com.alibaba.excel.EasyExcel;
 import com.cloud.community.club.service.ClubService;
 import com.cloud.community.user.service.PermissionService;
 import com.cloud.community.user.service.UserService;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -111,6 +117,36 @@ public class ClubController {
         // I will leave Member as is for now or wrap it if I had MemberVO.
         // Given time constraints, I focus on Club and Activity main flows.
         return Result.success(clubService.getClubMembers(id));
+    }
+
+    @GetMapping("/{id}/members/export")
+    public void exportMembers(@PathVariable Long id, HttpServletResponse response) throws IOException {
+        User user = getCurrentUser();
+        permissionService.checkClubAdmin(user.getId(), id);
+
+        List<Member> members = clubService.getClubMembers(id);
+
+        List<ClubMemberExportVO> exportList = members.stream().map(m -> {
+            ClubMemberExportVO vo = new ClubMemberExportVO();
+            vo.setClubName(m.getClub().getName());
+            vo.setRealName(m.getUser().getRealName());
+            vo.setStudentId(m.getUser().getUsername());
+            vo.setRole(m.getRoleCode());
+            vo.setStatus(m.getStatus());
+            vo.setJoinTime(m.getJoinAt().toString());
+            return vo;
+        }).collect(Collectors.toList());
+
+        response.setContentType("application/vnd.ms-excel");
+        response.setCharacterEncoding("utf-8");
+        String fileName = URLEncoder.encode("Club_Members", StandardCharsets.UTF_8).replaceAll("\\+", "%20");
+        response.setHeader("Content-disposition", "attachment;filename*=utf-8''" + fileName + ".xlsx");
+
+        EasyExcel.write(response.getOutputStream(), ClubMemberExportVO.class)
+                .sheet("Members")
+                .doWrite(exportList);
+        
+        response.getOutputStream().flush();
     }
 
     @PutMapping("/{id}/members/{userId}/role")
