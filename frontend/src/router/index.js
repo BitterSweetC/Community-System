@@ -69,6 +69,11 @@ const router = createRouter({
               component: () => import('@/views/student/UserProfileView.vue')
             },
             {
+              path: 'avatar',
+              name: 'user-avatar',
+              component: () => import('@/views/student/UserAvatarView.vue')
+            },
+            {
               path: 'applications',
               name: 'my-applications',
               component: () => import('@/views/student/MyApplicationsView.vue')

@@ -14,6 +14,10 @@
             <el-icon><User /></el-icon>
             <span>个人资料</span>
           </el-menu-item>
+          <el-menu-item index="/user/avatar">
+            <el-icon><Picture /></el-icon>
+            <span>我的头像</span>
+          </el-menu-item>
           <el-menu-item index="/user/applications">
             <el-icon><Document /></el-icon>
             <span>我的申请</span>
@@ -56,7 +60,7 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { User, Document, Bell, Plus, School, HomeFilled, Calendar } from '@element-plus/icons-vue'
+import { User, Document, Bell, Plus, School, HomeFilled, Calendar, Picture } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const authStore = useAuthStore()

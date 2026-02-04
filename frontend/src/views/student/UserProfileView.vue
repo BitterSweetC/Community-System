@@ -16,64 +16,35 @@
       </template>
 
       <el-form :model="form" label-position="top" :disabled="!isEditing">
-        <!-- Avatar Upload Section -->
-        <div class="avatar-upload-container">
-          <el-upload
-            class="avatar-uploader"
-            action="#"
-            :show-file-list="false"
-            :http-request="uploadAvatar"
-            :before-upload="beforeAvatarUpload"
-            :disabled="!isEditing"
-          >
-            <div v-if="form.avatarUrl" class="avatar-wrapper">
-               <el-avatar :size="100" :src="form.avatarUrl" />
-               <div class="avatar-overlay" v-if="isEditing">
-                 <el-icon><Camera /></el-icon>
-                 <span>更换头像</span>
-               </div>
-            </div>
-            <div v-else class="avatar-placeholder">
-               <el-icon class="avatar-uploader-icon"><Plus /></el-icon>
-               <span>上传头像</span>
-            </div>
-          </el-upload>
-        </div>
+        
+        <el-form-item label="用户名">
+          <el-input v-model="form.username" disabled />
+        </el-form-item>
 
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="用户名">
-              <el-input v-model="form.username" disabled />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="真实姓名">
-              <el-input v-model="form.realName" />
-            </el-form-item>
-          </el-col>
-        </el-row>
+        <el-form-item label="真实姓名">
+          <el-input v-model="form.realName" />
+        </el-form-item>
 
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="手机号码">
-              <el-input v-model="form.mobile" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="状态">
-               <el-tag :type="form.status === 'ACTIVE' ? 'success' : 'danger'">{{ form.status }}</el-tag>
-            </el-form-item>
-          </el-col>
-        </el-row>
+        <el-form-item label="手机号码">
+          <el-input v-model="form.mobile" />
+        </el-form-item>
+
+        <el-form-item label="状态">
+           <el-tag :type="form.status === 'ACTIVE' ? 'success' : 'danger'">{{ form.status }}</el-tag>
+        </el-form-item>
 
         <el-form-item label="兴趣爱好">
-          <InterestSelector v-model="selectedInterests" :readonly="!isEditing" />
+          <div v-if="selectedInterests.length > 0 || isEditing">
+            <InterestSelector v-model="selectedInterests" :readonly="!isEditing" />
+          </div>
+          <div v-else class="empty-text">暂无兴趣爱好</div>
         </el-form-item>
 
         <el-form-item label="角色">
-          <div class="roles-tags">
+          <div class="roles-tags" v-if="roles.length > 0">
             <el-tag v-for="role in roles" :key="role" class="role-tag">{{ role }}</el-tag>
           </div>
+          <div v-else class="empty-text">暂无角色</div>
         </el-form-item>
 
         <div class="form-actions" v-if="isEditing">
@@ -89,7 +60,6 @@ import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import axios from '@/api/axios'
 import { ElMessage } from 'element-plus'
-import { Plus, Camera } from '@element-plus/icons-vue'
 import InterestSelector from '@/components/InterestSelector.vue'
 
 const authStore = useAuthStore()
@@ -106,57 +76,12 @@ const form = ref({
   avatarUrl: ''
 })
 
-// Helper to process interests string <-> array
-const updateInterestsFromStr = (str) => {
-  if (!str) {
-    selectedInterests.value = []
+const updateInterestsFromStr = (interestsStr) => {
+  if (interestsStr && interestsStr.trim() !== '') {
+    selectedInterests.value = interestsStr.split(',').map(i => i.trim())
   } else {
-    selectedInterests.value = str.split(',').filter(s => s)
+    selectedInterests.value = []
   }
-}
-
-// Avatar Upload Logic
-const beforeAvatarUpload = (rawFile) => {
-  const isImage = rawFile.type.startsWith('image/')
-  const isLt2M = rawFile.size / 1024 / 1024 < 2
-
-  if (!isImage) {
-    ElMessage.error('头像必须是图片格式!')
-    return false
-  }
-  if (!isLt2M) {
-    ElMessage.error('头像大小不能超过 2MB!')
-    return false
-  }
-  return true
-}
-
-const uploadAvatar = async (options) => {
-  const { file } = options
-  const formData = new FormData()
-  formData.append('file', file)
-
-  try {
-    // Calling the new upload API
-    const url = await axios.post('/files/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    })
-    
-    console.log('Upload response URL:', url)
-    form.value.avatarUrl = url
-    ElMessage.success('头像上传成功')
-  } catch (error) {
-    console.error('Upload failed:', error)
-    ElMessage.error('头像上传失败')
-  }
-}
-
-const handleAvatarError = () => {
-  console.error('Avatar image failed to load:', form.value.avatarUrl)
-  ElMessage.warning('头像加载失败，请检查网络或图片格式')
-  return true
 }
 
 onMounted(async () => {
@@ -181,11 +106,16 @@ onMounted(async () => {
     const res = await axios.get('/users/me')
     // Update form with fresh data
     if (res) {
+        form.value.username = res.username
         form.value.realName = res.realName
         form.value.mobile = res.mobile
+        form.value.status = res.status
         form.value.avatarUrl = res.avatarUrl
         updateInterestsFromStr(res.interests)
-        // Update other fields if needed, but username/status usually don't change
+        
+        if (res.roles) {
+            roles.value = res.roles.map(r => r.name || r.code || r)
+        }
     }
   } catch (e) {
       console.error('Failed to fetch user profile', e)
@@ -326,5 +256,11 @@ const saveProfile = async () => {
 .avatar-uploader-icon {
   font-size: 24px;
   margin-bottom: 4px;
+}
+
+.empty-text {
+  color: var(--el-text-color-secondary);
+  font-size: 0.9rem;
+  font-style: italic;
 }
 </style>
