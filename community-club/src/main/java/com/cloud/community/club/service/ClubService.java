@@ -14,6 +14,13 @@ public interface ClubService {
     Club updateClub(Long id, Club club);
     List<Club> searchClubs(String keyword);
     List<Club> searchClubs(String keyword, String category);
+
+    /**
+     * Get recommended clubs based on user interests or popularity.
+     * @param userId current user ID (nullable)
+     * @return list of recommended clubs
+     */
+    List<Club> getRecommendedClubs(Long userId);
     
     // Pagination
     org.springframework.data.domain.Page<Club> searchClubs(String keyword, String category, int page, int size);

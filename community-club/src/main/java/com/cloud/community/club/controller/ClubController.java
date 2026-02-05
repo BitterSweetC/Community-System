@@ -73,6 +73,19 @@ public class ClubController {
         return Result.success(result.map(ClubVO::from));
     }
 
+    @GetMapping("/recommended")
+    public Result<List<ClubVO>> getRecommendedClubs() {
+        Long userId = null;
+        try {
+            User user = getCurrentUser();
+            userId = user.getId();
+        } catch (Exception e) {
+            // User not authenticated or not found, proceed with null userId
+        }
+        List<Club> clubs = clubService.getRecommendedClubs(userId);
+        return Result.success(clubs.stream().map(ClubVO::from).collect(Collectors.toList()));
+    }
+
     @PutMapping("/{id}")
     public Result<ClubVO> updateClub(@PathVariable Long id, @RequestBody ClubUpdateDTO dto) {
         User user = getCurrentUser();

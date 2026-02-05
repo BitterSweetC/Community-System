@@ -67,7 +67,7 @@
         </el-form>
       </div>
 
-      <div v-else-if="activeStep === 1" class="success-state">
+      <div v-else-if="activeStep === 2" class="success-state">
         <el-result
           icon="success"
           title="申请已提交"
@@ -123,7 +123,7 @@ const submit = async () => {
       loading.value = true
       try {
         await axios.post('/clubs', form)
-        activeStep.value = 1
+        activeStep.value = 2
         ElMessage.success('申请提交成功')
       } catch (error) {
         ElMessage.error('提交失败: ' + error.message)

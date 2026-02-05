@@ -7,12 +7,15 @@ import com.cloud.community.core.repository.NoticeRepository;
 import com.cloud.community.core.repository.UserRepository;
 import com.cloud.community.core.entity.User;
 import com.cloud.community.user.service.PermissionService;
+import com.cloud.community.core.model.dto.NotificationMessageDTO;
+import com.cloud.community.core.constant.RabbitConstants;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.core.context.SecurityContextHolder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
 import java.util.List;
 
@@ -25,6 +28,7 @@ public class NoticeController {
     private final NoticeRepository noticeRepository;
     private final UserRepository userRepository;
     private final PermissionService permissionService;
+    private final RabbitTemplate rabbitTemplate;
 
     private User getCurrentUser() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -60,7 +64,24 @@ public class NoticeController {
         }
         notice.setPublishedBy(user.getId());
         notice.setStatus("PUBLISHED"); // Default to published for simplicity
-        return Result.success(noticeRepository.save(notice));
+        notice.setPublishedAt(java.time.LocalDateTime.now());
+        Notice savedNotice = noticeRepository.save(notice);
+
+        // Send broadcast notification if it's a club notice
+        if (savedNotice.getClubId() != null) {
+            try {
+                NotificationMessageDTO message = new NotificationMessageDTO();
+                message.setClubId(savedNotice.getClubId());
+                message.setTitle("New Club Announcement");
+                message.setContent(savedNotice.getTitle());
+                message.setType("CLUB");
+                rabbitTemplate.convertAndSend(RabbitConstants.NOTIFICATION_EXCHANGE, RabbitConstants.CLUB_BROADCAST_ROUTING_KEY, message);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        return Result.success(savedNotice);
     }
 
     @DeleteMapping("/{id}")

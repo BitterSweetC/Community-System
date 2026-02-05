@@ -12,13 +12,20 @@ import com.cloud.community.core.repository.RoleRepository;
 import com.cloud.community.notice.service.NotificationService;
 import com.cloud.community.club.service.FinanceService;
 import com.cloud.community.core.repository.ActivityRepository;
+import com.cloud.community.core.model.dto.NotificationMessageDTO;
+import com.cloud.community.core.constant.RabbitConstants;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +37,7 @@ public class ClubServiceImpl implements ClubService {
     private final NotificationService notificationService;
     private final FinanceService financeService;
     private final ActivityRepository activityRepository;
+    private final RabbitTemplate rabbitTemplate;
     
     @org.springframework.beans.factory.annotation.Autowired
     private RoleRepository roleRepository;
@@ -65,9 +73,44 @@ public class ClubServiceImpl implements ClubService {
     }
 
     @Override
+    @Transactional
     public Club getClubById(Long id) {
+        clubRepository.incrementVisitCount(id);
         return clubRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Club not found"));
+    }
+
+    @Override
+    public List<Club> getRecommendedClubs(Long userId) {
+        // 1. Try to recommend by interests if user is logged in
+        if (userId != null) {
+            User user = userRepository.findById(userId).orElse(null);
+            if (user != null && user.getInterests() != null && !user.getInterests().isEmpty()) {
+                // Split interests by comma, space, etc.
+                List<String> interests = Arrays.asList(user.getInterests().split("[,，\\s]+"));
+                // Filter empty strings
+                interests = interests.stream().filter(s -> !s.trim().isEmpty()).collect(Collectors.toList());
+                
+                if (!interests.isEmpty()) {
+                    List<Club> byInterest = clubRepository.findByStatusAndCategoryIn("ACTIVE", interests);
+                    if (!byInterest.isEmpty()) {
+                        return byInterest;
+                    }
+                }
+            }
+        }
+        
+        // 2. Fallback to popular (top 10 by visit count)
+        List<Club> popular = clubRepository.findByStatus("ACTIVE", 
+            PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "visitCount"))).getContent();
+            
+        if (!popular.isEmpty()) {
+            return popular;
+        }
+        
+        // 3. Last resort: Just return newest active clubs
+        return clubRepository.findByStatus("ACTIVE", 
+            PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "createTime"))).getContent();
     }
 
     @Override
@@ -142,6 +185,18 @@ public class ClubServiceImpl implements ClubService {
         if (!creator.getRoles().contains(clubAdminRole)) {
             creator.getRoles().add(clubAdminRole);
             userRepository.save(creator);
+        }
+
+        // Send notification
+        try {
+            NotificationMessageDTO message = new NotificationMessageDTO();
+            message.setUserId(club.getCreatedBy());
+            message.setTitle("Club Creation Approved");
+            message.setContent("Your club creation application for " + club.getName() + " has been approved!");
+            message.setType("SYSTEM");
+            rabbitTemplate.convertAndSend(RabbitConstants.NOTIFICATION_EXCHANGE, RabbitConstants.COMMON_NOTIFICATION_ROUTING_KEY, message);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 

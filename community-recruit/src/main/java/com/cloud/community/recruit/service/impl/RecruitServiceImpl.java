@@ -8,11 +8,15 @@ import com.cloud.community.core.entity.RecruitFormField;
 import com.cloud.community.core.repository.RecruitApplicationRepository;
 import com.cloud.community.core.repository.RecruitBatchRepository;
 import com.cloud.community.core.repository.RecruitFormFieldRepository;
+import com.cloud.community.core.repository.MemberRepository;
 import com.cloud.community.club.service.ClubService;
 import com.cloud.community.recruit.service.RecruitService;
+import com.cloud.community.core.model.dto.NotificationMessageDTO;
+import com.cloud.community.core.constant.RabbitConstants;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
 import java.util.List;
 
@@ -23,8 +27,10 @@ public class RecruitServiceImpl implements RecruitService {
     private final RecruitBatchRepository batchRepository;
     private final RecruitFormFieldRepository formFieldRepository;
     private final RecruitApplicationRepository applicationRepository;
+    private final MemberRepository memberRepository;
     private final ClubService clubService;
     private final PermissionService permissionService;
+    private final RabbitTemplate rabbitTemplate;
 
     @Override
     @Transactional
@@ -89,8 +95,13 @@ public class RecruitServiceImpl implements RecruitService {
                 application.getUser().getId()).isPresent()) {
             throw new RuntimeException("Already applied to this batch");
         }
+
+        // 4. Check if already a member of the club
+        if (memberRepository.findByClubIdAndUserId(batch.getClub().getId(), application.getUser().getId()).isPresent()) {
+            throw new RuntimeException("You are already a member of this club");
+        }
         
-        // 4. Set full batch object to application
+        // 5. Set full batch object to application
         application.setBatch(batch);
         
         applicationRepository.save(application);
@@ -121,6 +132,21 @@ public class RecruitServiceImpl implements RecruitService {
         app.setFirstReviewStatus(pass ? "PASSED" : "REJECTED");
         app.setFirstReviewComment(comment);
         applicationRepository.save(app);
+
+        // Send notification
+        try {
+            NotificationMessageDTO message = new NotificationMessageDTO();
+            message.setUserId(app.getUser().getId());
+            message.setTitle("Recruitment First Review Result");
+            message.setContent(pass ? 
+                "Congratulations! You have passed the first review for " + app.getBatch().getClub().getName() :
+                "Sorry, you did not pass the first review for " + app.getBatch().getClub().getName() + ". Reason: " + comment);
+            message.setType("SYSTEM");
+            rabbitTemplate.convertAndSend(RabbitConstants.NOTIFICATION_EXCHANGE, RabbitConstants.COMMON_NOTIFICATION_ROUTING_KEY, message);
+        } catch (Exception e) {
+            // Log error but don't fail transaction
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -147,5 +173,20 @@ public class RecruitServiceImpl implements RecruitService {
         }
         
         applicationRepository.save(app);
+
+        // Send notification
+        try {
+            NotificationMessageDTO message = new NotificationMessageDTO();
+            message.setUserId(app.getUser().getId());
+            message.setTitle("Recruitment Final Review Result");
+            message.setContent(pass ? 
+                "Congratulations! You have been accepted into " + app.getBatch().getClub().getName() :
+                "Sorry, you did not pass the final review for " + app.getBatch().getClub().getName() + ". Reason: " + comment);
+            message.setType("SYSTEM");
+            rabbitTemplate.convertAndSend(RabbitConstants.NOTIFICATION_EXCHANGE, RabbitConstants.COMMON_NOTIFICATION_ROUTING_KEY, message);
+        } catch (Exception e) {
+            // Log error but don't fail transaction
+            e.printStackTrace();
+        }
     }
 }

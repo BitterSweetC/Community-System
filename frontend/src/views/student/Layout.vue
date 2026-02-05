@@ -11,7 +11,7 @@
               <router-link to="/user/create-club" class="nav-item">创建社团</router-link>
               <router-link to="/user/notifications" class="nav-icon">
                 <el-badge :value="notificationStore.unreadCount" :hidden="notificationStore.unreadCount === 0" class="notification-badge">
-                   <span>🔔</span>
+                   <span :class="{ 'shake-animation': isShaking }" style="display: inline-block;">🔔</span>
                 </el-badge>
               </router-link>
               <div class="user-profile">
@@ -66,18 +66,49 @@ const authStore = useAuthStore()
 const notificationStore = useNotificationStore()
 const router = useRouter()
 const isScrolled = ref(false)
+const isShaking = ref(false)
+let pollingInterval = null
 
 // Watch for token changes to re-fetch when user logs in
 watch(() => authStore.token, (newToken) => {
   if (newToken) {
     notificationStore.fetchUnreadCount()
+    startPolling()
   } else {
     notificationStore.clearCount()
+    stopPolling()
   }
 })
 
+// Watch for unread count changes to trigger shake animation
+watch(() => notificationStore.unreadCount, (newVal, oldVal) => {
+  if (newVal > oldVal) {
+    isShaking.value = true
+    setTimeout(() => {
+      isShaking.value = false
+    }, 500)
+  }
+})
+
+const startPolling = () => {
+  stopPolling()
+  if (authStore.token) {
+    pollingInterval = setInterval(() => {
+      notificationStore.fetchUnreadCount()
+    }, 5000) // Poll every 5 seconds
+  }
+}
+
+const stopPolling = () => {
+  if (pollingInterval) {
+    clearInterval(pollingInterval)
+    pollingInterval = null
+  }
+}
+
 const handleLogout = () => {
   authStore.logout()
+  stopPolling()
   router.push('/login')
 }
 
@@ -103,11 +134,13 @@ onMounted(() => {
   window.addEventListener('scroll', handleScroll)
   if (authStore.token) {
     notificationStore.fetchUnreadCount()
+    startPolling()
   }
 })
 
 onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll)
+  stopPolling()
 })
 </script>
 
@@ -265,5 +298,17 @@ onUnmounted(() => {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+@keyframes shake {
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(15deg); }
+  50% { transform: rotate(0deg); }
+  75% { transform: rotate(-15deg); }
+  100% { transform: rotate(0deg); }
+}
+
+.shake-animation {
+  animation: shake 0.5s ease-in-out;
 }
 </style>

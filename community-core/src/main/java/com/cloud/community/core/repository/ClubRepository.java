@@ -2,8 +2,12 @@ package com.cloud.community.core.repository;
 
 import com.cloud.community.core.entity.Club;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 
 public interface ClubRepository extends JpaRepository<Club, Long> {
@@ -25,4 +29,10 @@ public interface ClubRepository extends JpaRepository<Club, Long> {
 
     @org.springframework.data.jpa.repository.Query("SELECT c.status, COUNT(c) FROM Club c GROUP BY c.status")
     List<Object[]> countStatusDistribution();
+
+    @Modifying
+    @Query("UPDATE Club c SET c.visitCount = COALESCE(c.visitCount, 0) + 1 WHERE c.id = :id")
+    void incrementVisitCount(@Param("id") Long id);
+
+    List<Club> findByStatusAndCategoryIn(String status, Collection<String> categories);
 }

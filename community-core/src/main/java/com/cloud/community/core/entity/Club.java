@@ -50,6 +50,9 @@ public class Club extends BaseEntity {
     @Column(name = "dissolution_date")
     private LocalDateTime dissolutionDate;
 
+    @Column(name = "visit_count")
+    private Integer visitCount = 0;
+
     @ElementCollection
     @CollectionTable(name = "t_club_tag", joinColumns = @JoinColumn(name = "club_id"))
     @Column(name = "tag")

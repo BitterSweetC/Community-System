@@ -78,6 +78,7 @@ CREATE TABLE `t_club` (
   `created_by` bigint NOT NULL,
   `dissolution_reason` varchar(255) DEFAULT NULL,
   `dissolution_date` datetime(6) DEFAULT NULL,
+  `visit_count` int DEFAULT '0',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_club_name` (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

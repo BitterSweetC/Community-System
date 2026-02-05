@@ -11,7 +11,10 @@ import com.cloud.community.core.repository.UserRepository;
 import com.cloud.community.activity.service.ActivityService;
 import com.cloud.community.notice.service.NotificationService;
 import com.cloud.community.user.service.PermissionService;
+import com.cloud.community.core.constant.RabbitConstants;
+import com.cloud.community.core.model.dto.NotificationMessageDTO;
 import lombok.RequiredArgsConstructor;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +31,7 @@ public class ActivityServiceImpl implements ActivityService {
     private final UserRepository userRepository;
     private final PermissionService permissionService;
     private final NotificationService notificationService;
+    private final RabbitTemplate rabbitTemplate;
 
     @Override
     @Transactional
@@ -80,13 +84,24 @@ public class ActivityServiceImpl implements ActivityService {
         
         signupRepository.save(signup);
 
-        // Send notification
-        notificationService.sendNotification(
-            userId, 
-            "活动报名成功", 
-            "您已成功报名活动：" + activity.getTitle(), 
-            "ACTIVITY"
-        );
+        // Send notification asynchronously via RabbitMQ
+        try {
+            NotificationMessageDTO message = new NotificationMessageDTO();
+            message.setUserId(userId);
+            message.setTitle("活动报名成功");
+            message.setContent("您已成功报名活动：" + activity.getTitle());
+            message.setType("ACTIVITY");
+
+            rabbitTemplate.convertAndSend(
+                    RabbitConstants.NOTIFICATION_EXCHANGE,
+                    RabbitConstants.ACTIVITY_SIGNUP_ROUTING_KEY,
+                    message
+            );
+        } catch (Exception e) {
+            // Log error but don't fail the transaction
+            // Ideally we should have a fallback or retry mechanism
+            System.err.println("Failed to send notification message: " + e.getMessage());
+        }
     }
 
     @Override
@@ -139,6 +154,22 @@ public class ActivityServiceImpl implements ActivityService {
     public void deleteActivity(Long id) {
         Activity activity = getActivityById(id);
         permissionService.checkClubActive(activity.getClub().getId());
+        
+        // Notify signed up users
+        List<ActivitySignup> signups = signupRepository.findByActivityId(id);
+        for (ActivitySignup signup : signups) {
+            try {
+                NotificationMessageDTO message = new NotificationMessageDTO();
+                message.setUserId(signup.getUser().getId());
+                message.setTitle("Activity Cancelled");
+                message.setContent("The activity '" + activity.getTitle() + "' you signed up for has been cancelled.");
+                message.setType("SYSTEM");
+                rabbitTemplate.convertAndSend(RabbitConstants.NOTIFICATION_EXCHANGE, RabbitConstants.COMMON_NOTIFICATION_ROUTING_KEY, message);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        
         activityRepository.deleteById(id);
     }
 }
