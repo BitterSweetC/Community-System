@@ -21,6 +21,11 @@ instance.interceptors.request.use(
 
 instance.interceptors.response.use(
   (response) => {
+    // Check if response is blob
+    if (response.config.responseType === 'blob') {
+      return response.data
+    }
+
     const res = response.data
     if (res.code === 200) {
       return res.data

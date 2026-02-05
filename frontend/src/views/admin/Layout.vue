@@ -20,6 +20,7 @@
                  <span>{{ club.name }}</span>
                </template>
                <el-menu-item :index="`/clubadmin/recruit/${club.id}`">招新管理</el-menu-item>
+               <el-menu-item :index="`/clubadmin/members/${club.id}`">成员管理</el-menu-item>
                <el-menu-item :index="`/clubadmin/notices/${club.id}`">公告管理</el-menu-item>
                <el-menu-item :index="`/clubadmin/activities/${club.id}`">活动管理</el-menu-item>
              </el-sub-menu>
