@@ -7,6 +7,7 @@ import com.cloud.community.core.entity.User;
 import com.cloud.community.core.repository.ActivityAttendanceRepository;
 import com.cloud.community.core.repository.ActivityRepository;
 import com.cloud.community.core.repository.ActivitySignupRepository;
+import com.cloud.community.core.repository.MemberRepository;
 import com.cloud.community.core.repository.UserRepository;
 import com.cloud.community.activity.service.ActivityService;
 import com.cloud.community.notice.service.NotificationService;
@@ -29,6 +30,7 @@ public class ActivityServiceImpl implements ActivityService {
     private final ActivitySignupRepository signupRepository;
     private final ActivityAttendanceRepository attendanceRepository;
     private final UserRepository userRepository;
+    private final MemberRepository memberRepository;
     private final PermissionService permissionService;
     private final NotificationService notificationService;
     private final RabbitTemplate rabbitTemplate;
@@ -74,6 +76,13 @@ public class ActivityServiceImpl implements ActivityService {
         }
         
         Activity activity = getActivityById(activityId);
+
+        // Check if user is a member of the club
+        boolean isMember = memberRepository.findByClubIdAndUserId(activity.getClub().getId(), userId).isPresent();
+        if (!isMember) {
+            throw new IllegalArgumentException("请先加入" + activity.getClub().getName() + "社团");
+        }
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         

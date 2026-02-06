@@ -228,7 +228,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import axios from '@/api/axios'
 import { Search, Calendar, Plus, Bell } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import InterestSelector from '@/components/InterestSelector.vue'
 
 const router = useRouter()
@@ -333,7 +333,14 @@ const handleActivitySignup = async (activity) => {
         await axios.post(`/activities/${activity.id}/signup`)
         ElMessage.success('报名成功')
     } catch (error) {
-        ElMessage.error('报名失败: ' + error.message)
+        if (error.message && error.message.includes('请先加入')) {
+            ElMessageBox.alert(error.message, '提示', {
+                confirmButtonText: '确定',
+                type: 'warning'
+            })
+        } else {
+            ElMessage.error('报名失败: ' + error.message)
+        }
     }
 }
 

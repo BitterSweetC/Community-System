@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
+import router from '@/router'
 
 const instance = axios.create({
   baseURL: '/api',
@@ -37,6 +38,12 @@ instance.interceptors.response.use(
   },
   (error) => {
     console.error('API Error:', error)
+    
+    // Extract backend error message if available
+    if (error.response && error.response.data && error.response.data.message) {
+        error.message = error.response.data.message
+    }
+
     if (error.response && (error.response.status === 401 || error.response.status === 403)) {
         const authStore = useAuthStore()
         authStore.logout()

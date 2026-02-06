@@ -119,7 +119,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from '@/api/axios'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 
 const authStore = useAuthStore()
@@ -261,7 +261,14 @@ const performSignUp = async (activity) => {
         await axios.post(`/activities/${activity.id}/signup`)
         ElMessage.success('报名成功')
     } catch (e) {
-        ElMessage.warning('报名失败: ' + (e.message || '未知错误'))
+        if (e.message && e.message.includes('请先加入')) {
+            ElMessageBox.alert(e.message, '提示', {
+                confirmButtonText: '确定',
+                type: 'warning'
+            })
+        } else {
+            ElMessage.warning('报名失败: ' + (e.message || '未知错误'))
+        }
     }
 }
 
