@@ -12,14 +12,14 @@
     <div class="filter-bar">
       <el-form :inline="true" class="search-form">
         <el-form-item label="社团名称">
-          <el-input v-model="searchKeyword" placeholder="请输入社团名称">
+          <el-input v-model="searchKeyword" placeholder="请输入社团名称" style="width: 200px;">
             <template #prefix>
               <el-icon><Search /></el-icon>
             </template>
           </el-input>
         </el-form-item>
-        <el-form-item label="所属类别">
-          <el-select v-model="selectedCategory" placeholder="全部类别" clearable>
+        <el-form-item label="所属类别" class="category-filter-item">
+          <el-select v-model="selectedCategory" placeholder="全部类别" clearable style="width: 160px;">
             <el-option v-for="cat in categories" :key="cat" :label="cat" :value="cat" />
           </el-select>
         </el-form-item>

@@ -11,6 +11,7 @@
           <el-menu-item index="/admin" v-if="isAdmin">仪表盘</el-menu-item>
           <el-menu-item v-if="isAdmin" index="/admin/clubs">社团管理</el-menu-item>
           <el-menu-item v-if="isAdmin" index="/admin/notices">公告管理</el-menu-item>
+          <el-menu-item v-if="isAdmin" index="/admin/resources">资源审批</el-menu-item>
           
           <el-menu-item index="/clubadmin" v-if="isClubAdmin">仪表盘</el-menu-item>
           
@@ -23,6 +24,7 @@
                <el-menu-item :index="`/clubadmin/members/${club.id}`">成员管理</el-menu-item>
                <el-menu-item :index="`/clubadmin/notices/${club.id}`">公告管理</el-menu-item>
                <el-menu-item :index="`/clubadmin/activities/${club.id}`">活动管理</el-menu-item>
+               <el-menu-item :index="`/clubadmin/resources/${club.id}`">资源管理</el-menu-item>
              </el-sub-menu>
           </template>
 

@@ -126,6 +126,11 @@ const router = createRouter({
             path: 'activities/:clubId?',
             name: 'admin-activities',
             component: () => import('@/views/admin/ActivityManagement.vue')
+        },
+        {
+            path: 'resources',
+            name: 'admin-resources',
+            component: () => import('@/views/admin/AdminResourceApproval.vue')
         }
       ]
     },
@@ -158,6 +163,11 @@ const router = createRouter({
             path: 'activities/:clubId?',
             name: 'club-admin-activities',
             component: () => import('@/views/admin/ActivityManagement.vue')
+        },
+        {
+            path: 'resources/:clubId',
+            name: 'club-admin-resources',
+            component: () => import('@/views/admin/ResourceManagement.vue')
         }
       ]
     }

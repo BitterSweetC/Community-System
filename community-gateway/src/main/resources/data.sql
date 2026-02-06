@@ -67,16 +67,16 @@ INSERT INTO `t_user_role` (`user_id`, `role_id`)
 SELECT u.id, r.id FROM `t_user` u, `t_role` r WHERE u.username LIKE 'club_admin%' AND r.code = 'CLUB_ADMIN';
 
 -- 4. Initialize Clubs
-INSERT INTO `t_club` (`name`, `short_name`, `category`, `description`, `founded_year`, `status`, `created_by`, `logo_url`, `created_at`, `updated_at`, `visit_count`) 
-SELECT '编程俱乐部', 'Coding Club', '学术科技', '编程俱乐部致力于推广计算机技术，组织编程比赛和技术分享会。', 2020, 'ACTIVE', u.id, 'https://placeholder.com/coding.png', NOW(), NOW(), 100
+INSERT INTO `t_club` (`name`, `short_name`, `category`, `description`, `founded_year`, `status`, `created_by`, `logo_url`, `created_at`, `updated_at`, `visit_count`, `balance`) 
+SELECT '编程俱乐部', 'Coding Club', '学术科技', '编程俱乐部致力于推广计算机技术，组织编程比赛和技术分享会。', 2020, 'ACTIVE', u.id, 'https://placeholder.com/coding.png', NOW(), NOW(), 100, 1000.00
 FROM `t_user` u WHERE u.username = 'club_admin';
 
-INSERT INTO `t_club` (`name`, `short_name`, `category`, `description`, `founded_year`, `status`, `created_by`, `logo_url`, `created_at`, `updated_at`, `visit_count`) 
-SELECT '吉他社', 'Guitar Society', '文化艺术', '吉他社聚集了热爱音乐的同学，每周举办教学和演出活动。', 2021, 'ACTIVE', u.id, 'https://placeholder.com/guitar.png', NOW(), NOW(), 80
+INSERT INTO `t_club` (`name`, `short_name`, `category`, `description`, `founded_year`, `status`, `created_by`, `logo_url`, `created_at`, `updated_at`, `visit_count`, `balance`) 
+SELECT '吉他社', 'Guitar Society', '文化艺术', '吉他社聚集了热爱音乐的同学，每周举办教学和演出活动。', 2021, 'ACTIVE', u.id, 'https://placeholder.com/guitar.png', NOW(), NOW(), 80, 500.00
 FROM `t_user` u WHERE u.username = 'club_admin';
 
-INSERT INTO `t_club` (`name`, `short_name`, `category`, `description`, `founded_year`, `status`, `created_by`, `logo_url`, `created_at`, `updated_at`, `visit_count`) 
-SELECT '篮球协会', 'Basketball Assoc', '体育竞技', '篮球协会定期举办校内联赛，丰富同学们的课余生活。', 2019, 'ACTIVE', u.id, 'https://placeholder.com/basketball.png', NOW(), NOW(), 60
+INSERT INTO `t_club` (`name`, `short_name`, `category`, `description`, `founded_year`, `status`, `created_by`, `logo_url`, `created_at`, `updated_at`, `visit_count`, `balance`) 
+SELECT '篮球协会', 'Basketball Assoc', '体育竞技', '篮球协会定期举办校内联赛，丰富同学们的课余生活。', 2019, 'ACTIVE', u.id, 'https://placeholder.com/basketball.png', NOW(), NOW(), 60, 200.00
 FROM `t_user` u WHERE u.username = 'club_admin';
 
 -- 5. Initialize Members (Club Admin as President)
