@@ -17,4 +17,5 @@ public class ActivityCreateDTO {
     private LocalDateTime signupEndTime;
     private Integer maxParticipants;
     private Boolean needAttendance;
+    private String checkinCode;
 }

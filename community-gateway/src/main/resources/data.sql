@@ -133,3 +133,12 @@ FROM `t_user` WHERE username = 'student';
 INSERT INTO `t_notification` (`user_id`, `title`, `content`, `type`, `is_read`, `created_at`, `updated_at`)
 SELECT id, '社团审核通过', '恭喜！您申请的“编程俱乐部”已通过审核，现在可以开始招新了。', 'SYSTEM', 0, DATE_SUB(NOW(), INTERVAL 1 DAY), NOW()
 FROM `t_user` WHERE username = 'club_admin';
+
+-- 11. Initialize Resources
+INSERT INTO `t_resource` (`name`, `type`, `description`, `location`, `capacity`, `total_quantity`, `status`, `created_at`, `updated_at`) VALUES 
+('活动中心301', 'VENUE', '多媒体会议室，适合小型讲座和会议', '活动中心3楼', 50, NULL, 'AVAILABLE', NOW(), NOW()),
+('活动中心405', 'VENUE', '排练厅，带镜子和木地板', '活动中心4楼', 30, NULL, 'AVAILABLE', NOW(), NOW()),
+('东区操场', 'VENUE', '标准足球场和跑道', '东区', 500, NULL, 'AVAILABLE', NOW(), NOW()),
+('便携式投影仪', 'MATERIAL', '高清投影仪，附带幕布', NULL, NULL, 5, 'AVAILABLE', NOW(), NOW()),
+('专业音响套装', 'MATERIAL', '包含两个音箱和调音台', NULL, NULL, 2, 'AVAILABLE', NOW(), NOW()),
+('折叠桌椅', 'MATERIAL', '户外活动用桌椅套装', NULL, NULL, 20, 'AVAILABLE', NOW(), NOW());

@@ -131,6 +131,11 @@ const router = createRouter({
             path: 'resources',
             name: 'admin-resources',
             component: () => import('@/views/admin/AdminResourceApproval.vue')
+        },
+        {
+            path: 'resources/definitions',
+            name: 'admin-resource-definitions',
+            component: () => import('@/views/admin/AdminResourceDefinition.vue')
         }
       ]
     },

@@ -30,6 +30,7 @@
                   <template #dropdown>
                     <el-dropdown-menu>
                       <el-dropdown-item command="profile">个人资料</el-dropdown-item>
+                      <el-dropdown-item command="activities">我的活动</el-dropdown-item>
                       <el-dropdown-item command="messages">我的消息</el-dropdown-item>
                       <el-dropdown-item divided command="logout">退出登录</el-dropdown-item>
                     </el-dropdown-menu>
@@ -116,6 +117,9 @@ const handleCommand = (command) => {
   switch (command) {
     case 'profile':
       router.push('/user/profile')
+      break
+    case 'activities':
+      router.push('/user/activities')
       break
     case 'messages':
       router.push('/user/notifications')

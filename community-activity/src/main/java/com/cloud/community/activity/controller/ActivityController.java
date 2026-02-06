@@ -78,6 +78,11 @@ public class ActivityController {
         return Result.success(PageResult.of(activityService.getAllActivities(page, size)).map(ActivityVO::from));
     }
 
+    @GetMapping("/club/{clubId}")
+    public Result<List<ActivityVO>> getClubActivities(@PathVariable Long clubId) {
+        return Result.success(activityService.getActivitiesByClub(clubId).stream().map(ActivityVO::from).toList());
+    }
+
     @GetMapping("/{id}")
     public Result<ActivityVO> getActivity(@PathVariable Long id) {
         return Result.success(ActivityVO.from(activityService.getActivityById(id)));
@@ -91,9 +96,10 @@ public class ActivityController {
     }
 
     @PostMapping("/{id}/signin")
-    public Result<Void> signIn(@PathVariable Long id) {
+    public Result<Void> signIn(@PathVariable Long id, @RequestBody(required = false) java.util.Map<String, String> body) {
         User user = getCurrentUser();
-        activityService.signIn(id, user.getId());
+        String code = body != null ? body.get("code") : null;
+        activityService.signIn(id, user.getId(), code);
         return Result.success();
     }
 

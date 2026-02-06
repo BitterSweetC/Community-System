@@ -79,6 +79,9 @@
         <el-form-item label="最大人数">
           <el-input-number v-model="form.maxParticipants" :min="1" />
         </el-form-item>
+        <el-form-item label="签到码">
+           <el-input v-model="form.checkinCode" placeholder="可选：设置签到码" maxlength="20" show-word-limit />
+        </el-form-item>
       </el-form>
       <template #footer>
         <span class="dialog-footer">
@@ -88,20 +91,24 @@
       </template>
     </el-dialog>
 
-    <!-- Resource Apply Dialog -->
+    <!-- Resource Dialog -->
     <el-dialog v-model="resourceDialogVisible" title="申请资源" width="500px">
       <el-form :model="resourceForm" label-width="80px">
-        <el-form-item label="类型">
-          <el-select v-model="resourceForm.type" placeholder="请选择">
-            <el-option label="场地" value="VENUE" />
-            <el-option label="物资" value="MATERIAL" />
+        <el-form-item label="资源">
+          <el-select v-model="resourceForm.resource.id" placeholder="请选择资源" @change="handleResourceChange">
+            <el-option
+              v-for="item in resources"
+              :key="item.id"
+              :label="item.name + (item.type === 'VENUE' ? ` (${item.location})` : '')"
+              :value="item.id"
+            />
           </el-select>
         </el-form-item>
-        <el-form-item label="名称">
-          <el-input v-model="resourceForm.resourceName" placeholder="如：活动中心301 / 投影仪" />
+        <el-form-item label="类型" v-if="selectedResource">
+          <el-tag>{{ selectedResource.type }}</el-tag>
         </el-form-item>
         <el-form-item label="数量">
-          <el-input-number v-model="resourceForm.quantity" :min="1" />
+          <el-input-number v-model="resourceForm.quantity" :min="1" :max="selectedResource ? (selectedResource.type === 'VENUE' ? 1 : selectedResource.totalQuantity) : 999" />
         </el-form-item>
         <el-form-item label="时间">
           <el-date-picker
@@ -110,7 +117,9 @@
             range-separator="至"
             start-placeholder="开始时间"
             end-placeholder="结束时间"
+            disabled
           />
+          <div style="font-size: 12px; color: #999">时间已锁定为活动时间</div>
         </el-form-item>
         <el-form-item label="备注">
           <el-input v-model="resourceForm.description" type="textarea" />
@@ -127,7 +136,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from '@/api/axios'
 import { ElMessage } from 'element-plus'
@@ -135,6 +144,7 @@ import { ElMessage } from 'element-plus'
 const route = useRoute()
 const clubId = route.params.clubId // If managing specific club
 const activities = ref([])
+const resources = ref([])
 const loading = ref(false)
 const dialogVisible = ref(false)
 const resourceDialogVisible = ref(false)
@@ -142,11 +152,29 @@ const resourceTimeRange = ref([])
 const resourceForm = ref({
   club: { id: null },
   activity: { id: null },
-  type: 'VENUE',
-  resourceName: '',
+  resource: { id: null },
   quantity: 1,
   description: ''
 })
+
+const selectedResource = computed(() => {
+  return resources.value.find(r => r.id === resourceForm.value.resource.id)
+})
+
+const handleResourceChange = () => {
+  if (selectedResource.value && selectedResource.value.type === 'VENUE') {
+    resourceForm.value.quantity = 1
+  }
+}
+
+const loadResources = async () => {
+  try {
+    const res = await axios.get('/resources/list')
+    resources.value = res
+  } catch (error) {
+    ElMessage.error('获取资源列表失败')
+  }
+}
 
 const form = ref({
   title: '',
@@ -156,19 +184,17 @@ const form = ref({
   endTime: '',
   location: '',
   maxParticipants: 50,
+  checkinCode: '',
   clubId: clubId ? Number(clubId) : null
 })
 
 const loadActivities = async () => {
   loading.value = true
   try {
-    const params = {}
-    if (clubId) params.clubId = clubId
-    const res = await axios.get('/activities', { params })
-    if (res.list) activities.value = res.list
-    else activities.value = res
+    const res = await axios.get(`/activities/club/${clubId}`)
+    activities.value = res
   } catch (error) {
-    console.error(error)
+    ElMessage.error('获取活动列表失败')
   } finally {
     loading.value = false
   }
@@ -197,6 +223,7 @@ const submitActivity = async () => {
       endTime: '',
       location: '',
       maxParticipants: 50,
+      checkinCode: '',
       clubId: clubId ? Number(clubId) : null
     }
     loadActivities()

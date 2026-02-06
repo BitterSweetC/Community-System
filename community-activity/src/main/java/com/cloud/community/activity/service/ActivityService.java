@@ -15,7 +15,7 @@ public interface ActivityService {
     Activity getActivityById(Long id);
     
     void signup(Long activityId, Long userId);
-    void signIn(Long activityId, Long userId);
+    void signIn(Long activityId, Long userId, String code);
     List<ActivitySignup> getSignups(Long activityId);
     List<ActivityAttendance> getAttendances(Long activityId);
     List<ActivitySignup> getUserSignups(Long userId);

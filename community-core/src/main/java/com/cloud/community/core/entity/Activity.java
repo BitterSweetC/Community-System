@@ -50,6 +50,9 @@ public class Activity extends BaseEntity {
     @Column(name = "need_attendance")
     private Boolean needAttendance = false;
 
+    @Column(name = "checkin_code", length = 20)
+    private String checkinCode;
+
     @Column(nullable = false, length = 20)
     private String status = "DRAFT";
 }

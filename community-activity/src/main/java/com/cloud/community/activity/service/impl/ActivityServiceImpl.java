@@ -106,9 +106,18 @@ public class ActivityServiceImpl implements ActivityService {
 
     @Override
     @Transactional
-    public void signIn(Long activityId, Long userId) {
+    public void signIn(Long activityId, Long userId, String code) {
         ActivitySignup signup = signupRepository.findByActivityIdAndUserId(activityId, userId)
                 .orElseThrow(() -> new RuntimeException("Signup not found"));
+
+        Activity activity = signup.getActivity();
+        
+        // Check check-in code if set
+        if (activity.getCheckinCode() != null && !activity.getCheckinCode().isEmpty()) {
+            if (code == null || !code.trim().equals(activity.getCheckinCode())) {
+                throw new RuntimeException("Invalid check-in code");
+            }
+        }
         
         if ("SIGNED_IN".equals(signup.getStatus())) {
              throw new RuntimeException("Already signed in");

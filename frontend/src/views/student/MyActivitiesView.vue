@@ -38,6 +38,20 @@
       </el-table>
     </div>
 
+    <!-- Sign In Dialog -->
+    <el-dialog v-model="signInDialogVisible" title="活动签到" width="400px">
+      <div style="text-align: center; margin-bottom: 20px;">
+         <p>请输入活动签到码进行签到</p>
+         <el-input v-model="signInCode" placeholder="请输入签到码" style="max-width: 200px" />
+      </div>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="signInDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="submitSignIn">签到</el-button>
+        </span>
+      </template>
+    </el-dialog>
+
     <el-dialog v-model="detailDialogVisible" title="活动详情" width="600px">
       <div v-if="currentActivity" class="activity-detail">
         <h3 class="detail-title">{{ currentActivity.title }}</h3>
@@ -62,6 +76,21 @@
           <div class="description">{{ currentActivity.description || '暂无介绍' }}</div>
         </div>
       </div>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button 
+            v-if="currentActivity && currentActivity.signupStatus === 'SIGNED'" 
+            type="primary" 
+            @click="openSignInDialog(currentActivity)"
+          >
+            签到
+          </el-button>
+           <el-tag v-else-if="currentActivity && currentActivity.signupStatus === 'SIGNED_IN'" type="success" size="large" style="margin-right: 10px">
+              已签到
+           </el-tag>
+           <el-button @click="detailDialogVisible = false">关闭</el-button>
+        </div>
+      </template>
     </el-dialog>
   </div>
 </template>
@@ -75,6 +104,39 @@ const activities = ref([])
 const loading = ref(false)
 const detailDialogVisible = ref(false)
 const currentActivity = ref(null)
+
+const signInDialogVisible = ref(false)
+const signInCode = ref('')
+const currentSignInActivity = ref(null)
+
+const openSignInDialog = (activity) => {
+    currentSignInActivity.value = activity
+    signInCode.value = ''
+    signInDialogVisible.value = true
+}
+
+const submitSignIn = async () => {
+    if (!currentSignInActivity.value) return
+    
+    try {
+        await axios.post(`/activities/${currentSignInActivity.value.id}/signin`, {
+            code: signInCode.value
+        })
+        ElMessage.success('签到成功')
+        signInDialogVisible.value = false
+        await fetchMyActivities() // Refresh list
+        
+        // Update currentActivity if open
+        if (currentActivity.value && currentActivity.value.id === currentSignInActivity.value.id) {
+             const updated = activities.value.find(a => a.id === currentActivity.value.id)
+             if (updated) {
+                 currentActivity.value = updated
+             }
+        }
+    } catch (error) {
+        ElMessage.error(error.message || '签到失败，请检查签到码')
+    }
+}
 
 const showDetails = (activity) => {
     currentActivity.value = activity

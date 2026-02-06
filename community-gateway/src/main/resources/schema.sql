@@ -8,6 +8,7 @@ DROP TABLE IF EXISTS `t_notice_read`;
 DROP TABLE IF EXISTS `t_notice`;
 DROP TABLE IF EXISTS `t_club_finance`;
 DROP TABLE IF EXISTS `t_resource_application`;
+DROP TABLE IF EXISTS `t_resource`;
 DROP TABLE IF EXISTS `t_recruit_application`;
 DROP TABLE IF EXISTS `t_recruit_form_field`;
 DROP TABLE IF EXISTS `t_recruit_batch`;
@@ -129,6 +130,7 @@ CREATE TABLE `t_activity` (
   `signup_end_time` datetime(6) DEFAULT NULL,
   `max_participants` int DEFAULT NULL,
   `need_attendance` bit(1) DEFAULT b'0',
+  `checkin_code` varchar(20) DEFAULT NULL,
   `status` varchar(20) NOT NULL DEFAULT 'DRAFT',
   PRIMARY KEY (`id`),
   KEY `idx_activity_club` (`club_id`),
@@ -290,15 +292,29 @@ CREATE TABLE `t_club_finance` (
   CONSTRAINT `fk_finance_club` FOREIGN KEY (`club_id`) REFERENCES `t_club` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 18. Resource Application Table
+-- 18. Resource Table
+CREATE TABLE `t_resource` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `created_at` datetime(6) NOT NULL,
+  `updated_at` datetime(6) NOT NULL,
+  `name` varchar(100) NOT NULL,
+  `type` varchar(20) NOT NULL,
+  `description` text,
+  `location` varchar(200) DEFAULT NULL,
+  `capacity` int DEFAULT NULL,
+  `total_quantity` int DEFAULT NULL,
+  `status` varchar(20) NOT NULL DEFAULT 'AVAILABLE',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 19. Resource Application Table
 CREATE TABLE `t_resource_application` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `created_at` datetime(6) NOT NULL,
   `updated_at` datetime(6) NOT NULL,
   `club_id` bigint NOT NULL,
   `activity_id` bigint DEFAULT NULL,
-  `type` varchar(20) NOT NULL,
-  `resource_name` varchar(255) NOT NULL,
+  `resource_id` bigint NOT NULL,
   `start_time` datetime(6) NOT NULL,
   `end_time` datetime(6) NOT NULL,
   `quantity` int NOT NULL DEFAULT '1',
@@ -307,8 +323,10 @@ CREATE TABLE `t_resource_application` (
   `applicant_id` bigint NOT NULL,
   `approver_id` bigint DEFAULT NULL,
   PRIMARY KEY (`id`),
-  KEY `idx_resource_club` (`club_id`),
-  KEY `idx_resource_activity` (`activity_id`),
-  CONSTRAINT `fk_resource_club` FOREIGN KEY (`club_id`) REFERENCES `t_club` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_resource_activity` FOREIGN KEY (`activity_id`) REFERENCES `t_activity` (`id`) ON DELETE SET NULL
+  KEY `idx_resource_app_club` (`club_id`),
+  KEY `idx_resource_app_activity` (`activity_id`),
+  KEY `idx_resource_app_resource` (`resource_id`),
+  CONSTRAINT `fk_resource_app_club` FOREIGN KEY (`club_id`) REFERENCES `t_club` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_resource_app_activity` FOREIGN KEY (`activity_id`) REFERENCES `t_activity` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_resource_app_resource` FOREIGN KEY (`resource_id`) REFERENCES `t_resource` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
