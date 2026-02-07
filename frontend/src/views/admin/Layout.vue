@@ -13,6 +13,7 @@
           <el-menu-item v-if="isAdmin" index="/admin/notices">公告管理</el-menu-item>
           <el-menu-item v-if="isAdmin" index="/admin/resources">资源审批</el-menu-item>
           <el-menu-item v-if="isAdmin" index="/admin/resources/definitions">资源定义</el-menu-item>
+          <el-menu-item v-if="isAdmin" index="/admin/audit">审计日志</el-menu-item>
           
           <el-menu-item index="/clubadmin" v-if="isClubAdmin">仪表盘</el-menu-item>
           

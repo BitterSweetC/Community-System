@@ -136,6 +136,11 @@ const router = createRouter({
             path: 'resources/definitions',
             name: 'admin-resource-definitions',
             component: () => import('@/views/admin/AdminResourceDefinition.vue')
+        },
+        {
+            path: 'audit',
+            name: 'admin-audit',
+            component: () => import('@/views/admin/AuditLogManagement.vue')
         }
       ]
     },

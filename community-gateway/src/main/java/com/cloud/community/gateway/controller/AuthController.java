@@ -1,5 +1,6 @@
 package com.cloud.community.gateway.controller;
 
+import com.cloud.community.core.annotation.AuditLog;
 import com.cloud.community.core.common.Result;
 import com.cloud.community.core.entity.User;
 import com.cloud.community.gateway.security.JwtUtils;
@@ -30,6 +31,7 @@ public class AuthController {
         return Result.success(userService.register(user));
     }
 
+    @AuditLog(action = "LOGIN", userId = "#result.data.user.id")
     @PostMapping("/login")
     public Result<LoginResponse> login(@RequestBody LoginRequest request) {
         Authentication authentication = authenticationManager.authenticate(

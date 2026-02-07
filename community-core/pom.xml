@@ -13,6 +13,12 @@
     <description>Core module for Community System</description>
 
     <dependencies>
+        <!-- Spring Boot AOP -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
+        </dependency>
+
         <!-- Spring Boot Web (for Exceptions/Results) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

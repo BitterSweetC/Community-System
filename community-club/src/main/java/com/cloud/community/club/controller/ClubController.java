@@ -1,5 +1,6 @@
 package com.cloud.community.club.controller;
 
+import com.cloud.community.core.annotation.AuditLog;
 import com.cloud.community.core.common.PageResult;
 import com.cloud.community.core.common.Result;
 import com.cloud.community.core.entity.Club;
@@ -108,6 +109,7 @@ public class ClubController {
         return Result.success(ClubVO.from(clubService.getClubById(id)));
     }
 
+    @AuditLog(action = "APPROVE_CLUB", resourceType = "CLUB", resourceId = "#id")
     @PostMapping("/{id}/approve")
     public Result<Void> approveClub(@PathVariable Long id) {
         User user = getCurrentUser();
@@ -162,6 +164,7 @@ public class ClubController {
         response.getOutputStream().flush();
     }
 
+    @AuditLog(action = "UPDATE_MEMBER_ROLE", resourceType = "MEMBER", resourceId = "#userId", detail = "#role")
     @PutMapping("/{id}/members/{userId}/role")
     public Result<Void> updateMemberRole(@PathVariable Long id, @PathVariable Long userId, @RequestParam String role) {
         User user = getCurrentUser();

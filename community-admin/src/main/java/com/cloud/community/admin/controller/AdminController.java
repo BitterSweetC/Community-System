@@ -1,5 +1,6 @@
 package com.cloud.community.admin.controller;
 
+import com.cloud.community.core.annotation.AuditLog;
 import com.cloud.community.core.common.Result;
 import com.cloud.community.core.entity.User;
 import com.cloud.community.core.repository.UserRepository;
@@ -44,6 +45,7 @@ public class AdminController {
         return Result.success(clubs.stream().map(ClubVO::from).collect(Collectors.toList()));
     }
 
+    @AuditLog(action = "APPROVE_CLUB", resourceType = "CLUB", resourceId = "#id")
     @PostMapping("/clubs/{id}/approve")
     public Result<Void> approveClub(@PathVariable Long id) {
         User user = getCurrentUser();
@@ -60,6 +62,7 @@ public class AdminController {
         return Result.success();
     }
 
+    @AuditLog(action = "UPDATE_USER_STATUS", resourceType = "USER", resourceId = "#id", detail = "#status")
     @PostMapping("/users/{id}/status")
     public Result<Void> updateUserStatus(@PathVariable Long id, @RequestParam String status) {
         User user = getCurrentUser();
