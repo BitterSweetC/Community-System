@@ -56,6 +56,12 @@ public class Club extends BaseEntity {
     @Column(name = "balance", precision = 10, scale = 2)
     private java.math.BigDecimal balance = java.math.BigDecimal.ZERO;
 
+    @Transient
+    private Long memberCount = 0L;
+
+    @Transient
+    private Long activityCount = 0L;
+
     @ElementCollection
     @CollectionTable(name = "t_club_tag", joinColumns = @JoinColumn(name = "club_id"))
     @Column(name = "tag")

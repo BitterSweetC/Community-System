@@ -80,10 +80,7 @@
                 <div class="info-label">社团名称(中)</div>
                 <div class="info-value">{{ currentClub.name }}</div>
             </div>
-            <div class="info-row">
-                <div class="info-label">社团名称(英)</div>
-                <div class="info-value">{{ currentClub.englishName || '-' }}</div>
-            </div>
+
             <div class="info-row">
                 <div class="info-label">社长姓名</div>
                 <div class="info-value">{{ currentClub.presidentName || '未知' }}</div>

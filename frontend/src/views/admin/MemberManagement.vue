@@ -24,20 +24,59 @@
           {{ formatDate(scope.row.joinAt) }}
         </template>
       </el-table-column>
-      <el-table-column label="操作">
+      <el-table-column label="操作" width="200">
         <template #default="scope">
-          <el-popconfirm 
-            v-if="scope.row.roleCode !== 'PRESIDENT'"
-            title="确定要移除该成员吗？"
-            @confirm="removeMember(scope.row.user.id)"
-          >
-            <template #reference>
-              <el-button type="danger" size="small">移除</el-button>
-            </template>
-          </el-popconfirm>
+          <div class="action-buttons">
+            <el-button 
+              v-if="scope.row.roleCode !== 'PRESIDENT'"
+              type="primary" 
+              link
+              size="small" 
+              @click="openRoleDialog(scope.row)"
+            >
+              修改角色
+            </el-button>
+            <el-popconfirm 
+              v-if="scope.row.roleCode !== 'PRESIDENT'"
+              title="确定要移除该成员吗？"
+              @confirm="removeMember(scope.row.user.id)"
+            >
+              <template #reference>
+                <el-button type="danger" size="small">删除</el-button>
+              </template>
+            </el-popconfirm>
+          </div>
         </template>
       </el-table-column>
     </el-table>
+
+    <!-- Role Update Dialog -->
+    <el-dialog
+      v-model="roleDialogVisible"
+      title="修改成员角色"
+      width="30%"
+    >
+      <el-form>
+        <el-form-item label="当前成员">
+          <el-input v-model="currentMemberName" disabled />
+        </el-form-item>
+        <el-form-item label="选择角色">
+          <el-select v-model="selectedRole" placeholder="请选择角色">
+            <el-option label="管理员 (MANAGER)" value="MANAGER" />
+            <el-option label="普通成员 (MEMBER)" value="MEMBER" />
+            <el-option label="副社长 (VICE_PRESIDENT)" value="VICE_PRESIDENT" />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="roleDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="updateMemberRole" :loading="updating">
+            确认
+          </el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -51,6 +90,36 @@ const route = useRoute()
 const clubId = route.params.clubId
 const members = ref([])
 const loading = ref(false)
+const roleDialogVisible = ref(false)
+const updating = ref(false)
+const selectedRole = ref('')
+const currentMember = ref(null)
+const currentMemberName = ref('')
+
+const openRoleDialog = (member) => {
+  currentMember.value = member
+  currentMemberName.value = member.user.realName || member.user.username
+  selectedRole.value = member.roleCode
+  roleDialogVisible.value = true
+}
+
+const updateMemberRole = async () => {
+  if (!currentMember.value || !selectedRole.value) return
+  
+  updating.value = true
+  try {
+    await axios.put(`/clubs/${clubId}/members/${currentMember.value.user.id}/role`, null, {
+      params: { role: selectedRole.value }
+    })
+    ElMessage.success('角色更新成功')
+    roleDialogVisible.value = false
+    loadMembers()
+  } catch (error) {
+    ElMessage.error(error.response?.data?.message || '更新失败')
+  } finally {
+    updating.value = false
+  }
+}
 
 const loadMembers = async () => {
   loading.value = true
@@ -111,5 +180,10 @@ onMounted(loadMembers)
 <style scoped>
 .member-management {
   padding: 20px;
+}
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 </style>

@@ -168,7 +168,6 @@ public class RecruitServiceImpl implements RecruitService {
             // But clubService.addMember calls repository directly in current impl.
             // If we add permission check to clubService.addMember later, we need to be careful.
             // Current plan: I am adding permission check in ClubController, not ClubService.
-            // So calling clubService.addMember from here is safe (direct service call).
             clubService.addMember(app.getBatch().getClub().getId(), app.getUser().getId(), "MEMBER");
         }
         

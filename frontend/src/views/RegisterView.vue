@@ -11,18 +11,33 @@
         <p class="auth-subtitle">创建账号，开始探索社团</p>
       </div>
       
-      <el-form :model="form" label-position="top" size="large">
-        <el-form-item label="用户名">
-          <el-input v-model="form.username" placeholder="请输入用户名" prefix-icon="User" />
+      <el-form :model="form" :rules="rules" ref="formRef" label-position="top" size="large">
+        <el-form-item label="用户名" prop="username">
+          <el-input v-model="form.username" placeholder="请输入用户名" :prefix-icon="User" />
         </el-form-item>
-        <el-form-item label="密码">
-          <el-input v-model="form.password" type="password" placeholder="请输入密码" prefix-icon="Lock" show-password />
+        
+        <el-form-item label="真实姓名" prop="realName">
+          <el-input v-model="form.realName" placeholder="请输入真实姓名" :prefix-icon="CreditCard" />
         </el-form-item>
-        <el-form-item label="真实姓名">
-          <el-input v-model="form.realName" placeholder="请输入真实姓名" prefix-icon="CreditCard" />
+
+        <el-form-item label="手机号" prop="mobile">
+          <el-input v-model="form.mobile" placeholder="请输入手机号" :prefix-icon="Phone" />
         </el-form-item>
+
+        <el-form-item label="电子邮箱" prop="email">
+          <el-input v-model="form.email" placeholder="请输入电子邮箱" :prefix-icon="Message" />
+        </el-form-item>
+
+        <el-form-item label="密码" prop="password">
+          <el-input v-model="form.password" type="password" placeholder="请输入密码" :prefix-icon="Lock" show-password />
+        </el-form-item>
+
+        <el-form-item label="确认密码" prop="confirmPassword">
+          <el-input v-model="form.confirmPassword" type="password" placeholder="请再次输入密码" :prefix-icon="Lock" show-password />
+        </el-form-item>
+
         <el-form-item>
-          <el-button type="primary" @click="handleRegister" class="w-full">立即注册</el-button>
+          <el-button type="primary" @click="handleRegister(formRef)" class="w-full">立即注册</el-button>
         </el-form-item>
         <div class="auth-footer">
           <span>已有账号?</span>
@@ -34,26 +49,78 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from '@/api/axios'
-import { User, Lock, CreditCard } from '@element-plus/icons-vue'
+import { User, Lock, CreditCard, Message, Phone } from '@element-plus/icons-vue'
 
 const router = useRouter()
+const formRef = ref()
 const form = ref({
   username: '',
   password: '',
-  realName: ''
+  confirmPassword: '',
+  realName: '',
+  mobile: '',
+  email: ''
 })
 
-const handleRegister = async () => {
-  try {
-    await axios.post('/auth/register', form.value)
-    alert('注册成功，请登录')
-    router.push('/login')
-  } catch (error) {
-    alert('注册失败: ' + error.message)
+const validatePass2 = (rule, value, callback) => {
+  if (value === '') {
+    callback(new Error('请再次输入密码'))
+  } else if (value !== form.value.password) {
+    callback(new Error('两次输入密码不一致!'))
+  } else {
+    callback()
   }
+}
+
+const rules = reactive({
+  username: [
+    { required: true, message: '请输入用户名', trigger: 'blur' },
+    { min: 3, max: 20, message: '长度在 3 到 20 个字符', trigger: 'blur' }
+  ],
+  realName: [
+    { required: true, message: '请输入真实姓名', trigger: 'blur' }
+  ],
+  mobile: [
+    { required: true, message: '请输入手机号', trigger: 'blur' },
+    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号格式', trigger: 'blur' }
+  ],
+  email: [
+    { required: true, message: '请输入电子邮箱', trigger: 'blur' },
+    { type: 'email', message: '请输入正确的邮箱地址', trigger: ['blur', 'change'] }
+  ],
+  password: [
+    { required: true, message: '请输入密码', trigger: 'blur' },
+    { min: 6, message: '密码长度不能少于6位', trigger: 'blur' }
+  ],
+  confirmPassword: [
+    { required: true, validator: validatePass2, trigger: 'blur' }
+  ]
+})
+
+const handleRegister = async (formEl) => {
+  if (!formEl) return
+  
+  await formEl.validate(async (valid, fields) => {
+    if (valid) {
+      try {
+        // 构建提交数据，排除 confirmPassword
+        const { confirmPassword, ...payload } = form.value
+        await axios.post('/auth/register', payload)
+        alert('注册成功，请登录')
+        router.push('/login')
+      } catch (error) {
+        // 尝试获取后端返回的具体错误信息
+        const msg = error.response?.data?.message || error.message || '注册失败'
+        alert('注册失败: ' + msg)
+      }
+    } else {
+      console.log('Validation failed:', fields)
+      return false
+    }
+  })
 }
 </script>
 
@@ -125,5 +192,9 @@ h2 {
   margin-top: 1rem;
   font-size: 0.9rem;
   color: #6b7280;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
 }
 </style>

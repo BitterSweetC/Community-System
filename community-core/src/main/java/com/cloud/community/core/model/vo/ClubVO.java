@@ -21,6 +21,8 @@ public class ClubVO {
     private Set<String> tags;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
+    private Long memberCount;
+    private Long activityCount;
 
     public static ClubVO from(Club club) {
         if (club == null) {
@@ -28,6 +30,8 @@ public class ClubVO {
         }
         ClubVO vo = new ClubVO();
         BeanUtils.copyProperties(club, vo);
+        vo.setMemberCount(club.getMemberCount());
+        vo.setActivityCount(club.getActivityCount());
         return vo;
     }
 }

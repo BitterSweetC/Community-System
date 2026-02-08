@@ -65,19 +65,23 @@ public class ClubServiceImpl implements ClubService {
         // Return clubs where user is a member with role PRESIDENT or MANAGER
         // Also include clubs created by user as fallback (though creator should be PRESIDENT)
         List<Member> memberships = memberRepository.findByUserId(userId);
-        return memberships.stream()
+        List<Club> clubs = memberships.stream()
                 .filter(m -> "PRESIDENT".equals(m.getRoleCode()) || "MANAGER".equals(m.getRoleCode()))
                 .map(Member::getClub)
                 .distinct()
                 .collect(java.util.stream.Collectors.toList());
+        clubs.forEach(this::populateClubStats);
+        return clubs;
     }
 
     @Override
     @Transactional
     public Club getClubById(Long id) {
         clubRepository.incrementVisitCount(id);
-        return clubRepository.findById(id)
+        Club club = clubRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Club not found"));
+        populateClubStats(club);
+        return club;
     }
 
     @Override
@@ -308,5 +312,11 @@ public class ClubServiceImpl implements ClubService {
         club.setDissolutionReason(null);
         club.setDissolutionDate(null);
         clubRepository.save(club);
+    }
+
+    private void populateClubStats(Club club) {
+        if (club == null) return;
+        club.setMemberCount(memberRepository.countByClubId(club.getId()));
+        club.setActivityCount(activityRepository.countByClubId(club.getId()));
     }
 }
