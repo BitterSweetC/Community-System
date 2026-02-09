@@ -1,2 +1,11 @@
 requests
 beautifulsoup4
+fastapi
+uvicorn
+langchain-community
+langchain-core
+langchain-openai
+chromadb
+sentence-transformers
+python-multipart
+pydantic

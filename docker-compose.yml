@@ -23,6 +23,19 @@ services:
       - redis_data:/data
     restart: always
 
+  rag-service:
+    build: ./agent
+    container_name: community-rag
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./agent/data:/app/data
+      - ./agent/chroma_db:/app/chroma_db
+    environment:
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - DEEPSEEK_API_URL=https://api.deepseek.com
+    restart: always
+
 volumes:
   rabbitmq_data:
   redis_data:

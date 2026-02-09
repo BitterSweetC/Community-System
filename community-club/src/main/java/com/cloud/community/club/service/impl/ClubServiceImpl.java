@@ -96,7 +96,7 @@ public class ClubServiceImpl implements ClubService {
                 interests = interests.stream().filter(s -> !s.trim().isEmpty()).collect(Collectors.toList());
                 
                 if (!interests.isEmpty()) {
-                    List<Club> byInterest = clubRepository.findByStatusAndCategoryIn("ACTIVE", interests);
+                    List<Club> byInterest = clubRepository.findByInterests("ACTIVE", interests);
                     if (!byInterest.isEmpty()) {
                         return byInterest;
                     }

@@ -4,6 +4,7 @@ import com.cloud.community.core.annotation.AuditLog;
 import com.cloud.community.core.common.Result;
 import com.cloud.community.core.entity.User;
 import com.cloud.community.gateway.security.JwtUtils;
+import com.cloud.community.core.service.VerificationCodeService;
 import com.cloud.community.user.service.UserService;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final UserService userService;
+    private final VerificationCodeService verificationCodeService;
     private final AuthenticationManager authenticationManager;
     private final JwtUtils jwtUtils;
     private final StringRedisTemplate redisTemplate;
@@ -50,6 +52,28 @@ public class AuthController {
         
         return Result.success(new LoginResponse(token, user));
     }
+
+    @PostMapping("/forgot-password")
+    public Result<Void> forgotPassword(@RequestBody ForgotPasswordRequest request) {
+        User user = userService.findByEmail(request.getEmail())
+                .orElseThrow(() -> new IllegalArgumentException("该邮箱未注册"));
+        verificationCodeService.sendVerificationCode(user.getEmail());
+        return Result.success();
+    }
+
+    @PostMapping("/reset-password")
+    public Result<Void> resetPassword(@RequestBody ResetPasswordRequest request) {
+        boolean verified = verificationCodeService.verifyCode(request.getEmail(), request.getCode());
+        if (!verified) {
+            throw new IllegalArgumentException("验证码无效或已过期");
+        }
+
+        User user = userService.findByEmail(request.getEmail())
+                .orElseThrow(() -> new IllegalArgumentException("用户不存在"));
+        
+        userService.updatePassword(user.getId(), request.getNewPassword());
+        return Result.success();
+    }
     
     @Data
     public static class LoginRequest {
@@ -66,5 +90,17 @@ public class AuthController {
             this.token = token;
             this.user = user;
         }
+    }
+
+    @Data
+    public static class ForgotPasswordRequest {
+        private String email;
+    }
+
+    @Data
+    public static class ResetPasswordRequest {
+        private String email;
+        private String code;
+        private String newPassword;
     }
 }

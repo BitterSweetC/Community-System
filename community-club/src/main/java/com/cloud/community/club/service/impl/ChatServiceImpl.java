@@ -9,19 +9,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 @Service
 public class ChatServiceImpl implements ChatService {
 
-    @Value("${deepseek.api.url}")
-    private String apiUrl;
-
-    @Value("${deepseek.api.key}")
-    private String apiKey;
+    @Value("${rag.service.url:http://localhost:8000}")
+    private String ragServiceUrl;
 
     private final RestTemplate restTemplate = new RestTemplate();
 
@@ -34,38 +29,25 @@ public class ChatServiceImpl implements ChatService {
         // Build headers
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.setBearerAuth(apiKey);
 
         // Build body
-        Map<String, Object> body = new HashMap<>();
-        body.put("model", "deepseek-chat");
-        
-        List<Map<String, String>> messages = new ArrayList<>();
-        Map<String, String> userMessage = new HashMap<>();
-        userMessage.put("role", "user");
-        userMessage.put("content", message);
-        messages.add(userMessage);
-        
-        body.put("messages", messages);
-        body.put("stream", false);
+        Map<String, String> body = new HashMap<>();
+        body.put("query", message);
 
-        HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+        HttpEntity<Map<String, String>> request = new HttpEntity<>(body, headers);
 
         try {
-            ResponseEntity<Map> response = restTemplate.postForEntity(apiUrl, request, Map.class);
+            // Call RAG Agent
+            String url = ragServiceUrl + "/chat";
+            ResponseEntity<Map> response = restTemplate.postForEntity(url, request, Map.class);
             
-            if (response.getBody() != null && response.getBody().containsKey("choices")) {
-                List choices = (List) response.getBody().get("choices");
-                if (!choices.isEmpty()) {
-                    Map firstChoice = (Map) choices.get(0);
-                    Map messageObj = (Map) firstChoice.get("message");
-                    return (String) messageObj.get("content");
-                }
+            if (response.getBody() != null && response.getBody().containsKey("response")) {
+                return (String) response.getBody().get("response");
             }
-            return "No response from AI.";
+            return "No response from AI Agent.";
         } catch (Exception e) {
             e.printStackTrace();
-            return "Error calling AI service: " + e.getMessage();
+            return "Error calling AI Agent: " + e.getMessage() + ". Please ensure the RAG service is running.";
         }
     }
 }

@@ -38,7 +38,7 @@
           <div class="auth-footer">
             <el-button link @click="$router.push('/register')">账号激活/注册</el-button>
             <el-divider direction="vertical" />
-            <el-button link>忘记密码?</el-button>
+            <el-button link @click="$router.push('/forgot-password')">忘记密码?</el-button>
           </div>
         </el-form>
       </el-card>

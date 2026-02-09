@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 public interface ClubRepository extends JpaRepository<Club, Long> {
     List<Club> findByStatusAndDissolutionDateBefore(String status, LocalDateTime date);
@@ -35,4 +36,10 @@ public interface ClubRepository extends JpaRepository<Club, Long> {
     void incrementVisitCount(@Param("id") Long id);
 
     List<Club> findByStatusAndCategoryIn(String status, Collection<String> categories);
+
+    // Recommendation
+    List<Club> findTop10ByStatusOrderByVisitCountDesc(String status);
+
+    @Query("SELECT DISTINCT c FROM Club c LEFT JOIN c.tags t WHERE c.status = :status AND (c.category IN :interests OR t IN :interests)")
+    List<Club> findByInterests(@Param("status") String status, @Param("interests") Collection<String> interests);
 }

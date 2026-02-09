@@ -55,6 +55,12 @@
             <artifactId>community-notice</artifactId>
             <version>${project.version}</version>
         </dependency>
+
+        <!-- Mail Support (Explicitly added to ensure AutoConfiguration works) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
         
         <dependency>
             <groupId>org.springframework.boot</groupId>
