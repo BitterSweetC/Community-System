@@ -36,7 +36,8 @@ public class FinanceServiceImpl implements FinanceService {
     @Override
     @Transactional
     public void approveTransaction(Long transactionId, Long approverId) {
-        ClubFinance transaction = financeRepository.findById(transactionId)
+        // Lock transaction to prevent double approval
+        ClubFinance transaction = financeRepository.findByIdForUpdate(transactionId)
                 .orElseThrow(() -> new RuntimeException("Transaction not found"));
         
         if (!"PENDING".equals(transaction.getStatus())) {
@@ -47,8 +48,10 @@ public class FinanceServiceImpl implements FinanceService {
         transaction.setApproverId(approverId);
         financeRepository.save(transaction);
 
-        // Update club balance
-        Club club = transaction.getClub();
+        // Lock club to safely update balance
+        Club club = clubRepository.findByIdForUpdate(transaction.getClub().getId())
+                .orElseThrow(() -> new RuntimeException("Club not found"));
+        
         BigDecimal amount = transaction.getAmount();
         BigDecimal currentBalance = club.getBalance() == null ? BigDecimal.ZERO : club.getBalance();
         
@@ -63,7 +66,8 @@ public class FinanceServiceImpl implements FinanceService {
     @Override
     @Transactional
     public void rejectTransaction(Long transactionId, Long approverId) {
-        ClubFinance transaction = financeRepository.findById(transactionId)
+        // Lock transaction to prevent double rejection
+        ClubFinance transaction = financeRepository.findByIdForUpdate(transactionId)
                 .orElseThrow(() -> new RuntimeException("Transaction not found"));
 
         if (!"PENDING".equals(transaction.getStatus())) {

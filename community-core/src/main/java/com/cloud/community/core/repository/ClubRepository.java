@@ -1,7 +1,9 @@
 package com.cloud.community.core.repository;
 
 import com.cloud.community.core.entity.Club;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -9,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 public interface ClubRepository extends JpaRepository<Club, Long> {
@@ -42,4 +45,8 @@ public interface ClubRepository extends JpaRepository<Club, Long> {
 
     @Query("SELECT DISTINCT c FROM Club c LEFT JOIN c.tags t WHERE c.status = :status AND (c.category IN :interests OR t IN :interests)")
     List<Club> findByInterests(@Param("status") String status, @Param("interests") Collection<String> interests);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT c FROM Club c WHERE c.id = :id")
+    Optional<Club> findByIdForUpdate(@Param("id") Long id);
 }

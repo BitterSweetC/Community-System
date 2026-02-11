@@ -50,4 +50,34 @@ public class ChatServiceImpl implements ChatService {
             return "Error calling AI Agent: " + e.getMessage() + ". Please ensure the RAG service is running.";
         }
     }
+
+    @Override
+    public java.util.List<Long> getRecommendations(Long userId) {
+        if (userId == null) return java.util.Collections.emptyList();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("user_id", userId);
+        body.put("top_k", 5);
+
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+
+        try {
+            String url = ragServiceUrl + "/recommend";
+            ResponseEntity<Map> response = restTemplate.postForEntity(url, request, Map.class);
+
+            if (response.getBody() != null && response.getBody().containsKey("club_ids")) {
+                java.util.List<?> rawIds = (java.util.List<?>) response.getBody().get("club_ids");
+                return rawIds.stream()
+                        .filter(item -> item instanceof Number)
+                        .map(item -> ((Number) item).longValue())
+                        .collect(java.util.stream.Collectors.toList());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return java.util.Collections.emptyList();
+    }
 }

@@ -38,6 +38,7 @@ public class ClubServiceImpl implements ClubService {
     private final FinanceService financeService;
     private final ActivityRepository activityRepository;
     private final RabbitTemplate rabbitTemplate;
+    private final com.cloud.community.club.service.ChatService chatService;
     
     @org.springframework.beans.factory.annotation.Autowired
     private RoleRepository roleRepository;
@@ -86,6 +87,25 @@ public class ClubServiceImpl implements ClubService {
 
     @Override
     public List<Club> getRecommendedClubs(Long userId) {
+        // 0. Try Collaborative Filtering via Python Agent
+        try {
+            List<Long> recommendedIds = chatService.getRecommendations(userId);
+            if (recommendedIds != null && !recommendedIds.isEmpty()) {
+                List<Club> clubs = clubRepository.findAllById(recommendedIds);
+                // Maintain order from recommendation
+                java.util.Map<Long, Club> clubMap = clubs.stream().collect(Collectors.toMap(Club::getId, c -> c));
+                List<Club> orderedClubs = new java.util.ArrayList<>();
+                for (Long id : recommendedIds) {
+                    if (clubMap.containsKey(id)) {
+                        orderedClubs.add(clubMap.get(id));
+                    }
+                }
+                if (!orderedClubs.isEmpty()) return orderedClubs;
+            }
+        } catch (Exception e) {
+            // Continue to fallback strategies if AI recommendation fails
+        }
+
         // 1. Try to recommend by interests if user is logged in
         if (userId != null) {
             User user = userRepository.findById(userId).orElse(null);
@@ -207,11 +227,14 @@ public class ClubServiceImpl implements ClubService {
     @Override
     @Transactional
     public void addMember(Long clubId, Long userId, String role) {
+        // Lock club to serialize member additions
+        Club club = clubRepository.findByIdForUpdate(clubId)
+                .orElseThrow(() -> new RuntimeException("Club not found"));
+
         if (memberRepository.findByClubIdAndUserId(clubId, userId).isPresent()) {
             return;
         }
 
-        Club club = getClubById(clubId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         
@@ -252,6 +275,10 @@ public class ClubServiceImpl implements ClubService {
     @Override
     @Transactional
     public void applyDissolution(Long clubId, Long userId, String reason) {
+        // Lock club to ensure consistent state check
+        Club club = clubRepository.findByIdForUpdate(clubId)
+                .orElseThrow(() -> new RuntimeException("Club not found"));
+
         if (financeService.hasPendingTransactions(clubId)) {
             throw new RuntimeException("Cannot dissolve: Pending financial transactions");
         }
@@ -263,7 +290,6 @@ public class ClubServiceImpl implements ClubService {
             throw new RuntimeException("Cannot dissolve: Ongoing activities exist");
         }
 
-        Club club = getClubById(clubId);
         club.setStatus(Club.STATUS_DISSOLVING);
         club.setDissolutionReason(reason);
         club.setDissolutionDate(LocalDateTime.now());

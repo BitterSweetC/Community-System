@@ -238,12 +238,15 @@ onMounted(() => {
 }
 
 .table-link {
-  color: #3b82f6;
+  color: #333;
+  font-weight: 500;
+  transition: all 0.3s;
   cursor: pointer;
   text-decoration: none;
 }
 
 .table-link:hover {
+  color: #409EFF;
   text-decoration: underline;
 }
 

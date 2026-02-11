@@ -8,7 +8,6 @@
       </div>
       <div class="header-content">
         <h2>活动一览</h2>
-        <el-button @click="$router.push('/home')" plain size="small">返回首页</el-button>
       </div>
     </div>
 
@@ -51,7 +50,7 @@
         </el-table-column>
         <el-table-column prop="title" label="活动主题" min-width="250">
           <template #default="scope">
-            <span class="table-link">{{ scope.row.title }}</span>
+            <span class="table-link" @click="showActivityDetail(scope.row)">{{ scope.row.title }}</span>
           </template>
         </el-table-column>
         <el-table-column prop="clubName" label="主办单位" width="180" />
@@ -98,6 +97,48 @@
         />
       </div>
     </div>
+
+    <!-- Activity Detail Dialog -->
+    <el-dialog v-model="detailDialogVisible" title="活动详情" width="500px">
+      <div v-if="currentActivity" class="activity-detail">
+        <div class="detail-item">
+          <span class="label">活动主题：</span>
+          <span class="value">{{ currentActivity.title }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="label">主办社团：</span>
+          <span class="value">{{ currentActivity.clubName }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="label">活动时间：</span>
+          <span class="value">{{ formatTime(currentActivity.startTime) }} ~ {{ formatTime(currentActivity.endTime) }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="label">活动地点：</span>
+          <span class="value">{{ currentActivity.location }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="label">活动描述：</span>
+          <p class="value description">{{ currentActivity.description || '暂无描述' }}</p>
+        </div>
+        <div class="detail-item">
+          <span class="label">活动状态：</span>
+          <el-tag :type="getActivityStatusType(currentActivity)">{{ getActivityStatus(currentActivity) }}</el-tag>
+        </div>
+      </div>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="detailDialogVisible = false">关闭</el-button>
+          <el-button 
+            type="primary" 
+            v-if="currentActivity && currentActivity.signupStatus !== 'SIGNED' && currentActivity.signupStatus !== 'SIGNED_IN' && getActivityStatus(currentActivity) === '报名中'" 
+            @click="signUp(currentActivity)"
+          >
+            立即报名
+          </el-button>
+        </span>
+      </template>
+    </el-dialog>
 
     <!-- Sign In Dialog -->
     <el-dialog v-model="signInDialogVisible" title="活动签到" width="400px">
@@ -216,6 +257,13 @@ const getActivityStatusType = (activity) => {
     if (s === '报名中') return 'success'
     if (s === '进行中') return 'warning'
     return 'info'
+}
+
+const detailDialogVisible = ref(false)
+
+const showActivityDetail = (activity) => {
+    currentActivity.value = activity
+    detailDialogVisible.value = true
 }
 
 const signInDialogVisible = ref(false)
@@ -364,6 +412,39 @@ onMounted(() => {
 .table-link {
   color: #333;
   font-weight: 500;
+  transition: all 0.3s;
+}
+
+.table-link:hover {
+  color: #409EFF;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.activity-detail {
+  padding: 10px;
+}
+
+.detail-item {
+  margin-bottom: 15px;
+  display: flex;
+}
+
+.detail-item .label {
+  font-weight: bold;
+  width: 100px;
+  flex-shrink: 0;
+  color: #606266;
+}
+
+.detail-item .value {
+  color: #303133;
+  line-height: 1.5;
+}
+
+.detail-item .description {
+  margin: 0;
+  white-space: pre-wrap;
 }
 
 .pagination-container {

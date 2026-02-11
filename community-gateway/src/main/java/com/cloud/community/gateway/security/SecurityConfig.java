@@ -46,6 +46,7 @@ public class SecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/activities", "/api/activities/**").permitAll() // Allow public access to activities
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/notices", "/api/notices/**").permitAll() // Allow public access to notices
                         .requestMatchers("/api/club/chat").permitAll() // Allow chat endpoint (assuming it handles its own auth or is public)
+                        .requestMatchers("/actuator/**").permitAll() // Allow monitoring endpoints
                         .requestMatchers("/error").permitAll() // Allow error endpoint
                         // Allow static resources if any, though frontend is separate usually
                         .anyRequest().authenticated()

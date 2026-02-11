@@ -9,6 +9,7 @@ import com.cloud.community.core.repository.RecruitApplicationRepository;
 import com.cloud.community.core.repository.RecruitBatchRepository;
 import com.cloud.community.core.repository.RecruitFormFieldRepository;
 import com.cloud.community.core.repository.MemberRepository;
+import com.cloud.community.core.repository.UserRepository;
 import com.cloud.community.club.service.ClubService;
 import com.cloud.community.recruit.service.RecruitService;
 import com.cloud.community.core.model.dto.NotificationMessageDTO;
@@ -28,6 +29,7 @@ public class RecruitServiceImpl implements RecruitService {
     private final RecruitFormFieldRepository formFieldRepository;
     private final RecruitApplicationRepository applicationRepository;
     private final MemberRepository memberRepository;
+    private final UserRepository userRepository;
     private final ClubService clubService;
     private final PermissionService permissionService;
     private final RabbitTemplate rabbitTemplate;
@@ -75,6 +77,9 @@ public class RecruitServiceImpl implements RecruitService {
     @Override
     @Transactional
     public void submitApplication(RecruitApplication application) {
+        // Lock User to prevent double submission for same user (lighter than locking batch)
+        userRepository.findByIdForUpdate(application.getUser().getId());
+
         // 1. Fetch full batch to check status/time
         RecruitBatch batch = batchRepository.findById(application.getBatch().getId())
                 .orElseThrow(() -> new RuntimeException("Recruit Batch not found"));
@@ -157,6 +162,19 @@ public class RecruitServiceImpl implements RecruitService {
         
         permissionService.checkClubAdmin(operatorId, app.getBatch().getClub().getId());
         permissionService.checkClubActive(app.getBatch().getClub().getId());
+
+        if (pass) {
+             // Lock Batch to check quota safely
+             RecruitBatch batch = batchRepository.findByIdForUpdate(app.getBatch().getId())
+                     .orElseThrow(() -> new RuntimeException("Batch not found"));
+             
+             if (batch.getQuota() != null && batch.getQuota() > 0) {
+                 long approvedCount = applicationRepository.countByBatchIdAndFinalReviewStatus(batch.getId(), "PASSED");
+                 if (approvedCount >= batch.getQuota()) {
+                     throw new RuntimeException("Recruitment quota exceeded");
+                 }
+             }
+        }
         
         app.setFinalReviewStatus(pass ? "PASSED" : "REJECTED");
         app.setFinalReviewComment(comment);

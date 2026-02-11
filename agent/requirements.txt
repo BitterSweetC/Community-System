@@ -9,3 +9,7 @@ chromadb
 sentence-transformers
 python-multipart
 pydantic
+pandas
+scikit-learn
+sqlalchemy
+pymysql

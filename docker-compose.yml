@@ -36,6 +36,28 @@ services:
       - DEEPSEEK_API_URL=https://api.deepseek.com
     restart: always
 
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: community-prometheus
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    restart: always
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: community-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - prometheus
+    restart: always
+
 volumes:
   rabbitmq_data:
   redis_data:

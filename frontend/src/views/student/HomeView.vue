@@ -38,7 +38,7 @@
           <h3>加入社团</h3>
           <p>百会社团等你来选</p>
         </div>
-        <div class="access-item" @click="scrollToActivities">
+        <div class="access-item" @click="router.push('/home/activities')">
           <div class="icon-circle bg-green">
             <el-icon><Calendar /></el-icon>
           </div>

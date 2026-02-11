@@ -104,6 +104,7 @@ public class ClubController {
         return Result.success(clubs.stream().map(ClubVO::from).collect(Collectors.toList()));
     }
 
+    @AuditLog(action = "VIEW_CLUB", resourceType = "CLUB", resourceId = "#id")
     @GetMapping("/{id}")
     public Result<ClubVO> getClubById(@PathVariable Long id) {
         return Result.success(ClubVO.from(clubService.getClubById(id)));

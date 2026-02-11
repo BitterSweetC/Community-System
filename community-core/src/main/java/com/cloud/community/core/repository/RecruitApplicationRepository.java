@@ -10,4 +10,6 @@ public interface RecruitApplicationRepository extends JpaRepository<RecruitAppli
     List<RecruitApplication> findByBatchId(Long batchId);
     Optional<RecruitApplication> findByBatchIdAndUserId(Long batchId, Long userId);
     List<RecruitApplication> findByUserId(Long userId);
+
+    long countByBatchIdAndFinalReviewStatus(Long batchId, String status);
 }
