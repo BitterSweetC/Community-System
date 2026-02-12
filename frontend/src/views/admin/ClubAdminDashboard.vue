@@ -53,6 +53,16 @@
                 >
                   活动管理
                 </el-button>
+                <el-button 
+                  size="small" 
+                  type="primary"
+                  plain
+                  :disabled="isClubDisabled(club.status)"
+                  :title="isClubDisabled(club.status) ? '社团处于非活跃状态，功能已冻结' : ''"
+                  @click.stop="$router.push(`/clubadmin/settings/${club.id}`)"
+                >
+                  修改信息
+                </el-button>
               </div>
             </el-card>
           </el-col>

@@ -146,6 +146,11 @@ const router = createRouter({
             path: 'audit',
             name: 'admin-audit',
             component: () => import('@/views/admin/AuditLogManagement.vue')
+        },
+        {
+            path: 'finance/:clubId',
+            name: 'admin-finance',
+            component: () => import('@/views/admin/FinanceManagement.vue')
         }
       ]
     },
@@ -183,6 +188,16 @@ const router = createRouter({
             path: 'resources/:clubId',
             name: 'club-admin-resources',
             component: () => import('@/views/admin/ResourceManagement.vue')
+        },
+        {
+            path: 'settings/:clubId',
+            name: 'club-admin-settings',
+            component: () => import('@/views/admin/ClubSettings.vue')
+        },
+        {
+            path: 'finance/:clubId',
+            name: 'club-admin-finance',
+            component: () => import('@/views/admin/FinanceManagement.vue')
         }
       ]
     }

@@ -27,6 +27,7 @@
                <el-menu-item :index="`/clubadmin/notices/${club.id}`">公告管理</el-menu-item>
                <el-menu-item :index="`/clubadmin/activities/${club.id}`">活动管理</el-menu-item>
                <el-menu-item :index="`/clubadmin/resources/${club.id}`">资源管理</el-menu-item>
+               <el-menu-item :index="`/clubadmin/finance/${club.id}`">财务管理</el-menu-item>
              </el-sub-menu>
           </template>
 

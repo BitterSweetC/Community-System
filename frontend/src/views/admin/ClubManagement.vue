@@ -35,6 +35,13 @@
           >
             社团详情
           </el-button>
+          <el-button 
+            type="warning" 
+            size="small" 
+            @click="router.push(`/admin/finance/${scope.row.id}`)"
+          >
+            财务审计
+          </el-button>
           <el-popconfirm 
             title="确定要删除该社团吗？此操作不可恢复。"
             @confirm="remove(scope.row.id)"
@@ -80,9 +87,11 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import axios from '@/api/axios'
 import { ElMessage } from 'element-plus'
 
+const router = useRouter()
 const activeTab = ref('all')
 const clubs = ref([])
 const loading = ref(false)

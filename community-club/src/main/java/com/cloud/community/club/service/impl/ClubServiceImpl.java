@@ -142,9 +142,15 @@ public class ClubServiceImpl implements ClubService {
     public Club updateClub(Long id, Club club) {
         Club existing = getClubById(id);
         existing.setName(club.getName());
+        existing.setShortName(club.getShortName());
         existing.setDescription(club.getDescription());
         existing.setCategory(club.getCategory());
         existing.setLogoUrl(club.getLogoUrl());
+        existing.setFoundedYear(club.getFoundedYear());
+        if (club.getTags() != null) {
+            existing.getTags().clear();
+            existing.getTags().addAll(club.getTags());
+        }
         return clubRepository.save(existing);
     }
 
