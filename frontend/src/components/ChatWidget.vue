@@ -77,14 +77,9 @@
 </template>
 
 <script setup>
-import { ref, nextTick, watch } from 'vue'
-import { ArrowDown, ChatDotRound, Close, Position, Service } from '@element-plus/icons-vue'
-import axios from 'axios'
-
-// --- Configuration ---
-// 请在此处填入您的 DeepSeek API Key
-const DEEPSEEK_API_KEY = 'YOUR_DEEPSEEK_API_KEY' 
-const DEEPSEEK_API_URL = 'https://api.deepseek.com/chat/completions'
+import { ref, nextTick } from 'vue'
+import { ArrowDown, ChatDotRound, Position, Service } from '@element-plus/icons-vue'
+import api from '@/api/axios'
 
 // --- State ---
 const isOpen = ref(false)
@@ -116,62 +111,22 @@ const sendMessage = async () => {
   const content = inputMessage.value.trim()
   if (!content || isLoading.value) return
 
-  // 1. Add User Message
   messages.value.push({ role: 'user', content })
   inputMessage.value = ''
   isLoading.value = true
   scrollToBottom()
 
-  // 2. Check API Key
-  if (DEEPSEEK_API_KEY === 'YOUR_DEEPSEEK_API_KEY') {
-    setTimeout(() => {
-      messages.value.push({ 
-        role: 'ai', 
-        content: '⚠️ 请先配置 DeepSeek API Key (src/components/ChatWidget.vue)' 
-      })
-      isLoading.value = false
-      scrollToBottom()
-    }, 600)
-    return
-  }
-
-  // 3. Add AI Placeholder
   const aiMsgIndex = messages.value.push({ role: 'ai', content: '', loading: true }) - 1
   scrollToBottom()
 
   try {
-    // 4. Call API
-    const contextMessages = [
-      { role: "system", content: "你是一个乐于助人的社团AI助手，请用简练友好的语气回答关于校园社团、活动的问题。" },
-      ...messages.value
-        .filter(m => !m.loading && m.role !== 'error')
-        .map(m => ({ 
-          role: m.role === 'ai' ? 'assistant' : 'user', 
-          content: m.content 
-        }))
-    ];
-
-    const res = await axios.post(DEEPSEEK_API_URL, {
-      model: "deepseek-chat",
-      messages: contextMessages,
-      temperature: 0.7,
-      max_tokens: 500
-    }, {
-      headers: {
-        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
-        'Content-Type': 'application/json'
-      }
-    })
-
-    // 5. Update AI Message
-    const reply = res.data.choices[0].message.content
+    const reply = await api.post('/club/chat', { message: content }, { timeout: 30000 })
     messages.value[aiMsgIndex].loading = false
     messages.value[aiMsgIndex].content = reply
-
   } catch (error) {
-    console.error("Chat Error:", error)
+    console.error('Chat Error:', error)
     messages.value[aiMsgIndex].loading = false
-    messages.value[aiMsgIndex].content = "😔 抱歉，我现在有点累，请稍后再试。"
+    messages.value[aiMsgIndex].content = '😔 抱歉，我现在有点累，请稍后再试。'
   } finally {
     isLoading.value = false
     scrollToBottom()

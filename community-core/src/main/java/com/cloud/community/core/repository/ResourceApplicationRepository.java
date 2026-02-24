@@ -15,7 +15,14 @@ public interface ResourceApplicationRepository extends JpaRepository<ResourceApp
     @Query("SELECT r FROM ResourceApplication r WHERE r.resource.id = :resourceId " +
            "AND r.status = 'APPROVED' " +
            "AND ((r.startTime < :endTime AND r.endTime > :startTime))")
-    List<ResourceApplication> findConflictingApplications(@Param("resourceId") Long resourceId, 
-                                                          @Param("startTime") LocalDateTime startTime, 
+    List<ResourceApplication> findConflictingApplications(@Param("resourceId") Long resourceId,
+                                                          @Param("startTime") LocalDateTime startTime,
                                                           @Param("endTime") LocalDateTime endTime);
+
+    @Query("SELECT COALESCE(SUM(r.quantity), 0) FROM ResourceApplication r WHERE r.resource.id = :resourceId " +
+           "AND r.status = 'APPROVED' " +
+           "AND ((r.startTime < :endTime AND r.endTime > :startTime))")
+    int sumApprovedQuantityInPeriod(@Param("resourceId") Long resourceId,
+                                    @Param("startTime") LocalDateTime startTime,
+                                    @Param("endTime") LocalDateTime endTime);
 }

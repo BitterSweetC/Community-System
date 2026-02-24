@@ -59,7 +59,7 @@ public class ClubController {
     public Result<PageResult<ClubVO>> getAllClubs(
             @RequestParam(required = false) String keyword, 
             @RequestParam(required = false) String category,
-            @RequestParam(defaultValue = "1") int page, // Default to 1 for user friendly, but need to check if service expects 0-based
+            @RequestParam(defaultValue = "0") int page, // Default to 1 for user friendly, but need to check if service expects 0-based
             @RequestParam(defaultValue = "10") int size) {
         
         // Service likely expects 0-based if it uses PageRequest.of(page, size) directly.

@@ -48,7 +48,8 @@ public class AuthController {
         redisTemplate.opsForValue().set("auth:token:" + token, userDetails.getUsername(), 1, TimeUnit.HOURS);
 
         // Find user to return info
-        User user = userService.findByUsername(request.getUsername()).orElseThrow();
+        User user = userService.findByUsername(request.getUsername())
+                .orElseThrow(() -> new RuntimeException("用户不存在: " + request.getUsername()));
         
         return Result.success(new LoginResponse(token, user));
     }
