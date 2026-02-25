@@ -7,6 +7,7 @@ import com.cloud.community.core.entity.ActivitySignup;
 import com.cloud.community.core.entity.Club;
 import com.cloud.community.core.entity.User;
 import com.cloud.community.core.model.dto.ActivityCreateDTO;
+import com.cloud.community.core.model.dto.ActivityUpdateDTO;
 import com.cloud.community.core.entity.ActivityAttendance;
 import com.cloud.community.core.model.vo.ActivityCheckInExportVO;
 import com.cloud.community.core.model.vo.ActivityVO;
@@ -20,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
@@ -30,7 +32,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/activities")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class ActivityController {
 
     private final ActivityService activityService;
@@ -42,11 +43,11 @@ public class ActivityController {
         if (principal instanceof UserDetails) {
             return userService.findByUsername(((UserDetails) principal).getUsername()).orElseThrow();
         }
-        throw new RuntimeException("Not authenticated");
+        throw new org.springframework.security.authentication.AuthenticationCredentialsNotFoundException("Not authenticated");
     }
 
     @PostMapping
-    public Result<ActivityVO> createActivity(@RequestBody ActivityCreateDTO dto) {
+    public Result<ActivityVO> createActivity(@Validated @RequestBody ActivityCreateDTO dto) {
         User user = getCurrentUser();
         if (dto.getClubId() != null) {
             permissionService.checkClubAdmin(user.getId(), dto.getClubId());
@@ -154,6 +155,18 @@ public class ActivityController {
         User user = getCurrentUser();
         List<ActivitySignup> signups = activityService.getUserSignups(user.getId());
         return Result.success(signups.stream().map(MySignupActivityVO::from).toList());
+    }
+
+    @PutMapping("/{id}")
+    public Result<ActivityVO> updateActivity(@PathVariable Long id, @Validated @RequestBody ActivityUpdateDTO dto) {
+        User user = getCurrentUser();
+        Activity activity = activityService.getActivityById(id);
+        if (activity.getClub() != null) {
+            permissionService.checkClubAdmin(user.getId(), activity.getClub().getId());
+        } else {
+            permissionService.checkSystemAdmin(user.getId());
+        }
+        return Result.success(ActivityVO.from(activityService.updateActivity(id, dto)));
     }
 
     @DeleteMapping("/{id}")

@@ -19,9 +19,10 @@
         </template>
       </el-table-column>
       <el-table-column prop="location" label="地点" width="150" show-overflow-tooltip />
-      <el-table-column label="操作" width="300">
+      <el-table-column label="操作" width="350">
         <template #default="scope">
           <div style="display: flex; align-items: center; gap: 5px;">
+            <el-button type="primary" size="small" style="width: 60px" @click="editActivity(scope.row)">编辑</el-button>
             <el-button type="success" size="small" style="width: 80px" @click="exportCheckIns(scope.row.id)">导出签到</el-button>
             <el-button type="primary" size="small" style="width: 80px" @click="showResourceDialog(scope.row)">申请资源</el-button>
             <el-popconfirm 
@@ -37,11 +38,14 @@
       </el-table-column>
     </el-table>
 
-    <!-- Create Activity Dialog -->
-    <el-dialog v-model="dialogVisible" title="发布新活动" width="50%">
+    <!-- Create/Edit Activity Dialog -->
+    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑活动' : '发布新活动'" width="50%">
       <el-form :model="form" label-width="100px">
         <el-form-item label="活动标题">
           <el-input v-model="form.title" placeholder="请输入活动标题" />
+        </el-form-item>
+        <el-form-item label="封面图链接">
+          <el-input v-model="form.coverUrl" placeholder="请输入封面图 URL" />
         </el-form-item>
         <el-form-item label="活动描述">
           <el-input 
@@ -76,6 +80,19 @@
         <el-form-item label="活动地点">
           <el-input v-model="form.location" placeholder="请输入活动地点" />
         </el-form-item>
+        <el-form-item label="封面图片">
+          <el-upload
+            class="cover-uploader"
+            action="#"
+            :show-file-list="false"
+            :http-request="uploadCover"
+            :before-upload="beforeCoverUpload"
+          >
+            <img v-if="form.coverUrl" :src="form.coverUrl" class="cover-preview" />
+            <el-icon v-else class="cover-uploader-icon"><Plus /></el-icon>
+          </el-upload>
+          <div class="upload-tip">建议尺寸 800x450 (16:9)，支持 JPG/PNG，小于 2MB</div>
+        </el-form-item>
         <el-form-item label="最大人数">
           <el-input-number v-model="form.maxParticipants" :min="1" />
         </el-form-item>
@@ -85,8 +102,8 @@
       </el-form>
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="dialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="submitActivity">发布</el-button>
+          <el-button @click="dialogVisible = false; resetForm()">取消</el-button>
+          <el-button type="primary" @click="submitActivity">{{ isEdit ? '保存修改' : '发布' }}</el-button>
         </span>
       </template>
     </el-dialog>
@@ -140,6 +157,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from '@/api/axios'
 import { ElMessage } from 'element-plus'
+import { Plus } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const clubId = route.params.clubId // If managing specific club
@@ -147,6 +165,8 @@ const activities = ref([])
 const resources = ref([])
 const loading = ref(false)
 const dialogVisible = ref(false)
+const isEdit = ref(false)
+const currentActivityId = ref(null)
 const resourceDialogVisible = ref(false)
 const resourceTimeRange = ref([])
 const resourceForm = ref({
@@ -185,8 +205,43 @@ const form = ref({
   location: '',
   maxParticipants: 50,
   checkinCode: '',
+  coverUrl: '',
   clubId: clubId ? Number(clubId) : null
 })
+
+const beforeCoverUpload = (rawFile) => {
+  const isImage = rawFile.type === 'image/jpeg' || rawFile.type === 'image/png'
+  const isLt2M = rawFile.size / 1024 / 1024 < 2
+
+  if (!isImage) {
+    ElMessage.error('上传图片只能是 JPG/PNG 格式!')
+    return false
+  }
+  if (!isLt2M) {
+    ElMessage.error('图片大小不能超过 2MB!')
+    return false
+  }
+  return true
+}
+
+const uploadCover = async (options) => {
+  const { file } = options
+  const formData = new FormData()
+  formData.append('file', file)
+
+  try {
+    const res = await axios.post('/files/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
+    form.value.coverUrl = res
+    ElMessage.success('封面上传成功')
+  } catch (error) {
+    console.error('Upload failed:', error)
+    ElMessage.error('上传失败，请稍后重试')
+  }
+}
 
 const loadActivities = async () => {
   loading.value = true
@@ -224,6 +279,7 @@ const submitActivity = async () => {
       location: '',
       maxParticipants: 50,
       checkinCode: '',
+      coverUrl: '',
       clubId: clubId ? Number(clubId) : null
     }
     loadActivities()
@@ -298,3 +354,49 @@ const formatDate = (dateStr) => {
 
 onMounted(loadActivities)
 </script>
+
+<style scoped>
+.activity-management {
+  padding: 20px;
+}
+
+.cover-uploader {
+  border: 1px dashed var(--el-border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  width: 240px;
+  height: 135px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: var(--el-transition-duration-fast);
+}
+
+.cover-uploader:hover {
+  border-color: var(--el-color-primary);
+}
+
+.cover-uploader-icon {
+  font-size: 28px;
+  color: #8c939d;
+  width: 240px;
+  height: 135px;
+  text-align: center;
+  line-height: 135px;
+}
+
+.cover-preview {
+  width: 240px;
+  height: 135px;
+  display: block;
+  object-fit: cover;
+}
+
+.upload-tip {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 8px;
+}
+</style>

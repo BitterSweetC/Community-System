@@ -1,6 +1,7 @@
 package com.cloud.community.club.controller;
 
 import com.cloud.community.club.service.ResourceService;
+import com.cloud.community.core.annotation.AuditLog;
 import com.cloud.community.core.common.Result;
 import com.cloud.community.core.entity.Resource;
 import com.cloud.community.core.entity.ResourceApplication;
@@ -100,6 +101,7 @@ public class ResourceController {
         return Result.success(resourceService.getPendingResources());
     }
 
+    @AuditLog(action = "APPROVE_RESOURCE", resourceType = "RESOURCE_APPLICATION", resourceId = "#id")
     @PostMapping("/applications/{id}/approve")
     public Result<Void> approveResource(@PathVariable Long id) {
         User user = getCurrentUser();
@@ -107,6 +109,7 @@ public class ResourceController {
         return Result.success(null);
     }
 
+    @AuditLog(action = "REJECT_RESOURCE", resourceType = "RESOURCE_APPLICATION", resourceId = "#id")
     @PostMapping("/applications/{id}/reject")
     public Result<Void> rejectResource(@PathVariable Long id) {
         User user = getCurrentUser();

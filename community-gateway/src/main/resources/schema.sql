@@ -39,7 +39,8 @@ CREATE TABLE `t_user` (
   `interests` varchar(500) DEFAULT NULL,
   `status` varchar(20) NOT NULL DEFAULT 'ACTIVE',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_username` (`username`)
+  UNIQUE KEY `uk_username` (`username`),
+  KEY `idx_user_email` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 2. Role Table
@@ -84,7 +85,9 @@ CREATE TABLE `t_club` (
   `visit_count` int DEFAULT '0',
   `balance` decimal(10,2) DEFAULT '0.00',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_club_name` (`name`)
+  UNIQUE KEY `uk_club_name` (`name`),
+  KEY `idx_club_created_by` (`created_by`),
+  CONSTRAINT `chk_club_balance` CHECK (`balance` >= 0)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 5. Club Tag Table
@@ -134,6 +137,7 @@ CREATE TABLE `t_activity` (
   `status` varchar(20) NOT NULL DEFAULT 'DRAFT',
   PRIMARY KEY (`id`),
   KEY `idx_activity_club` (`club_id`),
+  KEY `idx_activity_status` (`status`),
   CONSTRAINT `fk_activity_club` FOREIGN KEY (`club_id`) REFERENCES `t_club` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -229,10 +233,10 @@ CREATE TABLE `t_notice` (
   `published_by` bigint NOT NULL,
   `published_at` datetime(6) DEFAULT NULL,
   `status` varchar(20) NOT NULL DEFAULT 'DRAFT',
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  KEY `idx_notice_published_by` (`published_by`),
+  CONSTRAINT `fk_notice_publisher` FOREIGN KEY (`published_by`) REFERENCES `t_user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- 14. Notice Read Table
 CREATE TABLE `t_notice_read` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `created_at` datetime(6) NOT NULL,
@@ -257,10 +261,11 @@ CREATE TABLE `t_audit_log` (
   `resource_id` varchar(50) DEFAULT NULL,
   `detail` text,
   `ip` varchar(50) DEFAULT NULL,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  KEY `idx_audit_user_id` (`user_id`),
+  KEY `idx_audit_action` (`action`),
+  KEY `idx_audit_created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- 16. Notification Table (Station Letter)
 CREATE TABLE `t_notification` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `created_at` datetime(6) NOT NULL,
@@ -289,7 +294,10 @@ CREATE TABLE `t_club_finance` (
   `approver_id` bigint DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_finance_club` (`club_id`),
-  CONSTRAINT `fk_finance_club` FOREIGN KEY (`club_id`) REFERENCES `t_club` (`id`) ON DELETE CASCADE
+  KEY `idx_finance_applicant` (`applicant_id`),
+  CONSTRAINT `fk_finance_club` FOREIGN KEY (`club_id`) REFERENCES `t_club` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_finance_applicant` FOREIGN KEY (`applicant_id`) REFERENCES `t_user` (`id`),
+  CONSTRAINT `fk_finance_approver` FOREIGN KEY (`approver_id`) REFERENCES `t_user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 18. Resource Table
@@ -326,7 +334,11 @@ CREATE TABLE `t_resource_application` (
   KEY `idx_resource_app_club` (`club_id`),
   KEY `idx_resource_app_activity` (`activity_id`),
   KEY `idx_resource_app_resource` (`resource_id`),
+  KEY `idx_resource_app_applicant` (`applicant_id`),
   CONSTRAINT `fk_resource_app_club` FOREIGN KEY (`club_id`) REFERENCES `t_club` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_resource_app_activity` FOREIGN KEY (`activity_id`) REFERENCES `t_activity` (`id`) ON DELETE SET NULL,
-  CONSTRAINT `fk_resource_app_resource` FOREIGN KEY (`resource_id`) REFERENCES `t_resource` (`id`) ON DELETE CASCADE
+  CONSTRAINT `fk_resource_app_resource` FOREIGN KEY (`resource_id`) REFERENCES `t_resource` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_resource_app_applicant` FOREIGN KEY (`applicant_id`) REFERENCES `t_user` (`id`),
+  CONSTRAINT `fk_resource_app_approver` FOREIGN KEY (`approver_id`) REFERENCES `t_user` (`id`),
+  CONSTRAINT `chk_resource_app_quantity` CHECK (`quantity` >= 1)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

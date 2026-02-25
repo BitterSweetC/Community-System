@@ -45,10 +45,18 @@
             </el-col>
           </el-row>
 
-          <el-form-item label="社团Logo链接" prop="logoUrl">
-            <el-input v-model="form.logoUrl" placeholder="请输入图片URL（选填）">
-               <template #prepend>Http://</template>
-            </el-input>
+          <el-form-item label="社团Logo" prop="logoUrl">
+            <el-upload
+              class="logo-uploader"
+              action="#"
+              :show-file-list="false"
+              :http-request="uploadLogo"
+              :before-upload="beforeLogoUpload"
+            >
+              <img v-if="form.logoUrl" :src="form.logoUrl" class="logo-preview" />
+              <el-icon v-else class="logo-uploader-icon"><Plus /></el-icon>
+            </el-upload>
+            <div class="upload-tip">建议尺寸 200x200，支持 JPG/PNG，小于 2MB</div>
           </el-form-item>
 
           <el-form-item label="社团简介 / 申请理由" prop="description">
@@ -88,6 +96,7 @@ import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from '@/api/axios'
 import { ElMessage } from 'element-plus'
+import { Plus } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const formRef = ref(null)
@@ -100,6 +109,40 @@ const form = reactive({
   description: '',
   logoUrl: ''
 })
+
+const beforeLogoUpload = (rawFile) => {
+  const isImage = rawFile.type === 'image/jpeg' || rawFile.type === 'image/png'
+  const isLt2M = rawFile.size / 1024 / 1024 < 2
+
+  if (!isImage) {
+    ElMessage.error('上传图片只能是 JPG/PNG 格式!')
+    return false
+  }
+  if (!isLt2M) {
+    ElMessage.error('图片大小不能超过 2MB!')
+    return false
+  }
+  return true
+}
+
+const uploadLogo = async (options) => {
+  const { file } = options
+  const formData = new FormData()
+  formData.append('file', file)
+
+  try {
+    const url = await axios.post('/files/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
+    form.logoUrl = url
+    ElMessage.success('Logo上传成功')
+  } catch (error) {
+    console.error('Upload failed:', error)
+    ElMessage.error('上传失败，请稍后重试')
+  }
+}
 
 const rules = {
   name: [
@@ -139,6 +182,46 @@ const submit = async () => {
 .create-club-container {
   max-width: 800px;
   margin: 0 auto;
+}
+
+.logo-uploader {
+  border: 1px dashed var(--el-border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  width: 120px;
+  height: 120px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: var(--el-transition-duration-fast);
+}
+
+.logo-uploader:hover {
+  border-color: var(--el-color-primary);
+}
+
+.logo-uploader-icon {
+  font-size: 28px;
+  color: #8c939d;
+  width: 120px;
+  height: 120px;
+  text-align: center;
+  line-height: 120px;
+}
+
+.logo-preview {
+  width: 120px;
+  height: 120px;
+  display: block;
+  object-fit: cover;
+}
+
+.upload-tip {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 8px;
 }
 
 .application-card {

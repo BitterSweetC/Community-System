@@ -19,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
@@ -30,7 +31,6 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/clubs")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class ClubController {
 
     private final ClubService clubService;
@@ -47,8 +47,9 @@ public class ClubController {
         return userService.findByUsername(username).orElseThrow(() -> new RuntimeException("User not found: " + username));
     }
 
+    @AuditLog(action = "CREATE_CLUB", resourceType = "CLUB")
     @PostMapping
-    public Result<ClubVO> createClub(@RequestBody ClubCreateDTO dto) {
+    public Result<ClubVO> createClub(@Validated @RequestBody ClubCreateDTO dto) {
         User user = getCurrentUser();
         Club club = new Club();
         BeanUtils.copyProperties(dto, club);
@@ -87,8 +88,9 @@ public class ClubController {
         return Result.success(clubs.stream().map(ClubVO::from).collect(Collectors.toList()));
     }
 
+    @AuditLog(action = "UPDATE_CLUB", resourceType = "CLUB", resourceId = "#id")
     @PutMapping("/{id}")
-    public Result<ClubVO> updateClub(@PathVariable Long id, @RequestBody ClubUpdateDTO dto) {
+    public Result<ClubVO> updateClub(@PathVariable Long id, @Validated @RequestBody ClubUpdateDTO dto) {
         User user = getCurrentUser();
         permissionService.checkClubAdmin(user.getId(), id);
         Club club = new Club();
@@ -174,6 +176,7 @@ public class ClubController {
         return Result.success();
     }
 
+    @AuditLog(action = "REMOVE_MEMBER", resourceType = "MEMBER", resourceId = "#userId")
     @DeleteMapping("/{id}/members/{userId}")
     public Result<Void> removeMember(@PathVariable Long id, @PathVariable Long userId) {
         User user = getCurrentUser();
@@ -182,6 +185,7 @@ public class ClubController {
         return Result.success();
     }
 
+    @AuditLog(action = "APPLY_DISSOLUTION", resourceType = "CLUB", resourceId = "#id")
     @PostMapping("/{id}/dissolve")
     public Result<Void> applyDissolution(@PathVariable Long id, @RequestBody java.util.Map<String, String> body) {
         User user = getCurrentUser();

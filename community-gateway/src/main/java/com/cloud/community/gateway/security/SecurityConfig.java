@@ -34,10 +34,16 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .cors(Customizer.withDefaults()) // Enable CORS
+                .cors(Customizer.withDefaults())
+                // CSRF 说明：本系统采用 HttpOnly Cookie + SameSite=Lax/Strict 双重防护。
+                // SameSite=Lax 阻止跨站 POST/PUT/DELETE 请求携带 Cookie，
+                // 生产启用 HTTPS 后升级为 SameSite=Strict 可完全防御 CSRF。
+                // Spring Security 的 CSRF Token 机制在纯 REST + SPA 场景下已无必要，保持关闭。
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll() // Allow auth endpoints
+                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/auth/logout").permitAll()
+                        .requestMatchers("/api/auth/refresh").permitAll()
                         .requestMatchers("/api/public/**").permitAll() // Allow public endpoints
                         .requestMatchers("/api/clubs/my").authenticated() // Explicitly secure /clubs/my
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/clubs", "/api/clubs/**").permitAll() // Allow public access to club info
@@ -46,8 +52,9 @@ public class SecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/activities", "/api/activities/**").permitAll() // Allow public access to activities
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/notices", "/api/notices/**").permitAll() // Allow public access to notices
                         .requestMatchers("/api/club/chat").permitAll() // Allow chat endpoint (assuming it handles its own auth or is public)
-                        .requestMatchers("/actuator/**").permitAll() // Allow monitoring endpoints
-                        .requestMatchers("/error").permitAll() // Allow error endpoint
+                        .requestMatchers("/actuator/health").permitAll()
+                        .requestMatchers("/actuator/**").hasRole("ADMIN")
+                        .requestMatchers("/error").permitAll()
                         // Allow static resources if any, though frontend is separate usually
                         .anyRequest().authenticated()
                 )
@@ -88,7 +95,6 @@ public class SecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        // Use NoOpPasswordEncoder for plain text passwords (not recommended for production)
-        return org.springframework.security.crypto.password.NoOpPasswordEncoder.getInstance();
+        return new BCryptPasswordEncoder();
     }
 }

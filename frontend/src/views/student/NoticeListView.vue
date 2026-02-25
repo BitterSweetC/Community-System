@@ -1,12 +1,13 @@
 <template>
   <div class="academic-container">
-    <div class="page-header">
-      <div class="breadcrumb">
-        <router-link to="/home" class="breadcrumb-link">首页</router-link>
-        <span class="separator">/</span>
-        <span>公告信息</span>
+    <div class="page-hero">
+      <div class="page-hero-inner">
+        <div class="page-hero-title">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
+          <h1>公告信息</h1>
+        </div>
+        <p class="page-hero-sub">查看最新校园公告，掌握第一手资讯</p>
       </div>
-      <h2>公告信息</h2>
     </div>
 
     <div class="filter-bar">
@@ -90,8 +91,10 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import axios from '@/api/axios'
 
+const router = useRouter()
 const notices = ref([])
 const loading = ref(false)
 const currentPage = ref(1)
@@ -177,50 +180,92 @@ onMounted(() => {
 
 <style scoped>
 .academic-container {
-  padding: 20px;
-  background-color: #fff;
+  background-color: #f3f4f6;
   min-height: 80vh;
 }
 
-.page-header {
-  border-bottom: 2px solid #1f2937; /* Dark header line */
-  margin-bottom: 20px;
-  padding-bottom: 10px;
+.page-hero {
+  background: linear-gradient(135deg, #92400e 0%, #f59e0b 100%);
+  padding: 100px 32px 40px;
+  margin-bottom: 24px;
+}
+
+.page-hero-inner {
+  max-width: 1200px;
+}
+
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.3);
+  color: white;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-bottom: 16px;
+}
+
+.back-btn:hover {
+  background: rgba(255,255,255,0.25);
 }
 
 .breadcrumb {
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 10px;
-}
-
-.page-header h2 {
-  margin: 0;
-  font-size: 24px;
-  color: #333;
+  font-size: 13px;
+  color: rgba(255,255,255,0.65);
+  margin-bottom: 12px;
 }
 
 .breadcrumb-link {
-  color: #606266;
+  color: rgba(255,255,255,0.75);
   text-decoration: none;
   transition: color 0.2s;
 }
 
 .breadcrumb-link:hover {
-  color: #3b82f6;
+  color: white;
 }
 
 .separator {
   margin: 0 8px;
-  color: #c0c4cc;
+  color: rgba(255,255,255,0.4);
+}
+
+.page-hero-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 8px;
+  color: white;
+}
+
+.page-hero-title h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.page-hero-title svg {
+  opacity: 0.9;
+  flex-shrink: 0;
+}
+
+.page-hero-sub {
+  margin: 0;
+  font-size: 14px;
+  color: rgba(255,255,255,0.75);
 }
 
 .filter-bar {
-  background-color: #f5f7fa;
-  padding: 15px;
-  border-radius: 4px;
-  margin-bottom: 20px;
+  background-color: #fff;
+  padding: 16px 20px;
+  border-radius: 8px;
+  margin: 0 32px 20px;
   border: 1px solid #e4e7ed;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 
 .search-form {
@@ -228,7 +273,12 @@ onMounted(() => {
 }
 
 .data-table-wrapper {
+  margin: 0 32px 32px;
   border: 1px solid #ebeef5;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 
 :deep(.table-header) {

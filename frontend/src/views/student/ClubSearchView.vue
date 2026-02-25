@@ -1,12 +1,13 @@
 <template>
   <div class="academic-container">
-    <div class="page-header">
-      <div class="breadcrumb">
-        <router-link to="/home" class="breadcrumb-link">首页</router-link>
-        <span class="separator">/</span>
-        <span>社团信息</span>
+    <div class="page-hero">
+      <div class="page-hero-inner">
+        <div class="page-hero-title">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          <h1>社团一览</h1>
+        </div>
+        <p class="page-hero-sub">发现感兴趣的社团，开启你的校园新旅程</p>
       </div>
-      <h2>社团一览</h2>
     </div>
 
     <div class="filter-bar">
@@ -40,6 +41,13 @@
         v-loading="loading"
       >
         <el-table-column prop="id" label="社团编号" width="100" align="center" />
+        <el-table-column label="Logo" width="80" align="center">
+          <template #default="scope">
+            <el-avatar :size="40" :src="scope.row.logoUrl">
+              {{ scope.row.name.charAt(0) }}
+            </el-avatar>
+          </template>
+        </el-table-column>
         <el-table-column prop="category" label="类别" width="120" align="center">
            <template #default="scope">
              <el-tag>{{ scope.row.category }}</el-tag>
@@ -75,6 +83,11 @@
 
     <!-- Club Info Dialog -->
     <el-dialog v-model="dialogVisible" title="社团信息" width="600px" destroy-on-close align-center class="club-info-dialog">
+        <div class="club-info-header" style="text-align: center; margin-bottom: 20px;">
+            <el-avatar :size="100" :src="currentClub.logoUrl">
+                {{ currentClub.name ? currentClub.name.charAt(0) : 'C' }}
+            </el-avatar>
+        </div>
         <div class="club-info-table">
             <div class="info-row">
                 <div class="info-label">社团名称(中)</div>
@@ -196,50 +209,92 @@ onMounted(() => {
 <style scoped>
 /* Reusing the academic styles */
 .academic-container {
-  padding: 20px;
-  background-color: #fff;
+  background-color: #f3f4f6;
   min-height: 80vh;
 }
 
-.page-header {
-  border-bottom: 2px solid #1f2937;
-  margin-bottom: 20px;
-  padding-bottom: 10px;
+.page-hero {
+  background: linear-gradient(135deg, #1e3a5f 0%, #3b82f6 100%);
+  padding: 100px 32px 40px;
+  margin-bottom: 24px;
+}
+
+.page-hero-inner {
+  max-width: 1200px;
+}
+
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.3);
+  color: white;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-bottom: 16px;
+}
+
+.back-btn:hover {
+  background: rgba(255,255,255,0.25);
 }
 
 .breadcrumb {
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 10px;
-}
-
-.page-header h2 {
-  margin: 0;
-  font-size: 24px;
-  color: #333;
+  font-size: 13px;
+  color: rgba(255,255,255,0.65);
+  margin-bottom: 12px;
 }
 
 .breadcrumb-link {
-  color: #606266;
+  color: rgba(255,255,255,0.75);
   text-decoration: none;
   transition: color 0.2s;
 }
 
 .breadcrumb-link:hover {
-  color: #3b82f6;
+  color: white;
 }
 
 .separator {
   margin: 0 8px;
-  color: #c0c4cc;
+  color: rgba(255,255,255,0.4);
+}
+
+.page-hero-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 8px;
+  color: white;
+}
+
+.page-hero-title h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.page-hero-title svg {
+  opacity: 0.9;
+  flex-shrink: 0;
+}
+
+.page-hero-sub {
+  margin: 0;
+  font-size: 14px;
+  color: rgba(255,255,255,0.75);
 }
 
 .filter-bar {
-  background-color: #f5f7fa;
-  padding: 15px;
-  border-radius: 4px;
-  margin-bottom: 20px;
+  background-color: #fff;
+  padding: 16px 20px;
+  border-radius: 8px;
+  margin: 0 32px 20px;
   border: 1px solid #e4e7ed;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 
 .search-form {
@@ -247,7 +302,12 @@ onMounted(() => {
 }
 
 .data-table-wrapper {
+  margin: 0 32px 32px;
   border: 1px solid #ebeef5;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 
 :deep(.table-header) {

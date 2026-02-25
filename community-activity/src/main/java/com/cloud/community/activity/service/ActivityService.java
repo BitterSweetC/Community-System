@@ -20,4 +20,5 @@ public interface ActivityService {
     List<ActivityAttendance> getAttendances(Long activityId);
     List<ActivitySignup> getUserSignups(Long userId);
     void deleteActivity(Long id);
+    Activity updateActivity(Long id, com.cloud.community.core.model.dto.ActivityUpdateDTO dto);
 }

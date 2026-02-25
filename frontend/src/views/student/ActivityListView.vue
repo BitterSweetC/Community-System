@@ -1,13 +1,12 @@
 <template>
   <div class="academic-container">
-    <div class="page-header">
-      <div class="breadcrumb">
-        <router-link to="/home" class="breadcrumb-link">首页</router-link>
-        <span class="separator">/</span>
-        <span>社团活动</span>
-      </div>
-      <div class="header-content">
-        <h2>活动一览</h2>
+    <div class="page-hero">
+      <div class="page-hero-inner">
+        <div class="page-hero-title">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          <h1>活动一览</h1>
+        </div>
+        <p class="page-hero-sub">探索精彩活动，报名参与，丰富校园生活</p>
       </div>
     </div>
 
@@ -47,6 +46,21 @@
            <template #default="scope">
               <el-tag :type="getActivityStatusType(scope.row)">{{ getActivityStatus(scope.row) }}</el-tag>
            </template>
+        </el-table-column>
+        <el-table-column label="封面" width="120" align="center">
+          <template #default="scope">
+            <el-image 
+              style="width: 80px; height: 45px; border-radius: 4px;" 
+              :src="scope.row.coverUrl" 
+              fit="cover"
+            >
+              <template #error>
+                <div style="background: #f5f7fa; color: #909399; display: flex; align-items: center; justify-content: center; height: 100%;">
+                  <el-icon><Picture /></el-icon>
+                </div>
+              </template>
+            </el-image>
+          </template>
         </el-table-column>
         <el-table-column prop="title" label="活动主题" min-width="250">
           <template #default="scope">
@@ -101,6 +115,9 @@
     <!-- Activity Detail Dialog -->
     <el-dialog v-model="detailDialogVisible" title="活动详情" width="500px">
       <div v-if="currentActivity" class="activity-detail">
+        <div class="detail-cover" v-if="currentActivity.coverUrl" style="margin-bottom: 20px;">
+          <el-image :src="currentActivity.coverUrl" fit="cover" style="width: 100%; height: 200px; border-radius: 8px;" />
+        </div>
         <div class="detail-item">
           <span class="label">活动主题：</span>
           <span class="value">{{ currentActivity.title }}</span>
@@ -159,6 +176,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { Search, Picture } from '@element-plus/icons-vue'
 import axios from '@/api/axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
@@ -347,52 +365,93 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* Reusing the academic styles */
 .academic-container {
-  padding: 20px;
-  background-color: #fff;
+  background-color: #f3f4f6;
   min-height: 80vh;
 }
 
-.page-header {
-  border-bottom: 2px solid #1f2937;
-  margin-bottom: 20px;
-  padding-bottom: 10px;
+.page-hero {
+  background: linear-gradient(135deg, #064e3b 0%, #10b981 100%);
+  padding: 100px 32px 40px;
+  margin-bottom: 24px;
+}
+
+.page-hero-inner {
+  max-width: 1200px;
+}
+
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.3);
+  color: white;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-bottom: 16px;
+}
+
+.back-btn:hover {
+  background: rgba(255,255,255,0.25);
 }
 
 .breadcrumb {
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 10px;
-}
-
-.page-header h2 {
-  margin: 0;
-  font-size: 24px;
-  color: #333;
+  font-size: 13px;
+  color: rgba(255,255,255,0.65);
+  margin-bottom: 12px;
 }
 
 .breadcrumb-link {
-  color: #606266;
+  color: rgba(255,255,255,0.75);
   text-decoration: none;
   transition: color 0.2s;
 }
 
 .breadcrumb-link:hover {
-  color: #3b82f6;
+  color: white;
 }
 
 .separator {
   margin: 0 8px;
-  color: #c0c4cc;
+  color: rgba(255,255,255,0.4);
+}
+
+.page-hero-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 8px;
+  color: white;
+}
+
+.page-hero-title h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.page-hero-title svg {
+  opacity: 0.9;
+  flex-shrink: 0;
+}
+
+.page-hero-sub {
+  margin: 0;
+  font-size: 14px;
+  color: rgba(255,255,255,0.75);
 }
 
 .filter-bar {
-  background-color: #f5f7fa;
-  padding: 15px;
-  border-radius: 4px;
-  margin-bottom: 20px;
+  background-color: #fff;
+  padding: 16px 20px;
+  border-radius: 8px;
+  margin: 0 32px 20px;
   border: 1px solid #e4e7ed;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 
 .search-form {
@@ -400,7 +459,12 @@ onMounted(() => {
 }
 
 .data-table-wrapper {
+  margin: 0 32px 32px;
   border: 1px solid #ebeef5;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 
 :deep(.table-header) {

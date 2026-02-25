@@ -139,10 +139,14 @@ import { onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 
 onMounted(() => {
-    // If already logged in, redirect to home or redirect target
     if (authStore.token) {
-        const redirect = route.query.redirect || '/home'
-        router.push(redirect)
+        if (route.query.redirect) {
+            router.push(route.query.redirect)
+            return
+        }
+        const roles = authStore.user?.roles || []
+        const isAdmin = roles.some(r => (typeof r === 'string' ? r : r.code) === 'ADMIN')
+        router.push(isAdmin ? '/admin' : '/home')
     }
 })
 </script>

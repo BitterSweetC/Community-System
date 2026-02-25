@@ -3,15 +3,15 @@
     <!-- Hero Section with Activity Carousel -->
     <div class="hero-section">
       <div class="hero-overlay"></div>
-      <div class="hero-content premium-container">
-        <el-carousel :interval="5000" arrow="always" height="400px" indicator-position="none">
+      <div class="hero-content">
+        <el-carousel :interval="5000" arrow="always" height="480px" indicator-position="outside">
           <el-carousel-item v-for="activity in featuredActivities" :key="activity.id">
-            <div class="carousel-content">
+            <div class="carousel-content" :style="activity.coverUrl ? { backgroundImage: `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url(${activity.coverUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}">
               <h1 class="hero-title">{{ activity.title }}</h1>
               <p class="hero-subtitle">{{ activity.description }}</p>
               <div class="hero-meta">
-                <span>🗓 {{ formatDate(activity.startTime) }}</span>
-                <span>📍 {{ activity.location }}</span>
+                <span><CalendarIcon class="inline-icon" /> {{ formatDate(activity.startTime) }}</span>
+                <span><MapPinIcon class="inline-icon" /> {{ activity.location }}</span>
               </div>
               <el-button type="primary" class="hero-btn" @click="handleActivitySignup(activity)">立即报名</el-button>
             </div>
@@ -33,28 +33,28 @@
       <div class="quick-access-grid">
         <div class="access-item" @click="router.push('/home/clubs')">
           <div class="icon-circle bg-blue">
-            <el-icon><Search /></el-icon>
+            <MagnifyingGlassIcon class="hero-icon" />
           </div>
           <h3>加入社团</h3>
           <p>百会社团等你来选</p>
         </div>
         <div class="access-item" @click="router.push('/home/activities')">
           <div class="icon-circle bg-green">
-            <el-icon><Calendar /></el-icon>
+            <CalendarDaysIcon class="hero-icon" />
           </div>
           <h3>近期活动</h3>
           <p>精彩活动不容错过</p>
         </div>
         <div class="access-item" @click="router.push('/user/create-club')">
           <div class="icon-circle bg-purple">
-            <el-icon><Plus /></el-icon>
+            <PlusCircleIcon class="hero-icon" />
           </div>
           <h3>创建社团</h3>
           <p>开启你的社长之旅</p>
         </div>
         <div class="access-item" @click="router.push('/home/notices')">
           <div class="icon-circle bg-orange">
-            <el-icon><Bell /></el-icon>
+            <BellAlertIcon class="hero-icon" />
           </div>
           <h3>最新公告</h3>
           <p>校园资讯一手掌握</p>
@@ -65,12 +65,15 @@
         <!-- Left: Popular Clubs -->
         <el-col :md="8" class="section-col">
           <div class="section-header-small">
-            <h3>🔥 热门社团</h3>
+            <h3><FireIcon class="section-icon" /> 热门社团</h3>
             <el-button link @click="router.push('/home/clubs')">更多</el-button>
           </div>
           <div class="popular-clubs-list">
             <div v-for="club in clubs.slice(0, 5)" :key="club.id" class="mini-club-card" @click="router.push(`/home/clubs/${club.id}`)">
-              <div class="mini-club-logo" :style="{ background: getRandomColor(club.id) }">
+              <div v-if="club.logoUrl" class="mini-club-logo">
+                <img :src="club.logoUrl" alt="logo" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+              </div>
+              <div v-else class="mini-club-logo" :style="{ background: getRandomColor(club.id) }">
                 {{ club.name.charAt(0) }}
               </div>
               <div class="mini-club-info">
@@ -84,18 +87,21 @@
         <!-- Center: Activity Cards -->
         <el-col :md="10" class="section-col" id="activities-section">
           <div class="section-header-small">
-            <h3>📅 精彩活动</h3>
+            <h3><CalendarDaysIcon class="section-icon" /> 精彩活动</h3>
             <el-button link @click="router.push('/home/activities')">更多</el-button>
           </div>
           <div class="activity-feed">
             <el-card v-for="activity in activities" :key="activity.id" class="feed-activity-card" shadow="hover">
+              <div v-if="activity.coverUrl" class="feed-cover">
+                <img :src="activity.coverUrl" alt="cover" style="width: 100%; height: 120px; object-fit: cover; border-radius: 8px 8px 0 0;" />
+              </div>
               <div class="feed-date">
                 <span class="day">{{ new Date(activity.startTime).getDate() }}</span>
                 <span class="month">{{ new Date(activity.startTime).getMonth() + 1 }}月</span>
               </div>
               <div class="feed-content">
                 <h4>{{ activity.title }}</h4>
-                <p class="location">📍 {{ activity.location || '线上活动' }}</p>
+                <p class="location"><MapPinIcon class="inline-icon" /> {{ activity.location || '线上活动' }}</p>
                 <div class="feed-footer">
                   <span class="club-name">{{ activity.clubName }}</span>
                   <el-button type="primary" link size="small" @click="handleActivitySignup(activity)">报名</el-button>
@@ -109,7 +115,7 @@
         <!-- Right: Notices -->
         <el-col :md="6" class="section-col">
           <div class="section-header-small">
-            <h3>📢 公告通知</h3>
+            <h3><MegaphoneIcon class="section-icon" /> 公告通知</h3>
             <el-button link @click="router.push('/home/notices')">更多</el-button>
           </div>
           <div class="notice-list-simple">
@@ -179,20 +185,20 @@
           <p>连接每一位同学，丰富校园生活。</p>
         </div>
         <div class="footer-col">
-          <h3>快速链接</h3>
-          <a href="#">关于我们</a>
-          <a href="#">使用帮助</a>
-          <a href="#">联系管理员</a>
+          <h3>快速导航</h3>
+          <a @click.prevent="router.push('/home/clubs')" href="#">浏览社团</a>
+          <a @click.prevent="router.push('/home/activities')" href="#">近期活动</a>
+          <a @click.prevent="router.push('/home/notices')" href="#">公告通知</a>
         </div>
         <div class="footer-col">
-          <h3>友情链接</h3>
-          <a href="#">学校官网</a>
-          <a href="#">教务系统</a>
-          <a href="#">图书馆</a>
+          <h3>我的</h3>
+          <a @click.prevent="router.push('/user/profile')" href="#">个人资料</a>
+          <a @click.prevent="router.push('/user/activities')" href="#">我的活动</a>
+          <a @click.prevent="router.push('/user/create-club')" href="#">创建社团</a>
         </div>
       </div>
       <div class="footer-bottom">
-        <p>&copy; 2024 校园社团管理系统. 版权所有。</p>
+        <p>&copy; 2025 校园社团管理系统. 版权所有。</p>
       </div>
     </footer>
 
@@ -227,7 +233,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import axios from '@/api/axios'
-import { Search, Calendar, Plus, Bell } from '@element-plus/icons-vue'
+import { MagnifyingGlassIcon, CalendarDaysIcon, PlusCircleIcon, BellAlertIcon, MapPinIcon, CalendarIcon, FireIcon, MegaphoneIcon } from '@heroicons/vue/24/outline'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import InterestSelector from '@/components/InterestSelector.vue'
 
@@ -406,12 +412,14 @@ const saveInterests = async () => {
   position: relative;
   background-color: #111827;
   color: white;
+  width: 100%;
+  overflow: hidden;
 }
 
 .hero-overlay {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.4);
   z-index: 1;
 }
 
@@ -419,6 +427,7 @@ const saveInterests = async () => {
   position: relative;
   z-index: 2;
   padding-top: 80px; /* Space for navbar */
+  width: 100%;
 }
 
 .carousel-content {
@@ -428,28 +437,38 @@ const saveInterests = async () => {
   justify-content: center;
   align-items: center;
   text-align: center;
-  padding: 0 20px;
+  padding: 0 40px;
+  background-size: cover;
+  background-position: center;
 }
 
 .hero-title {
-  font-size: 3rem;
-  font-weight: 800;
+  font-size: 3.2rem;
+  font-weight: 900;
   margin-bottom: 1rem;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.5);
+  letter-spacing: -0.02em;
 }
 
 .hero-subtitle {
-  font-size: 1.25rem;
-  margin-bottom: 2rem;
-  opacity: 0.9;
-  max-width: 700px;
+  font-size: 1.2rem;
+  margin-bottom: 1.5rem;
+  opacity: 0.92;
+  max-width: 680px;
+  line-height: 1.7;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.4);
 }
 
 .hero-meta {
   display: flex;
-  gap: 20px;
+  gap: 24px;
   margin-bottom: 2rem;
-  font-size: 1.1rem;
+  font-size: 1rem;
   opacity: 0.9;
+  background: rgba(0,0,0,0.25);
+  padding: 10px 20px;
+  border-radius: 30px;
+  backdrop-filter: blur(4px);
 }
 
 /* Quick Access */
@@ -457,24 +476,27 @@ const saveInterests = async () => {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 20px;
-  margin-top: -40px;
+  margin-top: 0;
   position: relative;
   z-index: 3;
   margin-bottom: 40px;
+  padding-top: 32px;
 }
 
 .access-item {
   background: white;
-  padding: 20px;
-  border-radius: 12px;
+  padding: 24px 20px;
+  border-radius: 16px;
   text-align: center;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   cursor: pointer;
-  transition: transform 0.2s;
+  transition: transform 0.25s, box-shadow 0.25s;
+  border: 1px solid rgba(0,0,0,0.04);
 }
 
 .access-item:hover {
-  transform: translateY(-5px);
+  transform: translateY(-6px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14);
 }
 
 .icon-circle {
@@ -487,6 +509,32 @@ const saveInterests = async () => {
   margin: 0 auto 10px;
   color: white;
   font-size: 1.5rem;
+}
+
+.hero-icon {
+  width: 26px;
+  height: 26px;
+  color: white;
+  stroke-width: 1.8;
+}
+
+.section-icon {
+  width: 18px;
+  height: 18px;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 4px;
+  color: inherit;
+  stroke-width: 2;
+}
+
+.inline-icon {
+  width: 14px;
+  height: 14px;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 3px;
+  stroke-width: 2;
 }
 
 .bg-blue { background-color: #3b82f6; }

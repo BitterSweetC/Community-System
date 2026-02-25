@@ -4,6 +4,7 @@ import com.cloud.community.core.entity.Activity;
 import com.cloud.community.core.entity.ActivityAttendance;
 import com.cloud.community.core.entity.ActivitySignup;
 import com.cloud.community.core.entity.User;
+import com.cloud.community.core.model.dto.ActivityUpdateDTO;
 import com.cloud.community.core.repository.ActivityAttendanceRepository;
 import com.cloud.community.core.repository.ActivityRepository;
 import com.cloud.community.core.repository.ActivitySignupRepository;
@@ -77,10 +78,12 @@ public class ActivityServiceImpl implements ActivityService {
         
         Activity activity = getActivityById(activityId);
 
-        // Check if user is a member of the club
-        boolean isMember = memberRepository.findByClubIdAndUserId(activity.getClub().getId(), userId).isPresent();
-        if (!isMember) {
-            throw new IllegalArgumentException("请先加入" + activity.getClub().getName() + "社团");
+        // Check if user is a member of the club (only for club activities)
+        if (activity.getClub() != null) {
+            boolean isMember = memberRepository.findByClubIdAndUserId(activity.getClub().getId(), userId).isPresent();
+            if (!isMember) {
+                throw new IllegalArgumentException("请先加入" + activity.getClub().getName() + "社团");
+            }
         }
 
         User user = userRepository.findById(userId)
@@ -165,6 +168,24 @@ public class ActivityServiceImpl implements ActivityService {
     @Override
     public List<ActivitySignup> getUserSignups(Long userId) {
         return signupRepository.findByUserId(userId);
+    }
+
+    @Override
+    @Transactional
+    public Activity updateActivity(Long id, ActivityUpdateDTO dto) {
+        Activity activity = getActivityById(id);
+        if (dto.getTitle() != null) activity.setTitle(dto.getTitle());
+        if (dto.getDescription() != null) activity.setDescription(dto.getDescription());
+        if (dto.getCoverUrl() != null) activity.setCoverUrl(dto.getCoverUrl());
+        if (dto.getType() != null) activity.setType(dto.getType());
+        if (dto.getLocation() != null) activity.setLocation(dto.getLocation());
+        if (dto.getStartTime() != null) activity.setStartTime(dto.getStartTime());
+        if (dto.getEndTime() != null) activity.setEndTime(dto.getEndTime());
+        if (dto.getSignupStartTime() != null) activity.setSignupStartTime(dto.getSignupStartTime());
+        if (dto.getSignupEndTime() != null) activity.setSignupEndTime(dto.getSignupEndTime());
+        if (dto.getMaxParticipants() != null) activity.setMaxParticipants(dto.getMaxParticipants());
+        if (dto.getNeedAttendance() != null) activity.setNeedAttendance(dto.getNeedAttendance());
+        return activityRepository.save(activity);
     }
 
     @Override

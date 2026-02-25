@@ -181,6 +181,9 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin: 0;
+  max-width: 100%;
+  padding: 0 20px;
 }
 
 .logo-text {

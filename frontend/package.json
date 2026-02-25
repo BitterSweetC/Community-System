@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
+    "@heroicons/vue": "^2.2.0",
     "@stomp/stompjs": "^7.3.0",
     "axios": "^1.13.2",
     "echarts": "^6.0.0",

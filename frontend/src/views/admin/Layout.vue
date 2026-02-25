@@ -73,8 +73,8 @@ const loadMyClubs = async () => {
     }
 }
 
-const logout = () => {
-  authStore.logout()
+const logout = async () => {
+  await authStore.logout()
   router.push('/login')
 }
 
