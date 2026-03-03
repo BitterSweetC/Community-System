@@ -40,13 +40,13 @@ instance.interceptors.response.use(
     }
 
     if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-      const authStore = useAuthStore()
-      authStore.logout()
-      if (router.currentRoute.value.path !== '/login') {
-        router.push({
-          path: '/login',
-          query: { redirect: router.currentRoute.value.fullPath }
-        })
+      const url = error.config?.url || ''
+      if (!url.includes('/auth/logout') && !url.includes('/auth/login')) {
+        const authStore = useAuthStore()
+        authStore.logout()
+        if (router.currentRoute.value.path !== '/login') {
+          router.push({ path: '/login', query: { redirect: router.currentRoute.value.fullPath } })
+        }
       }
     }
     return Promise.reject(error)

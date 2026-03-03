@@ -8,4 +8,6 @@ import java.util.List;
 public interface ActivityAttendanceRepository extends JpaRepository<ActivityAttendance, Long> {
     List<ActivityAttendance> findByActivityId(Long activityId);
     List<ActivityAttendance> findByUserId(Long userId);
+    long countByActivityId(Long activityId);
+    long countBySignTimeBetween(java.time.LocalDateTime start, java.time.LocalDateTime end);
 }

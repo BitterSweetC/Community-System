@@ -9,6 +9,7 @@
           text-color="#fff"
         >
           <el-menu-item index="/admin" v-if="isAdmin">仪表盘</el-menu-item>
+          <el-menu-item v-if="isAdmin" index="/admin/realtime">实时大屏</el-menu-item>
           <el-menu-item v-if="isAdmin" index="/admin/clubs">社团管理</el-menu-item>
           <el-menu-item v-if="isAdmin" index="/admin/notices">公告管理</el-menu-item>
           <el-menu-item v-if="isAdmin" index="/admin/resources">资源审批</el-menu-item>
@@ -65,9 +66,10 @@ const loadMyClubs = async () => {
     if (!isClubAdmin.value) return
     try {
         const res = await axios.get('/clubs/my')
-        if (res.list) myClubs.value = res.list
-        else if (Array.isArray(res)) myClubs.value = res
-        else myClubs.value = res.content || []
+        const data = res.data ?? res
+        if (data.list) myClubs.value = data.list
+        else if (Array.isArray(data)) myClubs.value = data
+        else myClubs.value = data.content || []
     } catch (error) {
         console.error('Failed to load my clubs', error)
     }

@@ -176,6 +176,20 @@ public class ClubController {
         return Result.success();
     }
 
+    @DeleteMapping("/{id}/members/me")
+    public Result<Void> leaveClub(@PathVariable Long id) {
+        User user = getCurrentUser();
+        Member member = clubService.getClubMembers(id).stream()
+                .filter(m -> m.getUser().getId().equals(user.getId()))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("You are not a member of this club"));
+        if ("PRESIDENT".equals(member.getRoleCode())) {
+            throw new RuntimeException("社团创建者不能直接退出，请先转让社团或申请解散");
+        }
+        clubService.removeMember(id, user.getId());
+        return Result.success();
+    }
+
     @AuditLog(action = "REMOVE_MEMBER", resourceType = "MEMBER", resourceId = "#userId")
     @DeleteMapping("/{id}/members/{userId}")
     public Result<Void> removeMember(@PathVariable Long id, @PathVariable Long userId) {

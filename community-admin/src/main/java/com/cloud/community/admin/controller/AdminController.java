@@ -54,11 +54,12 @@ public class AdminController {
         return Result.success();
     }
     
+    @AuditLog(action = "DELETE_CLUB", resourceType = "CLUB", resourceId = "#id")
     @DeleteMapping("/clubs/{id}")
     public Result<Void> deleteClub(@PathVariable Long id) {
         User user = getCurrentUser();
         permissionService.checkSystemAdmin(user.getId());
-        clubService.deleteClub(id);
+        clubService.deleteClub(id, user.getId());
         return Result.success();
     }
 

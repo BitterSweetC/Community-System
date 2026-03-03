@@ -5,13 +5,14 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
+      path: '/',
+      name: 'landing',
+      component: () => import('@/views/LandingView.vue')
+    },
+    {
       path: '/login',
       name: 'login',
       component: () => import('@/views/LoginView.vue')
-    },
-    {
-      path: '/',
-      redirect: '/login'
     },
     {
       path: '/register',
@@ -84,6 +85,11 @@ const router = createRouter({
               component: () => import('@/views/student/MyApplicationsView.vue')
             },
             {
+              path: 'clubs',
+              name: 'my-clubs',
+              component: () => import('@/views/student/MyClubsView.vue')
+            },
+            {
               path: 'activities',
               name: 'my-activities',
               component: () => import('@/views/student/MyActivitiesView.vue')
@@ -111,6 +117,11 @@ const router = createRouter({
           path: '',
           name: 'admin-dashboard',
           component: () => import('@/views/admin/DashboardView.vue')
+        },
+        {
+          path: 'realtime',
+          name: 'admin-realtime',
+          component: () => import('@/views/admin/RealtimeDashboard.vue')
         },
         {
             path: 'clubs',

@@ -16,13 +16,16 @@ import com.cloud.community.user.service.PermissionService;
 import com.cloud.community.core.constant.RabbitConstants;
 import com.cloud.community.core.model.dto.NotificationMessageDTO;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ActivityServiceImpl implements ActivityService {
@@ -35,11 +38,13 @@ public class ActivityServiceImpl implements ActivityService {
     private final PermissionService permissionService;
     private final NotificationService notificationService;
     private final RabbitTemplate rabbitTemplate;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Override
     @Transactional
     public Activity createActivity(Activity activity) {
         permissionService.checkClubActive(activity.getClub().getId());
+        activity.setStatus("PUBLISHED");
         return activityRepository.save(activity);
     }
 
@@ -76,7 +81,8 @@ public class ActivityServiceImpl implements ActivityService {
             throw new RuntimeException("Already signed up");
         }
         
-        Activity activity = getActivityById(activityId);
+        Activity activity = activityRepository.findByIdWithClub(activityId)
+                .orElseThrow(() -> new RuntimeException("Activity not found"));
 
         // Check if user is a member of the club (only for club activities)
         if (activity.getClub() != null) {
@@ -123,7 +129,16 @@ public class ActivityServiceImpl implements ActivityService {
                 .orElseThrow(() -> new RuntimeException("Signup not found"));
 
         Activity activity = signup.getActivity();
-        
+
+        // Check activity time window
+        LocalDateTime now = LocalDateTime.now();
+        if (now.isBefore(activity.getStartTime())) {
+            throw new RuntimeException("活动尚未开始，无法签到");
+        }
+        if (now.isAfter(activity.getEndTime())) {
+            throw new RuntimeException("活动已结束，无法签到");
+        }
+
         // Check check-in code if set
         if (activity.getCheckinCode() != null && !activity.getCheckinCode().isEmpty()) {
             if (code == null || !code.trim().equals(activity.getCheckinCode())) {
@@ -145,6 +160,13 @@ public class ActivityServiceImpl implements ActivityService {
         attendance.setSignTime(LocalDateTime.now());
         attendance.setSource("WEB"); // Default source
         attendanceRepository.save(attendance);
+
+        // Broadcast real-time check-in count to subscribers
+        long checkinCount = attendanceRepository.countByActivityId(activityId);
+        java.util.Map<String, Object> payload = java.util.Map.of(
+                "activityId", activityId, "checkinCount", checkinCount);
+        messagingTemplate.convertAndSend("/topic/activity/" + activityId + "/checkin", payload);
+        messagingTemplate.convertAndSend("/topic/checkin/feed", payload);
 
         // Send notification
         notificationService.sendNotification(
@@ -191,7 +213,8 @@ public class ActivityServiceImpl implements ActivityService {
     @Override
     @Transactional
     public void deleteActivity(Long id) {
-        Activity activity = getActivityById(id);
+        Activity activity = activityRepository.findByIdWithClub(id)
+                .orElseThrow(() -> new RuntimeException("Activity not found"));
         permissionService.checkClubActive(activity.getClub().getId());
         
         // Notify signed up users
@@ -205,7 +228,7 @@ public class ActivityServiceImpl implements ActivityService {
                 message.setType("SYSTEM");
                 rabbitTemplate.convertAndSend(RabbitConstants.NOTIFICATION_EXCHANGE, RabbitConstants.COMMON_NOTIFICATION_ROUTING_KEY, message);
             } catch (Exception e) {
-                e.printStackTrace();
+                log.error("Failed to send cancellation notification to user {}", signup.getUser().getId(), e);
             }
         }
         

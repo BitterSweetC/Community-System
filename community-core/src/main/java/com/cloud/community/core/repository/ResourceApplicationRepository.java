@@ -11,6 +11,7 @@ import java.util.List;
 public interface ResourceApplicationRepository extends JpaRepository<ResourceApplication, Long> {
     List<ResourceApplication> findByClubId(Long clubId);
     List<ResourceApplication> findByStatus(String status);
+    long countByStatus(String status);
 
     @Query("SELECT r FROM ResourceApplication r WHERE r.resource.id = :resourceId " +
            "AND r.status = 'APPROVED' " +

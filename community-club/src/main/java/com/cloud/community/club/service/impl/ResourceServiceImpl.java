@@ -10,6 +10,7 @@ import com.cloud.community.core.repository.ResourceRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,15 +24,16 @@ public class ResourceServiceImpl implements ResourceService {
     private final ResourceApplicationRepository resourceRepository;
     private final ResourceRepository resourceDefinitionRepository;
     private final RabbitTemplate rabbitTemplate;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Override
     @Transactional
     public ResourceApplication applyResource(ResourceApplication application) {
-        if (application.getResource() == null || application.getResource().getId() == null) {
+        if (application.getResourceId() == null) {
             throw new RuntimeException("Resource is required");
         }
 
-        Resource resource = resourceDefinitionRepository.findById(application.getResource().getId())
+        Resource resource = resourceDefinitionRepository.findById(application.getResourceId())
                 .orElseThrow(() -> new RuntimeException("Resource not found"));
         application.setResource(resource);
 
@@ -78,10 +80,13 @@ public class ResourceServiceImpl implements ResourceService {
         application.setApproverId(approverId);
         resourceRepository.save(application);
 
+        String resourceName = resourceDefinitionRepository.findById(application.getResourceId())
+                .map(Resource::getName).orElse("未知资源");
         sendResourceNotification(
                 application.getApplicantId(),
                 "资源申请已通过",
-                "您申请的资源「" + application.getResource().getName() + "」已审批通过。");
+                "您申请的资源「" + resourceName + "」已审批通过。");
+        pushPendingCount();
     }
 
     @Override
@@ -98,10 +103,19 @@ public class ResourceServiceImpl implements ResourceService {
         application.setApproverId(approverId);
         resourceRepository.save(application);
 
+        String resourceName = resourceDefinitionRepository.findById(application.getResourceId())
+                .map(Resource::getName).orElse("未知资源");
         sendResourceNotification(
                 application.getApplicantId(),
                 "资源申请未通过",
-                "您申请的资源「" + application.getResource().getName() + "」未获审批通过，请联系管理员了解详情。");
+                "您申请的资源「" + resourceName + "」未获审批通过，请联系管理员了解详情。");
+        pushPendingCount();
+    }
+
+    private void pushPendingCount() {
+        long pending = resourceRepository.countByStatus("PENDING");
+        messagingTemplate.convertAndSend("/topic/dashboard/stats",
+                java.util.Map.of("pendingResources", pending));
     }
 
     private void sendResourceNotification(Long userId, String title, String content) {

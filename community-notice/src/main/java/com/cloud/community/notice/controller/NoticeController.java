@@ -36,6 +36,13 @@ public class NoticeController {
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }
 
+    @GetMapping("/{id}")
+    public Result<Notice> getNotice(@PathVariable Long id) {
+        Notice notice = noticeRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Notice not found"));
+        return Result.success(notice);
+    }
+
     @GetMapping
     public Result<PageResult<Notice>> getNotices(
             @RequestParam(required = false) Long clubId,
@@ -67,18 +74,21 @@ public class NoticeController {
         notice.setPublishedAt(java.time.LocalDateTime.now());
         Notice savedNotice = noticeRepository.save(notice);
 
-        // Send broadcast notification if it's a club notice
-        if (savedNotice.getClubId() != null) {
-            try {
-                NotificationMessageDTO message = new NotificationMessageDTO();
+        // 发布公告后通过 RabbitMQ 推送通知
+        try {
+            NotificationMessageDTO message = new NotificationMessageDTO();
+            message.setTitle("新公告：" + savedNotice.getTitle());
+            message.setContent(savedNotice.getTitle());
+            if (savedNotice.getClubId() != null) {
                 message.setClubId(savedNotice.getClubId());
-                message.setTitle("New Club Announcement");
-                message.setContent(savedNotice.getTitle());
                 message.setType("CLUB");
                 rabbitTemplate.convertAndSend(RabbitConstants.NOTIFICATION_EXCHANGE, RabbitConstants.CLUB_BROADCAST_ROUTING_KEY, message);
-            } catch (Exception e) {
-                e.printStackTrace();
+            } else {
+                message.setType("SYSTEM");
+                rabbitTemplate.convertAndSend(RabbitConstants.NOTIFICATION_EXCHANGE, RabbitConstants.CLUB_BROADCAST_ROUTING_KEY, message);
             }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
         return Result.success(savedNotice);

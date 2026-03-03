@@ -10,4 +10,5 @@ public interface NotificationService {
     void markAllAsRead(Long userId);
     long getUnreadCount(Long userId);
     void notifyClubMembers(Long clubId, String title, String content);
+    void notifyAllUsers(String title, String content, String type);
 }

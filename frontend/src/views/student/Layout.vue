@@ -30,6 +30,7 @@
                   <template #dropdown>
                     <el-dropdown-menu>
                       <el-dropdown-item command="profile">个人资料</el-dropdown-item>
+                      <el-dropdown-item command="my-clubs">我的社团</el-dropdown-item>
                       <el-dropdown-item command="activities">我的活动</el-dropdown-item>
                       <el-dropdown-item command="messages">我的消息</el-dropdown-item>
                       <el-dropdown-item divided command="logout">退出登录</el-dropdown-item>
@@ -107,9 +108,9 @@ const stopPolling = () => {
   }
 }
 
-const handleLogout = () => {
-  authStore.logout()
+const handleLogout = async () => {
   stopPolling()
+  await authStore.logout()
   router.push('/login')
 }
 
@@ -117,6 +118,9 @@ const handleCommand = (command) => {
   switch (command) {
     case 'profile':
       router.push('/user/profile')
+      break
+    case 'my-clubs':
+      router.push('/user/clubs')
       break
     case 'activities':
       router.push('/user/activities')

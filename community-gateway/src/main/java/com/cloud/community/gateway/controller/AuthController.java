@@ -6,6 +6,7 @@ import com.cloud.community.core.entity.User;
 import com.cloud.community.gateway.security.JwtUtils;
 import com.cloud.community.core.service.VerificationCodeService;
 import com.cloud.community.user.service.UserService;
+import com.cloud.community.gateway.metrics.MetricsService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -36,6 +37,7 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final JwtUtils jwtUtils;
     private final StringRedisTemplate redisTemplate;
+    private final MetricsService metricsService;
 
     @Value("${jwt.expiration:3600000}")
     private long jwtExpiration;
@@ -78,6 +80,7 @@ public class AuthController {
 
         // 登录成功：清除失败计数
         redisTemplate.delete(ATTEMPT_KEY_PREFIX + request.getUsername());
+        metricsService.recordLoginSuccess();
 
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
 
@@ -228,6 +231,7 @@ public class AuthController {
         }
         if (attempts != null && attempts > MAX_LOGIN_ATTEMPTS) {
             long ttl = redisTemplate.getExpire(key, TimeUnit.MINUTES);
+            metricsService.recordLoginFailure();
             throw new IllegalArgumentException("登录失败次数过多，请 " + ttl + " 分钟后再试");
         }
     }

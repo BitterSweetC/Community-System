@@ -49,11 +49,20 @@ public class NotificationListener {
     public void handleClubBroadcast(NotificationMessageDTO message) {
         log.info("Received club broadcast notification: {}", message);
         try {
-            notificationService.notifyClubMembers(
-                    message.getClubId(),
-                    message.getTitle(),
-                    message.getContent()
-            );
+            if (message.getClubId() != null) {
+                notificationService.notifyClubMembers(
+                        message.getClubId(),
+                        message.getTitle(),
+                        message.getContent()
+                );
+            } else {
+                // 系统公告，通知所有用户
+                notificationService.notifyAllUsers(
+                        message.getTitle(),
+                        message.getContent(),
+                        message.getType() != null ? message.getType() : "SYSTEM"
+                );
+            }
         } catch (Exception e) {
             log.error("Failed to process club broadcast message", e);
         }

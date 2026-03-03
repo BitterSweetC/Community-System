@@ -78,8 +78,8 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import axios from '@/api/axios'
 import { User, Lock, School, HomeFilled, Search, Bell, Calendar, Warning } from '@element-plus/icons-vue'
@@ -120,11 +120,7 @@ const handleLogin = async () => {
     
     if (isAdmin) {
         router.push('/admin')
-    } else if (isClubAdmin) {
-        // Club Admin goes to home page but has special permissions in user center
-        router.push('/home') 
     } else {
-        // Student goes to home page
         router.push('/home')
     }
   } catch (error) {
@@ -135,9 +131,6 @@ const handleLogin = async () => {
 }
 
 // Ensure logout when visiting login page
-import { onMounted } from 'vue'
-import { useRoute } from 'vue-router'
-
 onMounted(() => {
     if (authStore.token) {
         if (route.query.redirect) {

@@ -45,7 +45,7 @@
     <el-dialog v-model="dialogVisible" title="申请资源" width="500px">
       <el-form :model="form" label-width="80px">
         <el-form-item label="资源">
-          <el-select v-model="form.resource.id" placeholder="请选择资源" @change="handleResourceChange">
+          <el-select v-model="form.resourceId" placeholder="请选择资源" @change="handleResourceChange">
             <el-option
               v-for="item in resources"
               :key="item.id"
@@ -98,14 +98,14 @@ const dialogVisible = ref(false)
 const timeRange = ref([])
 
 const form = ref({
-  club: { id: clubId },
-  resource: { id: null },
+  clubId: clubId,
+  resourceId: null,
   quantity: 1,
   description: ''
 })
 
 const selectedResource = computed(() => {
-  return resources.value.find(r => r.id === form.value.resource.id)
+  return resources.value.find(r => r.id === form.value.resourceId)
 })
 
 const handleResourceChange = () => {
@@ -137,8 +137,8 @@ const load = async () => {
 
 const showApplyDialog = () => {
   form.value = {
-    club: { id: clubId },
-    resource: { id: null },
+    clubId: clubId,
+    resourceId: null,
     quantity: 1,
     description: ''
   }
@@ -147,7 +147,7 @@ const showApplyDialog = () => {
 }
 
 const submitApply = async () => {
-  if (!form.value.resource.id || !timeRange.value || timeRange.value.length !== 2) {
+  if (!form.value.resourceId || !timeRange.value || timeRange.value.length !== 2) {
     ElMessage.warning('请填写完整信息')
     return
   }

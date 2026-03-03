@@ -29,6 +29,14 @@ public class FinanceServiceImpl implements FinanceService {
     @Override
     @Transactional
     public ClubFinance createTransaction(ClubFinance transaction) {
+        if ("EXPENSE".equals(transaction.getType())) {
+            Club club = clubRepository.findById(transaction.getClubId())
+                    .orElseThrow(() -> new RuntimeException("Club not found"));
+            BigDecimal balance = club.getBalance() == null ? BigDecimal.ZERO : club.getBalance();
+            if (balance.compareTo(transaction.getAmount()) < 0) {
+                throw new RuntimeException("社团余额不足，当前余额：" + balance);
+            }
+        }
         transaction.setStatus("PENDING");
         return financeRepository.save(transaction);
     }
@@ -49,7 +57,7 @@ public class FinanceServiceImpl implements FinanceService {
         financeRepository.save(transaction);
 
         // Lock club to safely update balance
-        Club club = clubRepository.findByIdForUpdate(transaction.getClub().getId())
+        Club club = clubRepository.findByIdForUpdate(transaction.getClubId())
                 .orElseThrow(() -> new RuntimeException("Club not found"));
         
         BigDecimal amount = transaction.getAmount();

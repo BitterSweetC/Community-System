@@ -2,8 +2,10 @@ package com.cloud.community.notice.service.impl;
 
 import com.cloud.community.core.entity.Member;
 import com.cloud.community.core.entity.Notification;
+import com.cloud.community.core.entity.User;
 import com.cloud.community.core.repository.MemberRepository;
 import com.cloud.community.core.repository.NotificationRepository;
+import com.cloud.community.core.repository.UserRepository;
 import com.cloud.community.notice.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -19,6 +21,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final MemberRepository memberRepository;
+    private final UserRepository userRepository;
 
     @Override
     @Transactional
@@ -65,13 +68,31 @@ public class NotificationServiceImpl implements NotificationService {
     public void notifyClubMembers(Long clubId, String title, String content) {
         List<Member> members = memberRepository.findByClubId(clubId);
         List<Notification> notifications = members.stream()
-                .filter(m -> "ACTIVE".equals(m.getStatus())) // Only notify active members
+                .filter(m -> "ACTIVE".equals(m.getStatus()))
                 .map(member -> {
                     Notification n = new Notification();
                     n.setUserId(member.getUser().getId());
                     n.setTitle(title);
                     n.setContent(content);
                     n.setType("CLUB");
+                    n.setIsRead(false);
+                    return n;
+                })
+                .toList();
+        notificationRepository.saveAll(notifications);
+    }
+
+    @Override
+    @Transactional
+    public void notifyAllUsers(String title, String content, String type) {
+        List<User> users = userRepository.findAll();
+        List<Notification> notifications = users.stream()
+                .map(user -> {
+                    Notification n = new Notification();
+                    n.setUserId(user.getId());
+                    n.setTitle(title);
+                    n.setContent(content);
+                    n.setType(type);
                     n.setIsRead(false);
                     return n;
                 })

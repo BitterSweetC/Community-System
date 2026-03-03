@@ -35,6 +35,10 @@ public class FinanceController {
     @PostMapping("/transactions")
     public Result<ClubFinance> createTransaction(@RequestBody ClubFinance transaction) {
         User user = getCurrentUser();
+        if (transaction.getClubId() == null) {
+            throw new RuntimeException("Club ID is required");
+        }
+        permissionService.checkClubAdmin(user.getId(), transaction.getClubId());
         transaction.setApplicantId(user.getId());
         return Result.success(financeService.createTransaction(transaction));
     }
@@ -48,12 +52,15 @@ public class FinanceController {
 
     @GetMapping("/clubs/{clubId}/balance")
     public Result<BigDecimal> getClubBalance(@PathVariable Long clubId) {
+        User user = getCurrentUser();
+        permissionService.checkClubAdmin(user.getId(), clubId);
         return Result.success(financeService.getClubBalance(clubId));
     }
 
     @PostMapping("/transactions/{id}/approve")
     public Result<Void> approveTransaction(@PathVariable Long id) {
         User user = getCurrentUser();
+        permissionService.checkSystemAdmin(user.getId());
         financeService.approveTransaction(id, user.getId());
         return Result.success(null);
     }
@@ -61,6 +68,7 @@ public class FinanceController {
     @PostMapping("/transactions/{id}/reject")
     public Result<Void> rejectTransaction(@PathVariable Long id) {
         User user = getCurrentUser();
+        permissionService.checkSystemAdmin(user.getId());
         financeService.rejectTransaction(id, user.getId());
         return Result.success(null);
     }

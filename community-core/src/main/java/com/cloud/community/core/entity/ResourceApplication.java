@@ -1,5 +1,7 @@
 package com.cloud.community.core.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -11,19 +13,29 @@ import java.time.LocalDateTime;
 @Table(name = "t_resource_application")
 public class ResourceApplication extends BaseEntity {
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "club_id", nullable = false)
+    @JoinColumn(name = "club_id", nullable = false, insertable = false, updatable = false)
     private Club club;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "activity_id")
-    @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+    @Column(name = "club_id", nullable = false)
+    private Long clubId;
+
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "activity_id", insertable = false, updatable = false)
     private Activity activity;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "resource_id", nullable = false)
-    @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+    @Column(name = "activity_id")
+    private Long activityId;
+
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "resource_id", nullable = false, insertable = false, updatable = false)
     private Resource resource;
+
+    @Column(name = "resource_id", nullable = false)
+    private Long resourceId;
 
     @Column(name = "start_time", nullable = false)
     private LocalDateTime startTime;

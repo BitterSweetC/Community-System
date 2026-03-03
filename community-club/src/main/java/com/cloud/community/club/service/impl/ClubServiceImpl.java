@@ -21,6 +21,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.Set;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -63,11 +64,9 @@ public class ClubServiceImpl implements ClubService {
 
     @Override
     public List<Club> getMyClubs(Long userId) {
-        // Return clubs where user is a member with role PRESIDENT or MANAGER
-        // Also include clubs created by user as fallback (though creator should be PRESIDENT)
         List<Member> memberships = memberRepository.findByUserId(userId);
         List<Club> clubs = memberships.stream()
-                .filter(m -> "PRESIDENT".equals(m.getRoleCode()) || "MANAGER".equals(m.getRoleCode()))
+                .filter(m -> "ACTIVE".equals(m.getStatus()))
                 .map(Member::getClub)
                 .distinct()
                 .collect(java.util.stream.Collectors.toList());
@@ -148,6 +147,9 @@ public class ClubServiceImpl implements ClubService {
         existing.setLogoUrl(club.getLogoUrl());
         existing.setFoundedYear(club.getFoundedYear());
         if (club.getTags() != null) {
+            if (existing.getTags() == null) {
+                existing.setTags(new java.util.HashSet<>());
+            }
             existing.getTags().clear();
             existing.getTags().addAll(club.getTags());
         }
@@ -193,9 +195,8 @@ public class ClubServiceImpl implements ClubService {
 
     @Override
     @Transactional
-    public void deleteClub(Long id) {
-        // Soft delete logic preferred
-        forceDissolve(id, 0L, "Deleted via API");
+    public void deleteClub(Long id, Long adminId) {
+        forceDissolve(id, adminId, "Deleted via API");
     }
 
     @Override
@@ -238,7 +239,7 @@ public class ClubServiceImpl implements ClubService {
                 .orElseThrow(() -> new RuntimeException("Club not found"));
 
         if (memberRepository.findByClubIdAndUserId(clubId, userId).isPresent()) {
-            return;
+            throw new RuntimeException("User is already a member of this club");
         }
 
         User user = userRepository.findById(userId)
@@ -259,9 +260,14 @@ public class ClubServiceImpl implements ClubService {
         return memberRepository.findByClubId(clubId);
     }
 
+    private static final Set<String> VALID_ROLES = Set.of("PRESIDENT", "MANAGER", "MEMBER");
+
     @Override
     @Transactional
     public void updateMemberRole(Long clubId, Long userId, String role) {
+        if (role == null || !VALID_ROLES.contains(role)) {
+            throw new RuntimeException("Invalid role. Allowed values: " + VALID_ROLES);
+        }
         Member member = memberRepository.findByClubIdAndUserId(clubId, userId)
                 .orElseThrow(() -> new RuntimeException("Member not found"));
         member.setRoleCode(role);

@@ -260,31 +260,59 @@ const submitActivity = async () => {
     ElMessage.warning('请填写完整信息')
     return
   }
-  
+
   try {
     const payload = { ...form.value }
-    // Ensure clubId is correct type
     if (clubId) payload.clubId = Number(clubId)
-    
-    await axios.post('/activities', payload)
-    ElMessage.success('发布成功')
-    dialogVisible.value = false
-    // Reset form
-    form.value = {
-      title: '',
-      description: '',
-      type: 'Offline',
-      startTime: '',
-      endTime: '',
-      location: '',
-      maxParticipants: 50,
-      checkinCode: '',
-      coverUrl: '',
-      clubId: clubId ? Number(clubId) : null
+
+    if (isEdit.value) {
+      await axios.put(`/activities/${currentActivityId.value}`, payload)
+      ElMessage.success('修改成功')
+    } else {
+      await axios.post('/activities', payload)
+      ElMessage.success('发布成功')
     }
+
+    dialogVisible.value = false
+    resetForm()
     loadActivities()
   } catch (error) {
-    ElMessage.error('发布失败')
+    ElMessage.error(error?.response?.data?.message || (isEdit.value ? '修改失败' : '发布失败'))
+  }
+}
+
+const editActivity = (activity) => {
+  isEdit.value = true
+  currentActivityId.value = activity.id
+  form.value = {
+    title: activity.title,
+    description: activity.description,
+    type: activity.type,
+    startTime: activity.startTime,
+    endTime: activity.endTime,
+    location: activity.location,
+    maxParticipants: activity.maxParticipants,
+    checkinCode: activity.checkinCode,
+    coverUrl: activity.coverUrl,
+    clubId: clubId ? Number(clubId) : null
+  }
+  dialogVisible.value = true
+}
+
+const resetForm = () => {
+  isEdit.value = false
+  currentActivityId.value = null
+  form.value = {
+    title: '',
+    description: '',
+    type: 'Offline',
+    startTime: '',
+    endTime: '',
+    location: '',
+    maxParticipants: 50,
+    checkinCode: '',
+    coverUrl: '',
+    clubId: clubId ? Number(clubId) : null
   }
 }
 
@@ -302,31 +330,39 @@ const showResourceDialog = (activity) => {
   resourceForm.value = {
     club: { id: Number(clubId) },
     activity: { id: activity.id },
-    type: 'VENUE',
-    resourceName: '',
+    resource: { id: null },
     quantity: 1,
     description: `为活动申请: ${activity.title}`
   }
   resourceTimeRange.value = [activity.startTime, activity.endTime]
+  loadResources()
   resourceDialogVisible.value = true
 }
 
 const submitResourceApply = async () => {
-  if (!resourceForm.value.resourceName || !resourceTimeRange.value || resourceTimeRange.value.length !== 2) {
-    ElMessage.warning('请填写完整信息')
+  if (!resourceForm.value.resource.id) {
+    ElMessage.warning('请选择资源')
     return
   }
-  
+  if (!resourceTimeRange.value || resourceTimeRange.value.length !== 2) {
+    ElMessage.warning('时间信息缺失')
+    return
+  }
+
   try {
-    const payload = { ...resourceForm.value }
-    payload.startTime = resourceTimeRange.value[0]
-    payload.endTime = resourceTimeRange.value[1]
-    
+    const payload = {
+      ...resourceForm.value,
+      clubId: Number(clubId),
+      resourceId: resourceForm.value.resource.id,
+      activityId: resourceForm.value.activity.id,
+      startTime: resourceTimeRange.value[0],
+      endTime: resourceTimeRange.value[1]
+    }
     await axios.post('/resources/applications', payload)
     ElMessage.success('申请提交成功')
     resourceDialogVisible.value = false
   } catch (error) {
-    ElMessage.error('申请提交失败')
+    ElMessage.error(error?.response?.data?.message || '申请提交失败')
   }
 }
 
@@ -352,7 +388,10 @@ const formatDate = (dateStr) => {
   return new Date(dateStr).toLocaleString()
 }
 
-onMounted(loadActivities)
+onMounted(() => {
+  loadActivities()
+  loadResources()
+})
 </script>
 
 <style scoped>

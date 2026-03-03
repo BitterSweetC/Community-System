@@ -79,10 +79,10 @@ public class ResourceController {
     @PostMapping("/applications")
     public Result<ResourceApplication> applyResource(@RequestBody ResourceApplication application) {
         User user = getCurrentUser();
-        if (application.getClub() == null || application.getClub().getId() == null) {
+        if (application.getClubId() == null) {
             throw new RuntimeException("Club ID is required");
         }
-        permissionService.checkClubAdmin(user.getId(), application.getClub().getId());
+        permissionService.checkClubAdmin(user.getId(), application.getClubId());
         application.setApplicantId(user.getId());
         return Result.success(resourceService.applyResource(application));
     }
@@ -105,6 +105,7 @@ public class ResourceController {
     @PostMapping("/applications/{id}/approve")
     public Result<Void> approveResource(@PathVariable Long id) {
         User user = getCurrentUser();
+        checkAdmin(user);
         resourceService.approveResource(id, user.getId());
         return Result.success(null);
     }
@@ -113,6 +114,7 @@ public class ResourceController {
     @PostMapping("/applications/{id}/reject")
     public Result<Void> rejectResource(@PathVariable Long id) {
         User user = getCurrentUser();
+        checkAdmin(user);
         resourceService.rejectResource(id, user.getId());
         return Result.success(null);
     }

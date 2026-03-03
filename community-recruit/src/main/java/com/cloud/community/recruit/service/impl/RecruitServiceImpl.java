@@ -1,6 +1,7 @@
 package com.cloud.community.recruit.service.impl;
 
 import com.cloud.community.core.entity.Club;
+import com.cloud.community.core.entity.Member;
 import com.cloud.community.user.service.PermissionService;
 import com.cloud.community.core.entity.RecruitApplication;
 import com.cloud.community.core.entity.RecruitBatch;
@@ -10,7 +11,6 @@ import com.cloud.community.core.repository.RecruitBatchRepository;
 import com.cloud.community.core.repository.RecruitFormFieldRepository;
 import com.cloud.community.core.repository.MemberRepository;
 import com.cloud.community.core.repository.UserRepository;
-import com.cloud.community.club.service.ClubService;
 import com.cloud.community.recruit.service.RecruitService;
 import com.cloud.community.core.model.dto.NotificationMessageDTO;
 import com.cloud.community.core.constant.RabbitConstants;
@@ -30,7 +30,6 @@ public class RecruitServiceImpl implements RecruitService {
     private final RecruitApplicationRepository applicationRepository;
     private final MemberRepository memberRepository;
     private final UserRepository userRepository;
-    private final ClubService clubService;
     private final PermissionService permissionService;
     private final RabbitTemplate rabbitTemplate;
 
@@ -180,13 +179,18 @@ public class RecruitServiceImpl implements RecruitService {
         app.setFinalReviewComment(comment);
         
         if (pass) {
-            // Auto-add to club member
-            // clubService.addMember currently does not check permission if we assume this internal call is safe
-            // However, addMember signature might stay same, or we might need to bypass permission check for internal system action
-            // But clubService.addMember calls repository directly in current impl.
-            // If we add permission check to clubService.addMember later, we need to be careful.
-            // Current plan: I am adding permission check in ClubController, not ClubService.
-            clubService.addMember(app.getBatch().getClub().getId(), app.getUser().getId(), "MEMBER");
+            // Directly add member via repository to bypass duplicate-check in ClubService.addMember
+            boolean alreadyMember = memberRepository.findByClubIdAndUserId(
+                    app.getBatch().getClub().getId(), app.getUser().getId()).isPresent();
+            if (!alreadyMember) {
+                Member member = new Member();
+                member.setClub(app.getBatch().getClub());
+                member.setUser(app.getUser());
+                member.setRoleCode("MEMBER");
+                member.setStatus("ACTIVE");
+                member.setJoinAt(java.time.LocalDateTime.now());
+                memberRepository.save(member);
+            }
         }
         
         applicationRepository.save(app);

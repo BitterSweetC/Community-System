@@ -1,5 +1,65 @@
 version: '3.8'
 services:
+  mysql:
+    image: mysql:8.0
+    container_name: community-mysql
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=gyh#
+      - MYSQL_DATABASE=community_db
+      - MYSQL_CHARSET=utf8mb4
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    restart: always
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-pgyh#"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    container_name: community-app
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_HOST=mysql
+      - DB_NAME=community_db
+      - DB_USERNAME=root
+      - DB_PASSWORD=gyh#
+      - REDIS_HOST=redis
+      - REDIS_PASSWORD=
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_USERNAME=guest
+      - RABBITMQ_PASSWORD=guest
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - JWT_SECRET=${JWT_SECRET:-community_system_default_secret_key_32_chars}
+      - OSS_ENDPOINT=${OSS_ENDPOINT:-oss-cn-shanghai.aliyuncs.com}
+      - OSS_BUCKET_NAME=${OSS_BUCKET_NAME:-communityclub}
+      - OSS_URL_PREFIX=${OSS_URL_PREFIX:-https://communityclub.oss-cn-shanghai.aliyuncs.com/}
+      - MAIL_HOST=${MAIL_HOST:-smtp.163.com}
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      rabbitmq:
+        condition: service_started
+    restart: always
+
+  frontend:
+    build: ./frontend
+    container_name: community-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - app
+    restart: always
+
   rabbitmq:
     image: rabbitmq:3.12-management
     container_name: community-rabbitmq
@@ -59,5 +119,6 @@ services:
     restart: always
 
 volumes:
+  mysql_data:
   rabbitmq_data:
   redis_data:

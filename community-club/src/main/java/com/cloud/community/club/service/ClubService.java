@@ -27,7 +27,7 @@ public interface ClubService {
     
     // Admin
     List<Club> getPendingClubs();
-    void deleteClub(Long id);
+    void deleteClub(Long id, Long adminId);
     
     // Member management
     void addMember(Long clubId, Long userId, String role);

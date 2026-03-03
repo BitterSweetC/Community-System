@@ -1,5 +1,6 @@
 package com.cloud.community.core.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -11,9 +12,13 @@ import java.math.BigDecimal;
 @Table(name = "t_club_finance")
 public class ClubFinance extends BaseEntity {
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "club_id", nullable = false)
+    @JoinColumn(name = "club_id", nullable = false, insertable = false, updatable = false)
     private Club club;
+
+    @Column(name = "club_id", nullable = false)
+    private Long clubId;
 
     @Column(nullable = false, length = 20)
     private String type; // INCOME, EXPENSE
