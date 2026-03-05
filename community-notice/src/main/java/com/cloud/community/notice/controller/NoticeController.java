@@ -46,18 +46,46 @@ public class NoticeController {
     @GetMapping
     public Result<PageResult<Notice>> getNotices(
             @RequestParam(required = false) Long clubId,
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        
+
         PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "publishedAt"));
-        
+
+        Page<Notice> noticePage;
         if (clubId != null) {
-            Page<Notice> noticePage = noticeRepository.findByClubIdAndStatus(clubId, "PUBLISHED", pageRequest);
-            return Result.success(PageResult.of(noticePage));
+            noticePage = noticeRepository.findByClubIdAndStatus(clubId, "PUBLISHED", pageRequest);
+        } else {
+            noticePage = noticeRepository.findByStatus("PUBLISHED", pageRequest);
         }
-        // Return all published notices (including CLUB scope) to ensure content is visible on home page
-        Page<Notice> noticePage = noticeRepository.findByStatus("PUBLISHED", pageRequest);
-        return Result.success(PageResult.of(noticePage));
+
+        // 前端过滤
+        List<Notice> filtered = noticePage.getContent();
+        if (title != null && !title.isEmpty()) {
+            filtered = filtered.stream()
+                .filter(n -> n.getTitle().contains(title))
+                .toList();
+        }
+        if (startDate != null && endDate != null) {
+            java.time.LocalDate start = java.time.LocalDate.parse(startDate);
+            java.time.LocalDate end = java.time.LocalDate.parse(endDate);
+            filtered = filtered.stream()
+                .filter(n -> {
+                    java.time.LocalDate publishDate = n.getPublishedAt().toLocalDate();
+                    return !publishDate.isBefore(start) && !publishDate.isAfter(end);
+                })
+                .toList();
+        }
+
+        PageResult<Notice> result = new PageResult<>();
+        result.setList(filtered);
+        result.setTotal(filtered.size());
+        result.setPage(page + 1);
+        result.setSize(size);
+        result.setTotalPages((int) Math.ceil((double) filtered.size() / size));
+        return Result.success(result);
     }
 
     @PostMapping

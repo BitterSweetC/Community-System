@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -:*)",
+      "Read(//c/Users/Charles/AppData/Local/Programs/Python//**)",
+      "Bash(PYTHON=\"/c/Users/Charles/AppData/Local/Programs/Python/Python312/python.exe\")",
+      "Bash(\"$PYTHON\" -:*)",
+      "Bash(\"$PYTHON\" -c \":*)",
+      "Bash(curl -s -c /tmp/admin_cookies.txt -X POST http://localhost:8080/api/auth/login -H \"Content-Type: application/json\" -d '{\"\"username\"\":\"\"admin\"\",\"\"password\"\":\"\"123456\"\"}')",
+      "Bash(curl -s -b /tmp/admin_cookies.txt \"http://localhost:8080/api/admin/users?page=0&size=20\")",
+      "Bash(curl -s -b /tmp/admin_cookies.txt \"http://localhost:8080/api/users?page=0&size=20\")",
+      "Bash(curl -s -b /tmp/admin_cookies.txt \"http://localhost:8080/api/clubs?page=0&size=5\")",
+      "Bash(__NEW_LINE_ae9cb600df88b073__ echo \"=== 2. 冻结社团 \\(dry test - get info first\\) ===\")",
+      "Bash(curl -s -b /tmp/admin_cookies.txt \"http://localhost:8080/api/admin/clubs?page=0&size=3\")",
+      "Bash(__NEW_LINE_04c613209369980f__ echo \"=== 3. 活动管理 ===\")",
+      "Bash(curl -s -b /tmp/admin_cookies.txt \"http://localhost:8080/api/admin/activities?page=0&size=3\")",
+      "Bash(__NEW_LINE_a97e16a6d2508d22__ echo \"=== 4. 招募管理 ===\")",
+      "Bash(curl -s -b /tmp/admin_cookies.txt \"http://localhost:8080/api/admin/recruits?page=0&size=3\")",
+      "Bash(__NEW_LINE_87a634d30aa0b445__ echo \"=== 5. 通知发布 ===\")",
+      "Bash(curl -s -b /tmp/admin_cookies.txt \"http://localhost:8080/api/notices?page=0&size=3\")",
+      "Bash(curl -s -b /tmp/admin_cookies.txt \"http://localhost:8080/api/admin/clubs/pending\")",
+      "Bash(__NEW_LINE_d3c11df405c89464__ echo \"\")",
+      "Bash(__NEW_LINE_2ef882711d24a39b__ echo \"\")",
+      "Bash(curl -s -b /tmp/admin_cookies.txt \"http://localhost:8080/api/activities?page=0&size=3\")",
+      "Bash(curl -s -b /tmp/admin_cookies.txt \"http://localhost:8080/api/admin/users?page=0&size=50\")"
+    ]
+  }
+}

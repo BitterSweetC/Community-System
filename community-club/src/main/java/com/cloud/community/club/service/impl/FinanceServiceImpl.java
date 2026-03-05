@@ -3,6 +3,7 @@ package com.cloud.community.club.service.impl;
 import com.cloud.community.club.service.FinanceService;
 import com.cloud.community.core.entity.Club;
 import com.cloud.community.core.entity.ClubFinance;
+import com.cloud.community.core.exception.BusinessException;
 import com.cloud.community.core.repository.ClubFinanceRepository;
 import com.cloud.community.core.repository.ClubRepository;
 import lombok.RequiredArgsConstructor;
@@ -49,7 +50,7 @@ public class FinanceServiceImpl implements FinanceService {
                 .orElseThrow(() -> new RuntimeException("Transaction not found"));
         
         if (!"PENDING".equals(transaction.getStatus())) {
-            throw new RuntimeException("Transaction is not pending");
+            throw new BusinessException(40931, "该财务申请已处理，请勿重复审批");
         }
 
         transaction.setStatus("APPROVED");
@@ -79,7 +80,7 @@ public class FinanceServiceImpl implements FinanceService {
                 .orElseThrow(() -> new RuntimeException("Transaction not found"));
 
         if (!"PENDING".equals(transaction.getStatus())) {
-            throw new RuntimeException("Transaction is not pending");
+            throw new BusinessException(40931, "该财务申请已处理，请勿重复审批");
         }
 
         transaction.setStatus("REJECTED");

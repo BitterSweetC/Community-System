@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface RecruitBatchRepository extends JpaRepository<RecruitBatch, Long> {
-    List<RecruitBatch> findByClubId(Long clubId);
+    List<RecruitBatch> findByClubIdOrderByStartTimeDesc(Long clubId);
 
     @Query("SELECT DISTINCT b.club FROM RecruitBatch b WHERE b.startTime <= :now AND b.endTime >= :now")
     List<Club> findClubsWithActiveRecruitment(@Param("now") LocalDateTime now);

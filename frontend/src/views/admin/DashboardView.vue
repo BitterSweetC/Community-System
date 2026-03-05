@@ -87,7 +87,7 @@
               <template #header>
                 <div class="card-header">
                   <span>{{ club.name }}</span>
-                  <el-tag size="small">{{ club.status }}</el-tag>
+                  <el-tag size="small">{{ getStatusText(club.status) }}</el-tag>
                 </div>
               </template>
               <div class="club-actions">
@@ -130,7 +130,7 @@ const loadSystemStats = async () => {
     await nextTick()
     initCharts()
   } catch (error) {
-    console.error('Failed to load system stats', error)
+    console.error('加载系统统计失败', error)
   }
 }
 
@@ -182,7 +182,7 @@ const initCharts = () => {
     clubStatusChart = echarts.init(clubStatusChartRef.value)
     
     const statusData = Object.entries(systemStats.value.clubStatusDistribution || {}).map(([key, value]) => ({
-      name: key,
+      name: getStatusText(key),
       value: value
     }))
     
@@ -228,6 +228,25 @@ const handleResize = () => {
   clubStatusChart?.resize()
 }
 
+const getStatusText = (status) => {
+  switch (status) {
+    case 'ACTIVE':
+      return '活跃'
+    case 'PENDING':
+      return '待审批'
+    case 'DISSOLVING':
+      return '解散中'
+    case 'DISSOLVED':
+      return '已解散'
+    case 'INACTIVE':
+      return '未激活'
+    case 'REJECTED':
+      return '已驳回'
+    default:
+      return status || '-'
+  }
+}
+
 onMounted(async () => {
   try {
     const res = await axios.get('/clubs/my')
@@ -235,7 +254,7 @@ onMounted(async () => {
     else if (Array.isArray(res)) myClubs.value = res
     else myClubs.value = res.content || []
   } catch (error) {
-    console.error('Failed to load my clubs', error)
+    console.error('加载我的社团失败', error)
   }
 
   if (isAdmin.value) {
@@ -247,62 +266,168 @@ onMounted(async () => {
 
 <style scoped>
 .admin-dashboard {
-  padding: 20px;
+  padding: 24px;
+  background: #f5f7fa;
+  min-height: 100vh;
 }
+
+.admin-dashboard h2 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #303133;
+  margin-bottom: 8px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
 .welcome-text {
   margin-bottom: 30px;
-  color: #666;
+  color: #606266;
+  font-size: 16px;
 }
+
 .dashboard-grid {
   display: flex;
   flex-direction: column;
   gap: 30px;
 }
+
 .quick-actions {
   display: flex;
   gap: 20px;
   flex-wrap: wrap;
 }
+
 .dashboard-card {
   cursor: pointer;
-  transition: transform 0.2s;
+  transition: all 0.3s;
   width: 300px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
 }
+
 .dashboard-card:hover {
-  transform: translateY(-5px);
+  transform: translateY(-8px);
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.25);
 }
+
+:deep(.dashboard-card .el-card__header) {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.card-content {
+  color: #606266;
+  line-height: 1.6;
+}
+
 .my-clubs-section {
   margin-top: 20px;
 }
+
+.my-clubs-section h3 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 16px;
+}
+
 .club-dashboard-card {
   margin-bottom: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  transition: all 0.3s;
 }
+
+.club-dashboard-card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+
 .club-actions {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
 }
+
+:deep(.club-actions .el-button) {
+  border-radius: 6px;
+  font-weight: 500;
+}
+
 .stats-section {
   margin-top: 20px;
   padding-top: 20px;
-  border-top: 1px solid #eee;
 }
+
+.stats-section h3 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 20px;
+}
+
 .stats-cards {
   margin-bottom: 30px;
 }
+
+:deep(.stats-cards .el-card) {
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  transition: all 0.3s;
+  overflow: hidden;
+}
+
+:deep(.stats-cards .el-card:hover) {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+}
+
+:deep(.stats-cards .el-card__header) {
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8eaf6 100%);
+  font-weight: 600;
+  color: #606266;
+  border-bottom: 2px solid #667eea;
+}
+
 .stats-value {
-  font-size: 24px;
-  font-weight: bold;
+  font-size: 32px;
+  font-weight: 700;
   text-align: center;
   color: #303133;
+  padding: 20px 0;
 }
+
 .text-primary {
-  color: var(--el-color-primary);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
+
 .text-success {
-  color: var(--el-color-success);
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
+
 .charts-row {
   margin-bottom: 20px;
+}
+
+:deep(.charts-row .el-card) {
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+
+:deep(.charts-row .el-card__header) {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-weight: 600;
 }
 </style>

@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(echo === $module ===:*)",
+      "Bash(find \"E:\\\\IntelliJ IDEA 2024.2.3\\\\code\\\\Community/frontend/src/views\" -name \"*.vue\" -type f -exec wc -l {} ;)",
+      "Bash(node:*)",
+      "Bash(cd:*)",
+      "Bash(ls:*)",
+      "Bash(\"$PYTHON\" -c \":*)",
+      "Bash(grep:*)",
+      "Bash(python3:*)",
+      "WebFetch(domain:www.nanfu.global)",
+      "Bash(where ffmpeg:*)",
+      "Bash(tail:*)",
+      "Bash(python:*)",
+      "Bash(powershell.exe -Command \"Get-Content ''e:\\\\IntelliJ IDEA 2024.2.3\\\\code\\\\Community\\\\frontend\\\\src\\\\views\\\\LandingView.vue'' | Select-Object -Index 185,186,187,188,189\")",
+      "Bash(powershell.exe -Command \"Format-Hex ''e:\\\\IntelliJ IDEA 2024.2.3\\\\code\\\\Community\\\\frontend\\\\src\\\\views\\\\LandingView.vue'' | Select-Object -First 1\")",
+      "mcp__plugin_oh-my-claudecode_t__state_write",
+      "mcp__plugin_oh-my-claudecode_t__state_read",
+      "Bash(curl -s http://localhost:8080/actuator/health)",
+      "Bash(curl -s -X POST http://localhost:8080/api/auth/login -H \"Content-Type: application/json\" -d '{\"\"username\"\":\"\"admin\"\",\"\"password\"\":\"\"123456\"\"}' -c /tmp/admin_cookies.txt)",
+      "Bash(curl -s -X POST http://localhost:8080/api/auth/login -H \"Content-Type: application/json\" -d '{\"\"username\"\":\"\"student\"\",\"\"password\"\":\"\"123456\"\"}')",
+      "Bash(curl -s http://localhost:8080/api/clubs/1/members -b /tmp/admin_cookies.txt)",
+      "Bash(curl -s -X POST \"http://localhost:8080/api/clubs/1/members?userId=2&role=MEMBER\" -b /tmp/admin_cookies.txt)"
+    ]
+  }
+}

@@ -87,6 +87,7 @@ const inputMessage = ref('')
 const isLoading = ref(false)
 const messages = ref([])
 const messagesRef = ref(null)
+const CHAT_SESSION_KEY = 'chat_session_id'
 
 // --- Actions ---
 const toggleChat = () => {
@@ -107,6 +108,19 @@ const scrollToBottom = async () => {
   }
 }
 
+const getChatSessionId = () => {
+  const existing = localStorage.getItem(CHAT_SESSION_KEY)
+  if (existing) {
+    return existing
+  }
+
+  const created = (typeof crypto !== 'undefined' && crypto.randomUUID)
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(16).slice(2)}`
+  localStorage.setItem(CHAT_SESSION_KEY, created)
+  return created
+}
+
 const sendMessage = async () => {
   const content = inputMessage.value.trim()
   if (!content || isLoading.value) return
@@ -120,7 +134,8 @@ const sendMessage = async () => {
   scrollToBottom()
 
   try {
-    const reply = await api.post('/club/chat', { message: content }, { timeout: 30000 })
+    const sessionId = getChatSessionId()
+    const reply = await api.post('/club/chat', { message: content, sessionId }, { timeout: 30000 })
     messages.value[aiMsgIndex].loading = false
     messages.value[aiMsgIndex].content = reply
   } catch (error) {
@@ -150,32 +165,31 @@ const sendMessage = async () => {
 
 /* Toggle Button */
 .chat-toggle-btn {
-  /* Restore relative positioning */
   position: relative;
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #4f46e5, #3b82f6);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
   border: none;
-  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+  box-shadow: 0 4px 20px rgba(79, 70, 229, 0.4);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   color: white;
   z-index: 100001;
-  pointer-events: auto; /* Enable clicks */
-  margin-top: 20px; /* Space between window and button */
+  pointer-events: auto;
+  margin-top: 20px;
 }
 
 .chat-toggle-btn:hover {
-  transform: scale(1.05);
-  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+  transform: scale(1.1);
+  box-shadow: 0 6px 25px rgba(79, 70, 229, 0.5);
 }
 
 .chat-toggle-btn.is-active {
-  background: #3b82f6; 
+  background: var(--color-secondary);
 }
 
 .chat-toggle-btn .icon {
@@ -184,7 +198,6 @@ const sendMessage = async () => {
 
 /* Chat Window */
 .chat-window {
-  /* Restore relative positioning within flex container */
   position: relative;
   bottom: auto;
   right: auto;
@@ -192,24 +205,24 @@ const sendMessage = async () => {
   height: 500px;
   max-height: 70vh;
   background: #ffffff;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid rgba(0,0,0,0.05);
+  border: 1px solid var(--color-border);
   transform-origin: bottom right;
   z-index: 100000;
-  pointer-events: auto; /* Enable clicks */
+  pointer-events: auto;
 }
 
 /* Header */
 .chat-header {
   padding: 16px 20px;
-  background: linear-gradient(135deg, #4f46e5, #3b82f6);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
   color: white;
   display: flex;
-  justify-content: center; /* Center title */
+  justify-content: center;
   align-items: center;
   position: relative;
 }
@@ -253,18 +266,19 @@ const sendMessage = async () => {
 
 .tags span {
   background: white;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border);
   padding: 6px 12px;
   border-radius: 20px;
   font-size: 12px;
   cursor: pointer;
   transition: all 0.2s;
-  color: #4f46e5;
+  color: var(--color-primary);
 }
 
 .tags span:hover {
-  background: #eff6ff;
-  border-color: #bfdbfe;
+  background: rgba(79, 70, 229, 0.1);
+  border-color: var(--color-primary);
+  transform: translateY(-2px);
 }
 
 /* Message Bubbles */
@@ -286,12 +300,12 @@ const sendMessage = async () => {
 .avatar {
   width: 32px;
   height: 32px;
-  background: #eff6ff;
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.1), rgba(59, 130, 246, 0.1));
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #3b82f6;
+  color: var(--color-primary);
   flex-shrink: 0;
 }
 
@@ -305,16 +319,18 @@ const sendMessage = async () => {
 }
 
 .message-row.user .bubble {
-  background: #3b82f6;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
   color: white;
   border-bottom-right-radius: 2px;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.2);
 }
 
 .message-row.ai .bubble {
   background: white;
-  color: #1e293b;
-  border: 1px solid #e2e8f0;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
   border-bottom-left-radius: 2px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 /* Typing Indicator */
@@ -340,7 +356,7 @@ const sendMessage = async () => {
 .chat-input-area {
   padding: 16px;
   background: white;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid var(--color-border);
   display: flex;
   gap: 10px;
   align-items: flex-end;
@@ -348,8 +364,8 @@ const sendMessage = async () => {
 
 textarea {
   flex: 1;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
   padding: 10px;
   font-size: 14px;
   resize: none;
@@ -361,30 +377,32 @@ textarea {
 }
 
 textarea:focus {
-  border-color: #3b82f6;
+  border-color: var(--color-primary);
 }
 
 .send-btn {
   width: 40px;
   height: 40px;
-  background: #3b82f6;
+  background: var(--color-primary);
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.2s;
+  transition: all 0.3s;
 }
 
 .send-btn:disabled {
-  background: #cbd5e1;
+  background: var(--color-border);
   cursor: not-allowed;
 }
 
 .send-btn:not(:disabled):hover {
-  background: #2563eb;
+  background: var(--color-primary-light);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
 }
 
 /* Transitions */

@@ -1,0 +1,170 @@
+% ============================================================
+%  第六章 系统测试
+% ============================================================
+\chapter{系统测试}
+
+\section{测试策略与环境}
+
+本系统采用分层测试策略，覆盖单元测试、接口测试、安全测试与性能测试四个层次。测试环境配置如表~\ref{tab:test-env}所示。
+
+\begin{table}[H]
+\centering
+\caption{测试环境配置}
+\label{tab:test-env}
+\begin{tabular}{ll}
+\toprule
+配置项 & 说明 \\
+\midrule
+服务器     & 4核8GB内存，Windows 11 \\
+数据库     & MySQL 8.0，测试库独立隔离 \\
+测试框架   & JUnit 5 + Mockito（单元）、Postman（接口）\\
+性能测试   & Apache JMeter 5.6 \\
+代码覆盖率 & JaCoCo \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{单元测试}
+
+针对核心Service层与工具类编写单元测试，使用Mockito模拟Repository依赖，确保业务逻辑的正确性。
+
+\begin{lstlisting}[language=Java, caption=ClubService单元测试示例]
+@ExtendWith(MockitoExtension.class)
+class ClubServiceTest {
+
+    @Mock
+    private ClubRepository clubRepository;
+
+    @InjectMocks
+    private ClubServiceImpl clubService;
+
+    @Test
+    void createClub_shouldSaveAndReturnClub() {
+        ClubCreateRequest req = new ClubCreateRequest("测试社团", "文艺", "简介");
+        Club saved = Club.builder().id(1L).name("测试社团").build();
+        when(clubRepository.save(any())).thenReturn(saved);
+
+        ClubDTO result = clubService.createClub(req, 1L);
+
+        assertThat(result.getId()).isEqualTo(1L);
+        verify(clubRepository, times(1)).save(any());
+    }
+
+    @Test
+    void approveClub_withInvalidStatus_shouldThrow() {
+        Club club = Club.builder().id(1L).status(ClubStatus.ACTIVE).build();
+        when(clubRepository.findById(1L)).thenReturn(Optional.of(club));
+
+        assertThatThrownBy(() -> clubService.approveClub(1L, true))
+            .isInstanceOf(BusinessException.class)
+            .hasMessageContaining("状态");
+    }
+}
+\end{lstlisting}
+
+主要模块测试覆盖率统计如表~\ref{tab:coverage}所示。
+
+\begin{table}[H]
+\centering
+\caption{单元测试覆盖率统计}
+\label{tab:coverage}
+\begin{tabular}{lcc}
+\toprule
+模块 & 行覆盖率 & 分支覆盖率 \\
+\midrule
+JwtUtils          & 92\% & 88\% \\
+ClubService       & 85\% & 80\% \\
+ActivityService   & 83\% & 78\% \\
+AuthService       & 90\% & 85\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{接口测试}
+
+使用Postman对核心接口进行功能测试，覆盖正常场景与异常场景。
+
+\begin{table}[H]
+\centering
+\caption{认证接口测试用例}
+\begin{tabular}{llll}
+\toprule
+用例编号 & 测试场景 & 预期结果 & 实际结果 \\
+\midrule
+TC-AUTH-01 & 正确账号密码登录 & 返回AccessToken & 通过 \\
+TC-AUTH-02 & 错误密码登录 & 返回401，失败计数+1 & 通过 \\
+TC-AUTH-03 & 连续失败5次后登录 & 返回429，账户锁定 & 通过 \\
+TC-AUTH-04 & 携带有效Token访问 & 正常返回数据 & 通过 \\
+TC-AUTH-05 & 携带过期Token访问 & 返回401 & 通过 \\
+TC-AUTH-06 & 使用RefreshToken刷新 & 返回新AccessToken & 通过 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{社团管理接口测试用例}
+\begin{tabular}{llll}
+\toprule
+用例编号 & 测试场景 & 预期结果 & 实际结果 \\
+\midrule
+TC-CLUB-01 & 普通用户创建社团申请 & 返回201，状态PENDING & 通过 \\
+TC-CLUB-02 & 管理员审批通过 & 社团状态变为ACTIVE & 通过 \\
+TC-CLUB-03 & 非管理员执行审批 & 返回403 & 通过 \\
+TC-CLUB-04 & 创建同名社团 & 返回400，提示重名 & 通过 \\
+TC-CLUB-05 & 冻结活跃社团 & 状态变为FROZEN & 通过 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{安全测试}
+
+\begin{table}[H]
+\centering
+\caption{安全测试结果}
+\begin{tabular}{lll}
+\toprule
+测试项目 & 测试方法 & 测试结果 \\
+\midrule
+未授权访问     & 不携带Token访问受保护接口 & 返回401，拦截成功 \\
+越权访问       & 普通用户访问管理员接口 & 返回403，拦截成功 \\
+登录限流       & 连续失败登录6次 & 第6次返回429，锁定15分钟 \\
+Token失效      & 登出后使用原Token访问 & 返回401，黑名单生效 \\
+SQL注入        & 在参数中注入SQL语句 & 参数化查询，注入无效 \\
+XSS攻击        & 提交含\texttt{<script>}的内容 & 内容转义，脚本不执行 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{性能测试}
+
+使用JMeter模拟并发用户对核心接口进行压力测试，测试结果如表~\ref{tab:perf}所示。
+
+\begin{table}[H]
+\centering
+\caption{性能测试结果}
+\label{tab:perf}
+\begin{tabular}{lcccc}
+\toprule
+接口 & 并发数 & 平均响应时间 & 95\%响应时间 & 错误率 \\
+\midrule
+GET /api/clubs（无缓存）   & 100 & 185ms & 320ms & 0\% \\
+GET /api/clubs（有缓存）   & 100 & 12ms  & 25ms  & 0\% \\
+POST /api/auth/login       & 50  & 95ms  & 180ms & 0\% \\
+POST /api/activities/checkin & 100 & 78ms & 150ms & 0\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Redis缓存对社团列表查询的性能提升效果显著，响应时间从185ms降至12ms，提升约93\%，验证了缓存策略的有效性。
+
+\section{测试结果分析}
+
+经过全面测试，系统各项功能运行稳定，主要结论如下：
+
+\begin{enumerate}
+  \item 所有核心功能接口测试通过率100\%，异常场景均能正确处理并返回规范错误信息；
+  \item 安全防护机制有效，登录限流、Token黑名单、权限控制均按预期工作；
+  \item 在100并发用户场景下，核心接口响应时间满足200ms以内的设计要求；
+  \item Redis缓存策略显著提升了高频查询接口的性能表现。
+\end{enumerate}

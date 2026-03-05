@@ -1,61 +1,102 @@
 <template>
-  <div>
-    <h2>招新管理</h2>
+  <div class="recruit-management">
+    <div class="page-head">
+      <div>
+        <h2>招新管理</h2>
+        <p class="subtext">管理招新批次并审核报名申请。</p>
+      </div>
+    </div>
 
-    <el-tabs v-model="activeTab">
+    <el-tabs v-model="activeTab" class="recruit-tabs">
       <el-tab-pane label="批次管理" name="batches">
-        <el-button type="primary" @click="createBatchDialog = true">新建批次</el-button>
-        <el-table :data="batches" style="margin-top: 20px">
-          <el-table-column prop="title" label="标题" />
-          <el-table-column prop="startTime" label="开始时间" width="180" />
-          <el-table-column prop="endTime" label="结束时间" width="180" />
-          <el-table-column prop="quota" label="名额" width="80" />
-          <el-table-column label="操作">
-            <template #default="scope">
-              <el-button @click="loadApplications(scope.row.id)">查看申请</el-button>
-            </template>
-          </el-table-column>
-        </el-table>
+        <div class="pane-inner">
+          <div class="actions">
+            <el-button type="primary" @click="createBatchDialog = true">新建批次</el-button>
+          </div>
+
+          <div class="table-panel">
+            <el-table :data="batches" class="table-shell">
+            <el-table-column prop="title" label="标题" />
+            <el-table-column prop="startTime" label="开始时间" width="180" />
+            <el-table-column prop="endTime" label="结束时间" width="180" />
+            <el-table-column prop="quota" label="名额" width="90" />
+            <el-table-column label="操作" align="center" width="140">
+              <template #default="scope">
+                <el-button type="primary" size="small" @click="loadApplications(scope.row.id)">查看申请</el-button>
+              </template>
+            </el-table-column>
+            </el-table>
+          </div>
+        </div>
       </el-tab-pane>
 
       <el-tab-pane label="申请审核" name="applications">
-        <div style="margin-bottom: 20px" v-if="applications.length > 0">
-          <el-button type="success" @click="exportApplications">导出报名表</el-button>
+        <div class="pane-inner">
+          <div class="actions" v-if="applications.length > 0">
+            <el-button type="success" @click="exportApplications">导出名单</el-button>
+          </div>
+
+          <div class="table-panel">
+            <el-table :data="applications" class="table-shell">
+            <el-table-column prop="user.username" label="用户" min-width="160" />
+            <el-table-column prop="firstReviewStatus" label="初审状态" width="140">
+              <template #default="scope">
+                <el-tag :type="getStatusType(scope.row.firstReviewStatus)">
+                  {{ getStatusLabel(scope.row.firstReviewStatus) }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="finalReviewStatus" label="复审状态" width="140">
+              <template #default="scope">
+                <el-tag :type="getStatusType(scope.row.finalReviewStatus)">
+                  {{ getStatusLabel(scope.row.finalReviewStatus) }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="260" align="center">
+              <template #default="scope">
+                <div v-if="scope.row.firstReviewStatus === 'PENDING'" class="review-actions">
+                  <el-button size="small" type="success" @click="openReview(scope.row.id, 'first', true)">通过</el-button>
+                  <el-button size="small" type="danger" @click="openReview(scope.row.id, 'first', false)">驳回</el-button>
+                </div>
+                <div
+                  v-else-if="scope.row.firstReviewStatus === 'PASSED' && scope.row.finalReviewStatus === 'PENDING'"
+                  class="review-actions"
+                >
+                  <el-button size="small" type="success" @click="openReview(scope.row.id, 'final', true)">通过</el-button>
+                  <el-button size="small" type="danger" @click="openReview(scope.row.id, 'final', false)">驳回</el-button>
+                </div>
+              </template>
+            </el-table-column>
+            </el-table>
+          </div>
         </div>
-        <el-table :data="applications">
-          <el-table-column prop="user.username" label="用户" />
-          <el-table-column prop="firstReviewStatus" label="初审状态" />
-          <el-table-column prop="finalReviewStatus" label="复审状态" />
-          <el-table-column label="操作" width="260">
-            <template #default="scope">
-              <div v-if="scope.row.firstReviewStatus === 'PENDING'">
-                <el-button size="small" type="success" @click="openReview(scope.row.id, 'first', true)">初审通过</el-button>
-                <el-button size="small" type="danger" @click="openReview(scope.row.id, 'first', false)">驳回</el-button>
-              </div>
-              <div v-else-if="scope.row.firstReviewStatus === 'PASSED' && scope.row.finalReviewStatus === 'PENDING'">
-                <el-button size="small" type="success" @click="openReview(scope.row.id, 'final', true)">复审通过</el-button>
-                <el-button size="small" type="danger" @click="openReview(scope.row.id, 'final', false)">驳回</el-button>
-              </div>
-            </template>
-          </el-table-column>
-        </el-table>
       </el-tab-pane>
     </el-tabs>
 
-    <!-- Create Batch Dialog -->
-    <el-dialog v-model="createBatchDialog" title="新建招新批次">
-      <el-form :model="batchForm" label-width="80px">
+    <el-dialog v-model="createBatchDialog" title="新建招新批次" width="520px">
+      <el-form :model="batchForm" label-width="92px">
         <el-form-item label="标题">
           <el-input v-model="batchForm.title" />
         </el-form-item>
         <el-form-item label="开始时间">
-          <el-date-picker v-model="batchForm.startTime" type="datetime" value-format="YYYY-MM-DDTHH:mm:ss" />
+          <el-date-picker
+            v-model="batchForm.startTime"
+            type="datetime"
+            value-format="YYYY-MM-DDTHH:mm:ss"
+            style="width: 100%"
+          />
         </el-form-item>
         <el-form-item label="结束时间">
-          <el-date-picker v-model="batchForm.endTime" type="datetime" value-format="YYYY-MM-DDTHH:mm:ss" />
+          <el-date-picker
+            v-model="batchForm.endTime"
+            type="datetime"
+            value-format="YYYY-MM-DDTHH:mm:ss"
+            style="width: 100%"
+          />
         </el-form-item>
-        <el-form-item label="招募名额">
-          <el-input-number v-model="batchForm.quota" :min="1" placeholder="不填则不限名额" />
+        <el-form-item label="名额">
+          <el-input-number v-model="batchForm.quota" :min="1" placeholder="可选" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -64,8 +105,7 @@
       </template>
     </el-dialog>
 
-    <!-- Review Comment Dialog -->
-    <el-dialog v-model="reviewDialog.visible" :title="reviewDialog.pass ? '通过审核' : '驳回申请'" width="400px">
+    <el-dialog v-model="reviewDialog.visible" :title="reviewDialog.pass ? '通过审核' : '驳回申请'" width="420px">
       <el-form>
         <el-form-item label="审核意见">
           <el-input v-model="reviewDialog.comment" type="textarea" :rows="3" placeholder="请输入审核意见" />
@@ -80,7 +120,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from '@/api/axios'
 import { ElMessage } from 'element-plus'
@@ -108,6 +148,32 @@ const reviewDialog = ref({
   pass: true,
   comment: ''
 })
+
+const getStatusType = (status) => {
+  switch (status) {
+    case 'PASSED':
+      return 'success'
+    case 'PENDING':
+      return 'warning'
+    case 'REJECTED':
+      return 'danger'
+    default:
+      return 'info'
+  }
+}
+
+const getStatusLabel = (status) => {
+  switch (status) {
+    case 'PASSED':
+      return '已通过'
+    case 'PENDING':
+      return '待审核'
+    case 'REJECTED':
+      return '已驳回'
+    default:
+      return status
+  }
+}
 
 const loadBatches = async () => {
   try {
@@ -155,7 +221,7 @@ const exportApplications = async () => {
     const url = window.URL.createObjectURL(new Blob([res]))
     const link = document.createElement('a')
     link.href = url
-    link.setAttribute('download', `Recruitment_Applications_${currentBatchId.value}.xlsx`)
+    link.setAttribute('download', `招新申请_${currentBatchId.value}.xlsx`)
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -180,7 +246,7 @@ const submitReview = async () => {
     })
     ElMessage.success(pass ? '审核通过' : '已驳回')
     reviewDialog.value.visible = false
-    const app = applications.value.find(a => a.id === applicationId)
+    const app = applications.value.find((a) => a.id === applicationId)
     if (app) {
       if (stage === 'first') app.firstReviewStatus = pass ? 'PASSED' : 'REJECTED'
       else app.finalReviewStatus = pass ? 'PASSED' : 'REJECTED'
@@ -192,3 +258,50 @@ const submitReview = async () => {
 
 onMounted(loadBatches)
 </script>
+
+<style scoped>
+.recruit-management {
+  padding: 4px 0 8px;
+}
+
+.page-head {
+  margin-bottom: 12px;
+}
+
+.subtext {
+  margin: 6px 0 0;
+  color: #60748c;
+}
+
+.recruit-tabs {
+  display: grid;
+  gap: 10px;
+}
+
+.pane-inner {
+  display: grid;
+  gap: 12px;
+}
+
+.actions {
+  margin: 0;
+}
+
+.table-panel {
+  padding: 12px;
+  border: 1px solid rgba(14, 55, 94, 0.12);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 10px 24px rgba(17, 46, 77, 0.08);
+}
+
+.table-shell {
+  width: 100%;
+}
+
+.review-actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+</style>

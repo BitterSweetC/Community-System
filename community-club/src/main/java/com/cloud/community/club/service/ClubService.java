@@ -27,6 +27,7 @@ public interface ClubService {
     
     // Admin
     List<Club> getPendingClubs();
+    List<Club> getDissolvingClubs();
     void deleteClub(Long id, Long adminId);
     
     // Member management
@@ -37,7 +38,12 @@ public interface ClubService {
 
     // Dissolution
     void applyDissolution(Long clubId, Long userId, String reason);
+    void approveDissolution(Long clubId, Long adminId);
+    void rejectDissolution(Long clubId, Long adminId);
     void withdrawDissolution(Long clubId, Long userId);
     void forceDissolve(Long clubId, Long adminId, String reason);
     void recoverClub(Long clubId, Long adminId);
+
+    // Role cleanup
+    int cleanupOrphanedClubAdminRoles();
 }

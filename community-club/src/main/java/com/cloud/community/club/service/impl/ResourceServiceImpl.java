@@ -4,6 +4,7 @@ import com.cloud.community.club.service.ResourceService;
 import com.cloud.community.core.constant.RabbitConstants;
 import com.cloud.community.core.entity.Resource;
 import com.cloud.community.core.entity.ResourceApplication;
+import com.cloud.community.core.exception.BusinessException;
 import com.cloud.community.core.model.dto.NotificationMessageDTO;
 import com.cloud.community.core.repository.ResourceApplicationRepository;
 import com.cloud.community.core.repository.ResourceRepository;
@@ -30,37 +31,18 @@ public class ResourceServiceImpl implements ResourceService {
     @Transactional
     public ResourceApplication applyResource(ResourceApplication application) {
         if (application.getResourceId() == null) {
-            throw new RuntimeException("Resource is required");
+            throw new BusinessException(40041, "资源编号不能为空");
         }
 
-        Resource resource = resourceDefinitionRepository.findById(application.getResourceId())
+        // Lock resource row to serialize availability checks for the same resource.
+        Resource resource = resourceDefinitionRepository.findByIdForUpdate(application.getResourceId())
                 .orElseThrow(() -> new RuntimeException("Resource not found"));
         application.setResource(resource);
 
-        int requested = application.getQuantity() == null ? 1 : application.getQuantity();
-        if (requested <= 0) {
-            throw new RuntimeException("申请数量必须大于 0");
-        }
+        int requested = normalizeRequestedQuantity(application.getQuantity());
+        application.setQuantity(requested);
 
-        if ("MATERIAL".equals(resource.getType())) {
-            // 物资：校验不超过总库存，并检查时间段内已批准数量
-            if (resource.getTotalQuantity() != null && requested > resource.getTotalQuantity()) {
-                throw new RuntimeException("申请数量超过资源总库存（共 " + resource.getTotalQuantity() + " 件）");
-            }
-            int alreadyApproved = resourceRepository.sumApprovedQuantityInPeriod(
-                    resource.getId(), application.getStartTime(), application.getEndTime());
-            if (resource.getTotalQuantity() != null && alreadyApproved + requested > resource.getTotalQuantity()) {
-                int remaining = resource.getTotalQuantity() - alreadyApproved;
-                throw new RuntimeException("该时间段内库存不足，当前剩余可申请数量：" + remaining);
-            }
-        } else {
-            // 场地：同一时间段只允许一个已批准预约
-            List<ResourceApplication> conflicts = resourceRepository.findConflictingApplications(
-                    resource.getId(), application.getStartTime(), application.getEndTime());
-            if (!conflicts.isEmpty()) {
-                throw new RuntimeException("该时间段内场地已被预约");
-            }
-        }
+        validateAvailability(resource, application.getStartTime(), application.getEndTime(), requested);
 
         application.setStatus("PENDING");
         return resourceRepository.save(application);
@@ -69,34 +51,44 @@ public class ResourceServiceImpl implements ResourceService {
     @Override
     @Transactional
     public void approveResource(Long applicationId, Long approverId) {
-        ResourceApplication application = resourceRepository.findById(applicationId)
+        // Lock application row to prevent double approval/rejection.
+        ResourceApplication application = resourceRepository.findByIdForUpdate(applicationId)
                 .orElseThrow(() -> new RuntimeException("Application not found"));
 
         if (!"PENDING".equals(application.getStatus())) {
-            throw new RuntimeException("Application is not pending");
+            throw new BusinessException(40941, "该资源申请已处理，请勿重复审批");
         }
+
+        // Lock resource row and re-check availability during approval.
+        Resource resource = resourceDefinitionRepository.findByIdForUpdate(application.getResourceId())
+                .orElseThrow(() -> new RuntimeException("Resource not found"));
+        int requested = normalizeRequestedQuantity(application.getQuantity());
+        validateAvailability(resource, application.getStartTime(), application.getEndTime(), requested);
+        application.setQuantity(requested);
 
         application.setStatus("APPROVED");
         application.setApproverId(approverId);
         resourceRepository.save(application);
 
         String resourceName = resourceDefinitionRepository.findById(application.getResourceId())
-                .map(Resource::getName).orElse("未知资源");
+                .map(Resource::getName)
+                .orElse("未知资源");
         sendResourceNotification(
                 application.getApplicantId(),
                 "资源申请已通过",
-                "您申请的资源「" + resourceName + "」已审批通过。");
+                "您申请的资源【" + resourceName + "】已审批通过。"
+        );
         pushPendingCount();
     }
 
     @Override
     @Transactional
     public void rejectResource(Long applicationId, Long approverId) {
-        ResourceApplication application = resourceRepository.findById(applicationId)
+        ResourceApplication application = resourceRepository.findByIdForUpdate(applicationId)
                 .orElseThrow(() -> new RuntimeException("Application not found"));
 
         if (!"PENDING".equals(application.getStatus())) {
-            throw new RuntimeException("Application is not pending");
+            throw new BusinessException(40941, "该资源申请已处理，请勿重复审批");
         }
 
         application.setStatus("REJECTED");
@@ -104,12 +96,45 @@ public class ResourceServiceImpl implements ResourceService {
         resourceRepository.save(application);
 
         String resourceName = resourceDefinitionRepository.findById(application.getResourceId())
-                .map(Resource::getName).orElse("未知资源");
+                .map(Resource::getName)
+                .orElse("未知资源");
         sendResourceNotification(
                 application.getApplicantId(),
                 "资源申请未通过",
-                "您申请的资源「" + resourceName + "」未获审批通过，请联系管理员了解详情。");
+                "您申请的资源【" + resourceName + "】未通过审批，请联系管理员了解详情。"
+        );
         pushPendingCount();
+    }
+
+    private int normalizeRequestedQuantity(Integer quantity) {
+        int requested = quantity == null ? 1 : quantity;
+        if (requested <= 0) {
+            throw new BusinessException(40042, "申请数量必须大于 0");
+        }
+        return requested;
+    }
+
+    private void validateAvailability(Resource resource, java.time.LocalDateTime startTime,
+                                      java.time.LocalDateTime endTime, int requested) {
+        if ("MATERIAL".equals(resource.getType())) {
+            if (resource.getTotalQuantity() != null && requested > resource.getTotalQuantity()) {
+                throw new BusinessException(40942, "申请数量超过资源总库存");
+            }
+
+            int alreadyApproved = resourceRepository.sumApprovedQuantityInPeriod(
+                    resource.getId(), startTime, endTime);
+            if (resource.getTotalQuantity() != null && alreadyApproved + requested > resource.getTotalQuantity()) {
+                int remaining = resource.getTotalQuantity() - alreadyApproved;
+                throw new BusinessException(40943, "该时间段库存不足，当前剩余可申请数量：" + remaining);
+            }
+            return;
+        }
+
+        List<ResourceApplication> conflicts = resourceRepository.findConflictingApplications(
+                resource.getId(), startTime, endTime);
+        if (!conflicts.isEmpty()) {
+            throw new BusinessException(40944, "该时间段内场地已被预约");
+        }
     }
 
     private void pushPendingCount() {
@@ -128,7 +153,8 @@ public class ResourceServiceImpl implements ResourceService {
             rabbitTemplate.convertAndSend(
                     RabbitConstants.NOTIFICATION_EXCHANGE,
                     RabbitConstants.COMMON_NOTIFICATION_ROUTING_KEY,
-                    message);
+                    message
+            );
         } catch (Exception e) {
             log.error("Failed to send resource notification to user {}", userId, e);
         }

@@ -1,154 +1,185 @@
-<template>
-  <div class="academic-container">
-    <div class="page-hero">
-      <div class="page-hero-inner">
-        <div class="page-hero-title">
-          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-          <h1>活动一览</h1>
+﻿<template>
+  <div class="activity-page">
+    <section class="hero-section">
+      <div class="hero-grid"></div>
+      <div class="hero-container">
+        <p class="hero-kicker">Activity Center</p>
+        <h1>活动一览</h1>
+        <p>探索精彩活动，在线报名并参与签到，丰富你的校园体验。</p>
+        <div class="hero-meta">
+          <span>当前结果：{{ total }} 场活动</span>
+          <span>每页展示：{{ pageSize }} 条</span>
         </div>
-        <p class="page-hero-sub">探索精彩活动，报名参与，丰富校园生活</p>
       </div>
-    </div>
+    </section>
 
-    <div class="filter-bar">
-      <el-form :inline="true" class="search-form">
-        <el-form-item label="活动名称">
-          <el-input v-model="searchKeyword" placeholder="请输入活动名称">
-            <template #prefix>
-              <el-icon><Search /></el-icon>
-            </template>
-          </el-input>
-        </el-form-item>
-        <el-form-item label="举办社团">
-           <el-input v-model="searchClub" placeholder="请输入社团名称">
-             <template #prefix>
-               <el-icon><Search /></el-icon>
-             </template>
-           </el-input>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleSearch">查询</el-button>
-          <el-button @click="resetSearch">重置</el-button>
-        </el-form-item>
-      </el-form>
-    </div>
-
-    <div class="data-table-wrapper">
-      <el-table 
-        :data="activities" 
-        style="width: 100%" 
-        stripe 
-        border
-        header-cell-class-name="table-header"
-        v-loading="loading"
-      >
-        <el-table-column prop="status" label="状态" width="100" align="center">
-           <template #default="scope">
-              <el-tag :type="getActivityStatusType(scope.row)">{{ getActivityStatus(scope.row) }}</el-tag>
-           </template>
-        </el-table-column>
-        <el-table-column label="封面" width="120" align="center">
-          <template #default="scope">
-            <el-image 
-              style="width: 80px; height: 45px; border-radius: 4px;" 
-              :src="scope.row.coverUrl" 
-              fit="cover"
+    <section class="content-container">
+      <div class="filter-panel">
+        <el-form :inline="true" class="search-form" @submit.prevent="handleSearch">
+          <el-form-item label="活动名称">
+            <el-input
+              v-model="searchKeyword"
+              placeholder="请输入活动名称"
+              clearable
+              style="width: 220px"
+              @keyup.enter="handleSearch"
             >
-              <template #error>
-                <div style="background: #f5f7fa; color: #909399; display: flex; align-items: center; justify-content: center; height: 100%;">
-                  <el-icon><Picture /></el-icon>
-                </div>
+              <template #prefix>
+                <el-icon><Search /></el-icon>
               </template>
-            </el-image>
-          </template>
-        </el-table-column>
-        <el-table-column prop="title" label="活动主题" min-width="250">
-          <template #default="scope">
-            <span class="table-link" @click="showActivityDetail(scope.row)">{{ scope.row.title }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="clubName" label="主办单位" width="180" />
-        <el-table-column prop="location" label="地点" width="150" />
-        <el-table-column prop="startTime" label="开始时间" width="180">
-          <template #default="scope">
-             {{ formatTime(scope.row.startTime) }}
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="120" align="center">
-            <template #default="scope">
-                <el-button 
-                  v-if="scope.row.signupStatus === 'SIGNED'" 
-                  type="primary" 
-                  size="small" 
-                  @click="openSignInDialog(scope.row)"
-                >
-                  签到
-                </el-button>
-                <span v-else-if="scope.row.signupStatus === 'SIGNED_IN'" style="color: #67C23A">
-                   已签到
-                </span>
-                <el-button 
-                  v-else 
-                  size="small" 
-                  type="primary" 
-                  link 
-                  @click="signUp(scope.row)"
-                >
-                  报名
-                </el-button>
-            </template>
-        </el-table-column>
-      </el-table>
+            </el-input>
+          </el-form-item>
 
-      <div class="pagination-container">
-        <el-pagination
-          background
-          layout="total, prev, pager, next, jumper"
-          :total="total"
-          :page-size="pageSize"
-          v-model:current-page="currentPage"
-          @current-change="handlePageChange"
-        />
+          <el-form-item label="举办社团">
+            <el-input
+              v-model="searchClub"
+              placeholder="请输入社团名称"
+              clearable
+              style="width: 200px"
+              @keyup.enter="handleSearch"
+            >
+              <template #prefix>
+                <el-icon><Search /></el-icon>
+              </template>
+            </el-input>
+          </el-form-item>
+
+          <el-form-item label="日期范围">
+            <el-date-picker
+              v-model="dateRange"
+              type="daterange"
+              range-separator="至"
+              start-placeholder="开始日期"
+              end-placeholder="结束日期"
+              value-format="YYYY-MM-DD"
+            />
+          </el-form-item>
+
+          <el-form-item class="action-group">
+            <el-button type="primary" class="btn-primary" @click="handleSearch">查询</el-button>
+            <el-button @click="resetSearch">重置</el-button>
+          </el-form-item>
+        </el-form>
       </div>
-    </div>
 
-    <!-- Activity Detail Dialog -->
-    <el-dialog v-model="detailDialogVisible" title="活动详情" width="500px">
-      <div v-if="currentActivity" class="activity-detail">
-        <div class="detail-cover" v-if="currentActivity.coverUrl" style="margin-bottom: 20px;">
-          <el-image :src="currentActivity.coverUrl" fit="cover" style="width: 100%; height: 200px; border-radius: 8px;" />
+      <div class="table-panel">
+        <el-table
+          :data="activities"
+          stripe
+          border
+          v-loading="loading"
+          header-cell-class-name="table-header"
+          style="width: 100%"
+        >
+          <el-table-column prop="status" label="状态" width="106" align="center">
+            <template #default="scope">
+              <el-tag :type="getActivityStatusType(scope.row)">{{ getActivityStatus(scope.row) }}</el-tag>
+            </template>
+          </el-table-column>
+
+          <el-table-column label="封面" width="130" align="center">
+            <template #default="scope">
+              <el-image style="width: 86px; height: 50px; border-radius: 6px" :src="scope.row.coverUrl" fit="cover">
+                <template #error>
+                  <div class="cover-fallback">
+                    <el-icon><Picture /></el-icon>
+                  </div>
+                </template>
+              </el-image>
+            </template>
+          </el-table-column>
+
+          <el-table-column prop="title" label="活动主题" min-width="240">
+            <template #default="scope">
+              <button class="table-link" @click="showActivityDetail(scope.row)">
+                {{ scope.row.title }}
+              </button>
+            </template>
+          </el-table-column>
+
+          <el-table-column prop="clubName" label="主办单位" width="170" />
+          <el-table-column prop="location" label="地点" width="150" />
+
+          <el-table-column prop="startTime" label="开始时间" width="186">
+            <template #default="scope">
+              {{ formatTime(scope.row.startTime) }}
+            </template>
+          </el-table-column>
+
+          <el-table-column label="操作" width="128" align="center">
+            <template #default="scope">
+              <el-button
+                v-if="scope.row.signupStatus === 'SIGNED'"
+                type="primary"
+                size="small"
+                @click="openSignInDialog(scope.row)"
+              >
+                签到
+              </el-button>
+              <span v-else-if="scope.row.signupStatus === 'SIGNED_IN'" class="signed-text">已签到</span>
+              <el-button v-else type="primary" link size="small" @click="signUp(scope.row)">报名</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <div class="pagination-container">
+          <el-pagination
+            background
+            layout="total, prev, pager, next, jumper"
+            :total="total"
+            :page-size="pageSize"
+            v-model:current-page="currentPage"
+            @current-change="handlePageChange"
+          />
         </div>
+      </div>
+    </section>
+
+    <el-dialog v-model="detailDialogVisible" title="活动详情" width="560px">
+      <div v-if="currentActivity" class="activity-detail">
+        <div v-if="currentActivity.coverUrl" class="detail-cover">
+          <el-image :src="currentActivity.coverUrl" fit="cover" style="width: 100%; height: 210px; border-radius: 10px" />
+        </div>
+
         <div class="detail-item">
           <span class="label">活动主题：</span>
           <span class="value">{{ currentActivity.title }}</span>
         </div>
+
         <div class="detail-item">
           <span class="label">主办社团：</span>
-          <span class="value">{{ currentActivity.clubName }}</span>
+          <span class="value">{{ currentActivity.clubName || '-' }}</span>
         </div>
+
         <div class="detail-item">
           <span class="label">活动时间：</span>
-          <span class="value">{{ formatTime(currentActivity.startTime) }} ~ {{ formatTime(currentActivity.endTime) }}</span>
+          <span class="value">
+            {{ formatTime(currentActivity.startTime) }} ~ {{ formatTime(currentActivity.endTime) }}
+          </span>
         </div>
+
         <div class="detail-item">
           <span class="label">活动地点：</span>
-          <span class="value">{{ currentActivity.location }}</span>
+          <span class="value">{{ currentActivity.location || '线上活动' }}</span>
         </div>
+
         <div class="detail-item">
           <span class="label">活动描述：</span>
           <p class="value description">{{ currentActivity.description || '暂无描述' }}</p>
         </div>
+
         <div class="detail-item">
           <span class="label">活动状态：</span>
           <el-tag :type="getActivityStatusType(currentActivity)">{{ getActivityStatus(currentActivity) }}</el-tag>
         </div>
       </div>
+
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="detailDialogVisible = false">关闭</el-button>
-          <el-button 
-            type="primary" 
-            v-if="currentActivity && currentActivity.signupStatus !== 'SIGNED' && currentActivity.signupStatus !== 'SIGNED_IN' && getActivityStatus(currentActivity) === '报名中'" 
+          <el-button
+            v-if="canSignUpInDetail"
+            type="primary"
             @click="signUp(currentActivity)"
           >
             立即报名
@@ -157,11 +188,10 @@
       </template>
     </el-dialog>
 
-    <!-- Sign In Dialog -->
-    <el-dialog v-model="signInDialogVisible" title="活动签到" width="400px">
-      <div style="text-align: center; margin-bottom: 20px;">
-         <p>请输入活动签到码进行签到</p>
-         <el-input v-model="signInCode" placeholder="请输入签到码" style="max-width: 200px" />
+    <el-dialog v-model="signInDialogVisible" title="活动签到" width="420px">
+      <div class="signin-content">
+        <p>请输入活动签到码进行签到</p>
+        <el-input v-model="signInCode" placeholder="请输入签到码" style="max-width: 220px" />
       </div>
       <template #footer>
         <span class="dialog-footer">
@@ -174,17 +204,16 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Search, Picture } from '@element-plus/icons-vue'
-import axios from '@/api/axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import axios from '@/api/axios'
 import { useAuthStore } from '@/stores/auth'
 
 const authStore = useAuthStore()
 const router = useRouter()
 const route = useRoute()
-const currentActivity = ref(null)
 
 const activities = ref([])
 const loading = ref(false)
@@ -193,6 +222,47 @@ const pageSize = ref(15)
 const total = ref(0)
 const searchKeyword = ref('')
 const searchClub = ref('')
+const dateRange = ref([])
+
+const detailDialogVisible = ref(false)
+const currentActivity = ref(null)
+
+const signInDialogVisible = ref(false)
+const signInCode = ref('')
+const currentSignInActivity = ref(null)
+
+const canSignUpInDetail = computed(() => {
+  if (!currentActivity.value) {
+    return false
+  }
+
+  const status = getActivityStatus(currentActivity.value)
+  return (
+    currentActivity.value.signupStatus !== 'SIGNED' &&
+    currentActivity.value.signupStatus !== 'SIGNED_IN' &&
+    status === '报名中'
+  )
+})
+
+const normalizeList = (payload) => {
+  if (!payload) {
+    return []
+  }
+
+  if (Array.isArray(payload)) {
+    return payload
+  }
+
+  if (Array.isArray(payload.list)) {
+    return payload.list
+  }
+
+  if (Array.isArray(payload.content)) {
+    return payload.content
+  }
+
+  return []
+}
 
 const fetchActivities = async () => {
   loading.value = true
@@ -201,141 +271,151 @@ const fetchActivities = async () => {
       page: currentPage.value - 1,
       size: pageSize.value
     }
+
+    if (searchKeyword.value.trim()) {
+      params.keyword = searchKeyword.value.trim()
+    }
+
+    if (searchClub.value.trim()) {
+      params.clubName = searchClub.value.trim()
+    }
+
+    if (dateRange.value && dateRange.value.length === 2) {
+      params.startDate = dateRange.value[0]
+      params.endDate = dateRange.value[1]
+    }
+
     const res = await axios.get('/activities', { params })
-    
-    let list = []
-    if (res.list) {
-      list = res.list
-      total.value = res.total
-    } else if (res.content) {
-      list = res.content
-      total.value = res.totalElements
+    let list = normalizeList(res)
+
+    if (Array.isArray(res?.list)) {
+      total.value = res.total ?? list.length
+    } else if (Array.isArray(res?.content)) {
+      total.value = res.totalElements ?? list.length
     } else {
-      list = res
-      total.value = res.length
+      total.value = list.length
     }
-    
-    // Filter simulation
-    if (searchKeyword.value) {
-        list = list.filter(a => a.title.includes(searchKeyword.value))
-    }
-    if (searchClub.value) {
-        list = list.filter(a => a.clubName && a.clubName.includes(searchClub.value))
-    }
-    
-    // Check signup status
+
     if (authStore.token) {
-        try {
-            const mySignups = await axios.get('/activities/my-signups')
-            const signupMap = {}
-            mySignups.forEach(s => {
-                signupMap[s.id] = s.signupStatus
-            })
-            list = list.map(a => ({
-                ...a,
-                signupStatus: signupMap[a.id]
-            }))
-        } catch (e) {
-            console.warn('Failed to load my signups', e)
-        }
+      try {
+        const mySignups = await axios.get('/activities/my-signups')
+        const signupList = Array.isArray(mySignups) ? mySignups : normalizeList(mySignups)
+        const signupMap = {}
+        signupList.forEach((item) => {
+          if (item?.id) {
+            signupMap[item.id] = item.signupStatus
+          }
+        })
+
+        list = list.map((activity) => ({
+          ...activity,
+          signupStatus: signupMap[activity.id]
+        }))
+      } catch (error) {
+        console.warn('Failed to load my signups', error)
+      }
     }
 
     activities.value = list
-    
-    // Check if we need to auto-trigger signup (redirected from login)
+
     if (route.query.action === 'signup' && route.query.activityId) {
-        const activityId = parseInt(route.query.activityId)
-        // Find the activity in the loaded list
-        const activity = list.find(a => a.id === activityId)
-        if (activity) {
-            // Remove query param to avoid re-triggering on refresh
-            // router.replace({ query: {} }) // Optional
-            performSignUp(activity)
-        }
+      const activityId = Number(route.query.activityId)
+      const target = list.find((item) => Number(item.id) === activityId)
+      if (target) {
+        await performSignUp(target)
+      }
+      router.replace({ path: route.path, query: {} })
     }
   } catch (error) {
     console.error(error)
+    ElMessage.error(error.response?.data?.message || error.message || '活动数据加载失败')
   } finally {
     loading.value = false
   }
 }
 
 const getActivityStatus = (activity) => {
-    const now = new Date()
-    const start = new Date(activity.startTime)
-    const end = new Date(activity.endTime)
-    
-    if (now < start) return '报名中'
-    if (now >= start && now <= end) return '进行中'
-    return '已结束'
+  const now = new Date()
+  const start = new Date(activity.startTime)
+  const end = new Date(activity.endTime)
+
+  if (now < start) {
+    return '报名中'
+  }
+  if (now >= start && now <= end) {
+    return '进行中'
+  }
+  return '已结束'
 }
 
 const getActivityStatusType = (activity) => {
-    const s = getActivityStatus(activity)
-    if (s === '报名中') return 'success'
-    if (s === '进行中') return 'warning'
-    return 'info'
+  const status = getActivityStatus(activity)
+  if (status === '报名中') {
+    return 'success'
+  }
+  if (status === '进行中') {
+    return 'warning'
+  }
+  return 'info'
 }
-
-const detailDialogVisible = ref(false)
 
 const showActivityDetail = (activity) => {
-    currentActivity.value = activity
-    detailDialogVisible.value = true
+  currentActivity.value = activity
+  detailDialogVisible.value = true
 }
 
-const signInDialogVisible = ref(false)
-const signInCode = ref('')
-const currentSignInActivity = ref(null)
-
 const openSignInDialog = (activity) => {
-    currentSignInActivity.value = activity
-    signInCode.value = ''
-    signInDialogVisible.value = true
+  currentSignInActivity.value = activity
+  signInCode.value = ''
+  signInDialogVisible.value = true
 }
 
 const submitSignIn = async () => {
-    if (!currentSignInActivity.value) return
-    
-    try {
-        await axios.post(`/activities/${currentSignInActivity.value.id}/signin`, {
-            code: signInCode.value
-        })
-        ElMessage.success('签到成功')
-        signInDialogVisible.value = false
-        fetchActivities() // Refresh list
-    } catch (error) {
-        ElMessage.error(error.message || '签到失败，请检查签到码')
-    }
+  if (!currentSignInActivity.value) {
+    return
+  }
+
+  try {
+    await axios.post(`/activities/${currentSignInActivity.value.id}/signin`, {
+      code: signInCode.value
+    })
+    ElMessage.success('签到成功')
+    signInDialogVisible.value = false
+    fetchActivities()
+  } catch (error) {
+    ElMessage.error(error.response?.data?.message || error.message || '签到失败，请检查签到码')
+  }
 }
 
 const signUp = async (activity) => {
-    if (!authStore.token) {
-        router.push({
-            path: '/login',
-            query: {
-                redirect: route.fullPath + '?action=signup&activityId=' + activity.id
-            }
-        })
-        return
-    }
-    await performSignUp(activity)
+  if (!authStore.token) {
+    const redirect = `${route.path}?action=signup&activityId=${activity.id}`
+    router.push({
+      path: '/login',
+      query: { redirect }
+    })
+    return
+  }
+
+  await performSignUp(activity)
 }
 
 const performSignUp = async (activity) => {
-    try {
-        await axios.post(`/activities/${activity.id}/signup`)
-        ElMessage.success('报名成功')
-    } catch (e) {
-        if (e.message && e.message.includes('请先加入')) {
-            ElMessageBox.alert(e.message, '提示', {
-                confirmButtonText: '确定',
-                type: 'warning'
-            })
-        } else {
-            ElMessage.warning('报名失败: ' + (e.message || '未知错误'))
-        }
+  try {
+    await axios.post(`/activities/${activity.id}/signup`)
+    ElMessage.success('报名成功')
+    fetchActivities()
+  } catch (error) {
+    const msg = error.response?.data?.message || error.message || '报名失败'
+    if (msg.includes('请先加入')) {
+      ElMessageBox.alert(msg, '提示', {
+        confirmButtonText: '确定',
+        type: 'warning'
+      })
+      return
     }
+    ElMessage.warning(`报名失败: ${msg}`)
+  }
 }
 
 const handleSearch = () => {
@@ -346,6 +426,7 @@ const handleSearch = () => {
 const resetSearch = () => {
   searchKeyword.value = ''
   searchClub.value = ''
+  dateRange.value = []
   handleSearch()
 }
 
@@ -354,9 +435,17 @@ const handlePageChange = (page) => {
   fetchActivities()
 }
 
-const formatTime = (str) => {
-    if(!str) return ''
-    return new Date(str).toLocaleString()
+const formatTime = (value) => {
+  if (!value) {
+    return '-'
+  }
+  return new Date(value).toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
 }
 
 onMounted(() => {
@@ -365,145 +454,199 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.academic-container {
-  background-color: #f3f4f6;
-  min-height: 80vh;
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Noto+Serif+SC:wght@500;700&display=swap');
+
+* {
+  box-sizing: border-box;
 }
 
-.page-hero {
-  background: linear-gradient(135deg, #064e3b 0%, #10b981 100%);
-  padding: 100px 32px 40px;
-  margin-bottom: 24px;
+.activity-page {
+  --ink: #0f1c2a;
+  --muted: #55667a;
+  --surface: rgba(255, 255, 255, 0.88);
+  --border: rgba(15, 28, 42, 0.12);
+
+  min-height: 100vh;
+  padding-bottom: 30px;
+  background: linear-gradient(180deg, #f7f1e7 0%, #efe8dc 44%, #e8eeea 100%);
+  color: var(--ink);
+  font-family: 'Outfit', sans-serif;
 }
 
-.page-hero-inner {
-  max-width: 1200px;
+.hero-section {
+  position: relative;
+  padding: 104px 24px 34px;
+  overflow: hidden;
 }
 
-.back-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(255,255,255,0.15);
-  border: 1px solid rgba(255,255,255,0.3);
-  color: white;
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 13px;
-  cursor: pointer;
-  transition: background 0.2s;
+.hero-grid {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 8% 14%, rgba(15, 118, 110, 0.18), transparent 28%),
+    radial-gradient(circle at 92% 20%, rgba(194, 65, 12, 0.18), transparent 34%),
+    linear-gradient(165deg, #f8f3e8 0%, #eee7d8 60%, #e4ece8 100%);
+}
+
+.hero-grid::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(rgba(15, 28, 42, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 28, 42, 0.03) 1px, transparent 1px);
+  background-size: 34px 34px;
+}
+
+.hero-container {
+  position: relative;
+  z-index: 1;
+  max-width: 1240px;
+  margin: 0 auto;
+}
+
+.hero-kicker {
+  margin: 0 0 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.hero-container h1 {
+  margin: 0;
+  font-family: 'Noto Serif SC', serif;
+  font-size: clamp(2rem, 4vw, 3rem);
+}
+
+.hero-container p {
+  margin: 10px 0 0;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.hero-meta {
+  margin-top: 14px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.hero-meta span {
+  font-size: 0.86rem;
+  border-radius: 999px;
+  padding: 6px 12px;
+  color: #355069;
+  border: 1px solid rgba(15, 28, 42, 0.12);
+  background: rgba(255, 255, 255, 0.66);
+}
+
+.content-container {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.filter-panel {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 12px 24px rgba(15, 28, 42, 0.08);
+  padding: 14px 16px 0;
   margin-bottom: 16px;
 }
 
-.back-btn:hover {
-  background: rgba(255,255,255,0.25);
-}
-
-.breadcrumb {
-  font-size: 13px;
-  color: rgba(255,255,255,0.65);
-  margin-bottom: 12px;
-}
-
-.breadcrumb-link {
-  color: rgba(255,255,255,0.75);
-  text-decoration: none;
-  transition: color 0.2s;
-}
-
-.breadcrumb-link:hover {
-  color: white;
-}
-
-.separator {
-  margin: 0 8px;
-  color: rgba(255,255,255,0.4);
-}
-
-.page-hero-title {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 0 0 8px;
-  color: white;
-}
-
-.page-hero-title h1 {
-  margin: 0;
-  font-size: 28px;
-  font-weight: 700;
-}
-
-.page-hero-title svg {
-  opacity: 0.9;
-  flex-shrink: 0;
-}
-
-.page-hero-sub {
-  margin: 0;
-  font-size: 14px;
-  color: rgba(255,255,255,0.75);
-}
-
-.filter-bar {
-  background-color: #fff;
-  padding: 16px 20px;
-  border-radius: 8px;
-  margin: 0 32px 20px;
-  border: 1px solid #e4e7ed;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-}
-
 .search-form {
-  margin-bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
 }
 
-.data-table-wrapper {
-  margin: 0 32px 32px;
-  border: 1px solid #ebeef5;
-  border-radius: 8px;
+.action-group {
+  margin-left: auto;
+}
+
+.btn-primary {
+  border: none;
+  background: linear-gradient(135deg, #c2410c 0%, #9a3412 100%);
+}
+
+.table-panel {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 12px 24px rgba(15, 28, 42, 0.08);
   overflow: hidden;
-  background: #fff;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 
 :deep(.table-header) {
-  background-color: #f5f7fa !important;
-  color: #333;
-  font-weight: bold;
+  background: #f4f7f7 !important;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.cover-fallback {
+  width: 86px;
+  height: 50px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  color: #7e8ea3;
+  background: #eff3f4;
 }
 
 .table-link {
-  color: #333;
-  font-weight: 500;
-  transition: all 0.3s;
+  border: 0;
+  background: transparent;
+  color: #1f6fa8;
+  font-family: inherit;
+  font-size: 0.95rem;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
 }
 
 .table-link:hover {
-  color: #409EFF;
-  cursor: pointer;
   text-decoration: underline;
 }
 
+.signed-text {
+  color: #16a34a;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.pagination-container {
+  padding: 18px;
+  display: flex;
+  justify-content: center;
+}
+
 .activity-detail {
-  padding: 10px;
+  padding: 4px;
+}
+
+.detail-cover {
+  margin-bottom: 16px;
 }
 
 .detail-item {
-  margin-bottom: 15px;
+  margin-bottom: 14px;
   display: flex;
+  align-items: flex-start;
 }
 
 .detail-item .label {
-  font-weight: bold;
-  width: 100px;
+  width: 94px;
+  color: #4d6075;
+  font-weight: 700;
   flex-shrink: 0;
-  color: #606266;
 }
 
 .detail-item .value {
-  color: #303133;
-  line-height: 1.5;
+  color: var(--ink);
+  line-height: 1.55;
+  flex: 1;
 }
 
 .detail-item .description {
@@ -511,9 +654,31 @@ onMounted(() => {
   white-space: pre-wrap;
 }
 
-.pagination-container {
-  padding: 20px;
-  display: flex;
-  justify-content: center;
+.signin-content {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.signin-content p {
+  margin-bottom: 12px;
+  color: var(--muted);
+}
+
+@media (max-width: 900px) {
+  .hero-section {
+    padding-top: 90px;
+  }
+
+  .content-container {
+    padding: 0 14px;
+  }
+
+  .action-group {
+    margin-left: 0;
+  }
+
+  :deep(.el-form-item) {
+    margin-right: 8px;
+  }
 }
 </style>

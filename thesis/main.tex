@@ -1,0 +1,167 @@
+% ============================================================
+%  基于Spring Boot的社团管理系统 —— 毕业论文
+%  编译方式：XeLaTeX（Overleaf 选 XeLaTeX 编译器）
+% ============================================================
+\documentclass[12pt, a4paper, zihao=-4]{ctexrep}
+
+% —— 页面布局 ——
+\usepackage[
+  top=30mm, bottom=25mm,
+  left=30mm, right=25mm
+]{geometry}
+
+% —— 行距 ——
+\usepackage{setspace}
+\setstretch{1.5}
+
+% —— 字体大小宏（中文字号）——
+\newcommand{\chuhao}{\zihao{0}}
+\newcommand{\yihao}{\zihao{1}}
+\newcommand{\erhao}{\zihao{2}}
+\newcommand{\xiaoer}{\zihao{-2}}
+\newcommand{\sanhao}{\zihao{3}}
+\newcommand{\xiaosan}{\zihao{-3}}
+\newcommand{\sihao}{\zihao{4}}
+\newcommand{\xiaosi}{\zihao{-4}}
+\newcommand{\wuhao}{\zihao{5}}
+
+% —— 章节标题格式（ctex 方式）——
+\ctexset{
+  chapter = {
+    format     = \centering\sanhao\bfseries\heiti,
+    name       = {第,章},
+    number     = \chinese{chapter},
+    beforeskip = 0pt,
+    afterskip  = 18pt,
+  },
+  section = {
+    format     = \sihao\bfseries\heiti,
+    beforeskip = 12pt,
+    afterskip  = 6pt,
+  },
+  subsection = {
+    format     = \xiaosi\bfseries\heiti,
+    indent     = 2em,
+    beforeskip = 10pt,
+    afterskip  = 4pt,
+  },
+  subsubsection = {
+    format     = \xiaosi\heiti,
+    indent     = 2em,
+    beforeskip = 8pt,
+    afterskip  = 2pt,
+  },
+}
+
+% —— 目录 ——
+\usepackage{tocloft}
+\renewcommand{\contentsname}{\centering 目\quad 录}
+\renewcommand{\cftchappresnum}{第}
+\renewcommand{\cftchapaftersnum}{章}
+\setlength{\cftchapnumwidth}{4em}
+
+% —— 图表 ——
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{caption}
+\captionsetup{font=small, labelsep=space}
+\captionsetup[figure]{name=图}
+\captionsetup[table]{name=表}
+
+% —— 表格 ——
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{xcolor}
+\usepackage{colortbl}
+
+% —— 代码高亮 ——
+\usepackage{listings}
+\lstset{
+  basicstyle   = \wuhao\ttfamily,
+  breaklines   = true,
+  frame        = single,
+  numbers      = left,
+  numberstyle  = \tiny,
+  keywordstyle = \color{blue}\bfseries,
+  commentstyle = \color{gray},
+  stringstyle  = \color{red!70!black},
+  showstringspaces = false,
+  tabsize      = 4
+}
+
+% 自定义 JavaScript 语言（listings 不内置）
+\lstdefinelanguage{JavaScript}{
+  keywords    = {const, let, var, function, return, if, else, async, await,
+                 import, export, default, from, class, new, this, true, false,
+                 null, undefined, try, catch, throw},
+  morestring  = [b]",
+  morestring  = [b]',
+  morestring  = [b]`,
+  morecomment = [l]{//},
+  morecomment = [s]{/*}{*/},
+  sensitive   = true,
+}
+
+% —— 数学 ——
+\usepackage{amsmath, amssymb}
+
+% —— 超链接 ——
+\usepackage[hidelinks]{hyperref}
+
+% —— 参考文献 ——
+\usepackage[numbers, sort&compress]{natbib}
+\bibliographystyle{unsrtnat}
+
+% —— TikZ ——
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, fit, backgrounds, calc}
+
+% —— 枚举 ——
+\usepackage{enumitem}
+\setlist[enumerate]{label=(\arabic*)}
+
+% —— 页眉页脚 ——
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[C]{\wuhao 基于Spring Boot的社团管理系统}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ============================================================
+\begin{document}
+
+% 封面
+\input{chapters/cover}
+
+% 摘要
+\pagenumbering{Roman}
+\input{chapters/abstract}
+
+% 目录
+\tableofcontents
+\newpage
+
+% 正文
+\pagenumbering{arabic}
+\input{chapters/ch1_intro}
+\input{chapters/ch2_tech}
+\input{chapters/ch3_requirements}
+\input{chapters/ch4_design}
+\input{chapters/ch5_implementation}
+\input{chapters/ch6_testing}
+\input{chapters/ch7_conclusion}
+
+% 参考文献
+\bibliography{references}
+
+% 致谢
+\input{chapters/acknowledgement}
+
+% 附录
+\appendix
+\input{chapters/appendix}
+
+\end{document}

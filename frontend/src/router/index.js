@@ -215,11 +215,16 @@ const router = createRouter({
   ]
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
   if (to.meta.requiresAuth && !authStore.token) {
     next('/login')
   } else {
+    // 如果需要角色权限，先刷新用户信息确保角色是最新的
+    if (to.meta.role && authStore.token) {
+      await authStore.refreshUser()
+    }
+
     // Role based authorization
     if (to.meta.role) {
       const userRoles = authStore.user?.roles || []
@@ -227,7 +232,7 @@ router.beforeEach((to, from, next) => {
         const roleCode = typeof r === 'string' ? r : r.code
         return roleCode === to.meta.role
       })
-      
+
       if (!hasRole) {
         // Redirect unauthorized access to appropriate page or home
         if (userRoles.some(r => (typeof r === 'string' ? r : r.code) === 'CLUB_ADMIN')) {

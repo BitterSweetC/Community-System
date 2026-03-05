@@ -1,50 +1,45 @@
 <template>
   <div class="notice-management">
-    <h2>公告管理</h2>
-    
-    <div class="actions" style="margin-bottom: 20px">
+    <div class="page-head">
+      <div>
+        <h2>公告管理</h2>
+        <p class="subtext">发布并管理社团公告。</p>
+      </div>
       <el-button type="primary" @click="dialogVisible = true">发布公告</el-button>
     </div>
 
-    <el-table :data="notices" style="width: 100%" v-loading="loading">
-      <el-table-column prop="title" label="标题" />
-      <el-table-column prop="publishedAt" label="发布时间">
+    <div class="table-panel">
+      <el-table :data="notices" class="table-shell" v-loading="loading">
+      <el-table-column prop="title" label="标题" min-width="220" />
+      <el-table-column prop="publishedAt" label="发布时间" min-width="180">
         <template #default="scope">
           {{ formatDate(scope.row.publishedAt) }}
         </template>
       </el-table-column>
-      <el-table-column label="操作">
+      <el-table-column label="操作" align="center" width="120">
         <template #default="scope">
-          <el-popconfirm 
-            title="确定要删除这条公告吗？"
-            @confirm="deleteNotice(scope.row.id)"
-          >
+          <el-popconfirm title="确定删除这条公告吗？" @confirm="deleteNotice(scope.row.id)">
             <template #reference>
               <el-button type="danger" size="small">删除</el-button>
             </template>
           </el-popconfirm>
         </template>
       </el-table-column>
-    </el-table>
+      </el-table>
+    </div>
 
-    <!-- Create Notice Dialog -->
-    <el-dialog v-model="dialogVisible" title="发布新公告" width="50%">
-      <el-form :model="form" label-width="80px">
+    <el-dialog v-model="dialogVisible" title="发布新公告" width="640px">
+      <el-form :model="form" label-width="86px">
         <el-form-item label="标题">
           <el-input v-model="form.title" placeholder="请输入公告标题" />
         </el-form-item>
         <el-form-item label="内容">
-          <el-input 
-            v-model="form.content" 
-            type="textarea" 
-            rows="6" 
-            placeholder="请输入公告内容" 
-          />
+          <el-input v-model="form.content" type="textarea" rows="7" placeholder="请输入公告内容" />
         </el-form-item>
         <el-form-item label="范围">
-          <el-select v-model="form.scope" placeholder="选择发布范围">
-            <el-option label="公开 (Public)" value="PUBLIC" />
-            <el-option label="仅社团成员 (Internal)" value="INTERNAL" />
+          <el-select v-model="form.scope" placeholder="请选择发布范围" style="width: 100%">
+            <el-option label="公开" value="PUBLIC" />
+            <el-option label="仅内部" value="INTERNAL" />
           </el-select>
         </el-form-item>
       </el-form>
@@ -59,13 +54,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from '@/api/axios'
 import { ElMessage } from 'element-plus'
 
 const route = useRoute()
-const clubId = route.params.clubId // If managing specific club
+const clubId = route.params.clubId
 const notices = ref([])
 const loading = ref(false)
 const dialogVisible = ref(false)
@@ -97,12 +92,11 @@ const submitNotice = async () => {
     ElMessage.warning('请填写完整信息')
     return
   }
-  
+
   try {
     const payload = { ...form.value }
-    // If clubId is present in route/props, ensure it's in payload
     if (clubId) payload.clubId = clubId
-    
+
     await axios.post('/notices', payload)
     ElMessage.success('发布成功')
     dialogVisible.value = false
@@ -131,3 +125,35 @@ const formatDate = (dateStr) => {
 
 onMounted(loadNotices)
 </script>
+
+<style scoped>
+.notice-management {
+  padding: 4px 0 8px;
+}
+
+.page-head {
+  margin-bottom: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.subtext {
+  margin: 6px 0 0;
+  color: #60748c;
+}
+
+.table-shell {
+  width: 100%;
+}
+
+.table-panel {
+  padding: 12px;
+  border: 1px solid rgba(14, 55, 94, 0.12);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 10px 24px rgba(17, 46, 77, 0.08);
+}
+</style>

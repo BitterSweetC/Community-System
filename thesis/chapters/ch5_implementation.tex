@@ -1,0 +1,323 @@
+% ============================================================
+%  第五章 系统实现
+% ============================================================
+\chapter{系统实现}
+
+\section{开发环境与工具}
+
+\begin{table}[H]
+\centering
+\caption{开发环境配置}
+\begin{tabular}{ll}
+\toprule
+环境/工具 & 版本/说明 \\
+\midrule
+操作系统     & Windows 11 / Linux (部署) \\
+JDK          & OpenJDK 17 \\
+Maven        & 3.9.x \\
+Node.js      & 20.x LTS \\
+Python       & 3.11 \\
+IDE          & IntelliJ IDEA 2024 \\
+数据库       & MySQL 8.0 \\
+缓存         & Redis 7.x \\
+消息队列     & RabbitMQ 3.12 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+项目目录结构如下：
+
+\begin{lstlisting}[caption=项目目录结构]
+Community/
+├── community-core/        # 共享库：实体、Repository、JWT、邮件
+├── community-gateway/     # 入口：Controller、Security配置
+├── community-club/        # 社团业务模块
+├── community-user/        # 用户业务模块
+├── community-activity/    # 活动业务模块
+├── community-recruit/     # 招募业务模块
+├── community-notice/      # 通知业务模块
+├── community-admin/       # 管理员业务模块
+├── frontend/              # Vue 3 前端
+├── agent/                 # Python AI服务
+├── monitoring/            # Prometheus/Grafana配置
+└── docker-compose.yml
+\end{lstlisting}
+
+\section{后端核心功能实现}
+
+\subsection{JWT 认证模块实现}
+
+JWT工具类负责Token的生成与解析，核心实现如下：
+
+\begin{lstlisting}[language=Java, caption=JwtUtils核心方法]
+@Component
+public class JwtUtils {
+    @Value("${jwt.secret}")
+    private String secret;
+
+    @Value("${jwt.access-token-expiry:7200}")
+    private long accessTokenExpiry;  // 2小时
+
+    public String generateAccessToken(Long userId, String role) {
+        return Jwts.builder()
+            .subject(String.valueOf(userId))
+            .claim("role", role)
+            .issuedAt(new Date())
+            .expiration(new Date(System.currentTimeMillis()
+                + accessTokenExpiry * 1000))
+            .signWith(getSignKey())
+            .compact();
+    }
+
+    public Claims parseToken(String token) {
+        return Jwts.parser()
+            .verifyWith(getSignKey())
+            .build()
+            .parseSignedClaims(token)
+            .getPayload();
+    }
+}
+\end{lstlisting}
+
+JWT过滤器在每次请求时从\texttt{Authorization}头提取Token并验证：
+
+\begin{lstlisting}[language=Java, caption=JwtAuthenticationFilter核心逻辑]
+@Override
+protected void doFilterInternal(HttpServletRequest request,
+        HttpServletResponse response, FilterChain chain)
+        throws ServletException, IOException {
+    String token = extractToken(request);
+    if (token != null && !tokenBlacklist.isBlacklisted(token)) {
+        Claims claims = jwtUtils.parseToken(token);
+        Long userId = Long.valueOf(claims.getSubject());
+        String role = claims.get("role", String.class);
+        UsernamePasswordAuthenticationToken auth =
+            new UsernamePasswordAuthenticationToken(
+                userId, null,
+                List.of(new SimpleGrantedAuthority("ROLE_" + role)));
+        SecurityContextHolder.getContext().setAuthentication(auth);
+    }
+    chain.doFilter(request, response);
+}
+\end{lstlisting}
+
+\subsection{社团管理模块实现}
+
+社团生命周期通过状态机模式管理，状态转换如图~\ref{fig:club-state}所示。
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  state/.style={draw, rectangle, rounded corners, minimum width=2cm,
+                minimum height=0.7cm, align=center, font=\small},
+  arr/.style={-Stealth, thick}
+]
+\node[state, fill=yellow!20] (pending)   at (0,0)   {PENDING\\申请中};
+\node[state, fill=green!20]  (active)    at (3.5,0)  {ACTIVE\\活跃};
+\node[state, fill=orange!20] (frozen)    at (7,0)    {FROZEN\\冻结};
+\node[state, fill=red!20]    (dissolved) at (5,-2)   {DISSOLVED\\解散};
+
+\draw[arr] (pending) -- node[above,font=\tiny]{管理员审批通过} (active);
+\draw[arr] (active)  -- node[above,font=\tiny]{管理员冻结} (frozen);
+\draw[arr] (frozen)  -- node[below,font=\tiny]{管理员解冻} (active);
+\draw[arr] (active)  -- node[left,font=\tiny]{解散} (dissolved);
+\draw[arr] (frozen)  -- node[right,font=\tiny]{解散} (dissolved);
+\draw[arr] (pending) -- node[left,font=\tiny]{拒绝} (dissolved);
+\end{tikzpicture}
+\caption{社团生命周期状态机}
+\label{fig:club-state}
+\end{figure}
+
+\subsection{活动签到模块实现}
+
+签到码生成采用6位随机字母数字组合，存储于活动记录中，签到时验证码有效性与活动状态：
+
+\begin{lstlisting}[language=Java, caption=签到码生成与验证]
+// 生成签到码
+public String generateCheckinCode() {
+    String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    return IntStream.range(0, 6)
+        .mapToObj(i -> String.valueOf(
+            chars.charAt(ThreadLocalRandom.current().nextInt(chars.length()))))
+        .collect(Collectors.joining());
+}
+
+// 签到验证
+@Transactional
+public void checkin(Long userId, String code) {
+    Activity activity = activityRepository
+        .findByCheckinCode(code)
+        .orElseThrow(() -> new BusinessException("签到码无效"));
+
+    if (activity.getStatus() != ActivityStatus.IN_PROGRESS) {
+        throw new BusinessException("活动未在进行中");
+    }
+    if (attendanceRepository.existsByUserIdAndActivityId(userId, activity.getId())) {
+        throw new BusinessException("请勿重复签到");
+    }
+    attendanceRepository.save(new ActivityAttendance(userId, activity.getId()));
+    // WebSocket广播签到人数
+    messagingTemplate.convertAndSend(
+        "/topic/activity/" + activity.getId() + "/checkin",
+        Map.of("count", attendanceRepository.countByActivityId(activity.getId())));
+}
+\end{lstlisting}
+
+\subsection{审计日志 AOP 实现}
+
+通过自定义注解与AspectJ切面实现无侵入式审计日志记录：
+
+\begin{lstlisting}[language=Java, caption=审计日志AOP实现]
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.METHOD)
+public @interface AuditLog {
+    String action();
+    String module();
+}
+
+@Aspect
+@Component
+public class AuditLogAspect {
+    @Around("@annotation(auditLog)")
+    public Object around(ProceedingJoinPoint pjp, AuditLog auditLog)
+            throws Throwable {
+        Long userId = SecurityUtils.getCurrentUserId();
+        String ip = RequestUtils.getClientIp();
+        Object result = pjp.proceed();
+        auditLogRepository.save(AuditLogEntry.builder()
+            .userId(userId).action(auditLog.action())
+            .module(auditLog.module()).ip(ip)
+            .createdAt(LocalDateTime.now()).build());
+        return result;
+    }
+}
+\end{lstlisting}
+
+\section{前端核心功能实现}
+
+\subsection{Axios 拦截器与 Token 自动刷新}
+
+\begin{lstlisting}[language=JavaScript, caption=Axios响应拦截器]
+axios.interceptors.response.use(
+  response => response,
+  async error => {
+    const original = error.config
+    if (error.response?.status === 401 && !original._retry) {
+      original._retry = true
+      try {
+        const { data } = await axios.post('/api/auth/refresh')
+        userStore.setToken(data.data.accessToken)
+        original.headers['Authorization'] = `Bearer ${data.data.accessToken}`
+        return axios(original)
+      } catch {
+        userStore.logout()
+        router.push('/login')
+      }
+    }
+    return Promise.reject(error)
+  }
+)
+\end{lstlisting}
+
+\subsection{数据可视化实现}
+
+实时签到趋势图基于ECharts折线图实现，通过WebSocket接收实时数据更新：
+
+\begin{lstlisting}[language=JavaScript, caption=ECharts实时签到趋势]
+const initChart = () => {
+  chart = echarts.init(chartRef.value)
+  chart.setOption({
+    title: { text: '今日签到趋势' },
+    xAxis: { type: 'time' },
+    yAxis: { type: 'value', name: '签到人数' },
+    series: [{ type: 'line', smooth: true, data: checkinData.value }]
+  })
+}
+
+// WebSocket订阅实时数据
+stompClient.subscribe('/topic/dashboard/checkin', (msg) => {
+  const point = JSON.parse(msg.body)
+  checkinData.value.push([point.time, point.count])
+  chart.setOption({ series: [{ data: checkinData.value }] })
+})
+\end{lstlisting}
+
+\section{AI 服务实现}
+
+\subsection{RAG 问答服务实现}
+
+\begin{lstlisting}[language=Python, caption=RAG问答核心实现]
+from langchain_community.vectorstores import Chroma
+from langchain.chains import RetrievalQA
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+
+def build_rag_chain():
+    embeddings = OpenAIEmbeddings(
+        base_url="https://api.deepseek.com/v1",
+        api_key=os.getenv("DEEPSEEK_API_KEY"),
+        model="deepseek-embedding"
+    )
+    vectorstore = Chroma(
+        persist_directory="./chroma_db",
+        embedding_function=embeddings
+    )
+    llm = ChatOpenAI(
+        base_url="https://api.deepseek.com/v1",
+        api_key=os.getenv("DEEPSEEK_API_KEY"),
+        model="deepseek-chat"
+    )
+    return RetrievalQA.from_chain_type(
+        llm=llm,
+        retriever=vectorstore.as_retriever(search_kwargs={"k": 4})
+    )
+\end{lstlisting}
+
+\subsection{社团推荐服务实现}
+
+SVD协同过滤基于\texttt{surprise}库实现：
+
+\begin{lstlisting}[language=Python, caption=SVD协同过滤实现]
+from surprise import SVD, Dataset, Reader
+import pandas as pd
+
+def train_svd(interactions: list[dict]) -> SVD:
+    df = pd.DataFrame(interactions)  # user_id, club_id, rating
+    reader = Reader(rating_scale=(1, 5))
+    data = Dataset.load_from_df(df[['user_id','club_id','rating']], reader)
+    algo = SVD(n_factors=50, n_epochs=20)
+    trainset = data.build_full_trainset()
+    algo.fit(trainset)
+    return algo
+
+def hybrid_recommend(user_id: int, algo: SVD,
+                     clubs: list, alpha: float = 0.6) -> list:
+    cf_scores = {c['id']: algo.predict(user_id, c['id']).est for c in clubs}
+    cb_scores = semantic_similarity(user_id, clubs)
+    return sorted(clubs,
+        key=lambda c: alpha * cf_scores[c['id']]
+                    + (1-alpha) * cb_scores[c['id']],
+        reverse=True)[:10]
+\end{lstlisting}
+
+\section{系统集成与部署}
+
+Docker Compose编排配置如下（节选）：
+
+\begin{lstlisting}[language=bash, caption=docker-compose.yml节选]
+services:
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    ports: ["5672:5672", "15672:15672"]
+
+  agent:
+    build: ./agent
+    ports: ["8000:8000"]
+    environment:
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - DB_URL=${DB_URL}
+    depends_on: [redis, rabbitmq]
+\end{lstlisting}

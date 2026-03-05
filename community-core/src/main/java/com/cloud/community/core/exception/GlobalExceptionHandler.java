@@ -3,6 +3,7 @@ package com.cloud.community.core.exception;
 import com.cloud.community.core.common.Result;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
@@ -25,6 +26,15 @@ public class GlobalExceptionHandler {
                 .map(FieldError::getDefaultMessage)
                 .collect(Collectors.joining("; "));
         return Result.error(400, message);
+    }
+
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<Result<Void>> handleBusinessException(BusinessException e) {
+        log.warn("Business exception [{}]: {}", e.getCode(), e.getMessage());
+        HttpStatus status = (e.getCode() >= 40900 && e.getCode() < 41000)
+                ? HttpStatus.CONFLICT
+                : HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(status).body(Result.error(e.getCode(), e.getMessage()));
     }
 
     @ExceptionHandler(BadCredentialsException.class)

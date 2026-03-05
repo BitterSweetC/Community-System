@@ -1,0 +1,444 @@
+% ============================================================
+%  第四章 系统设计
+% ============================================================
+\chapter{系统设计}
+
+\section{系统总体架构设计}
+
+\subsection{模块化单体架构}
+
+本系统采用模块化单体架构（Modular Monolith），而非微服务架构。架构选型依据如下：
+
+\begin{enumerate}
+  \item \textbf{团队规模}：单人开发场景下，微服务带来的运维复杂度远超其收益；
+  \item \textbf{业务耦合}：社团、活动、招募等模块存在较强的业务关联，频繁的跨服务调用会引入额外延迟；
+  \item \textbf{演进路径}：模块化单体通过清晰的模块边界，为未来微服务化演进奠定基础。
+\end{enumerate}
+
+系统模块依赖关系如图~\ref{fig:module-dep}所示。
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  mod/.style={draw, rectangle, rounded corners, minimum width=2.8cm, minimum height=0.8cm, align=center, font=\small},
+  core/.style={draw, rectangle, rounded corners, minimum width=2.8cm, minimum height=0.8cm, align=center, font=\small, fill=blue!15},
+  gateway/.style={draw, rectangle, rounded corners, minimum width=10cm, minimum height=0.8cm, align=center, font=\small\bfseries, fill=orange!20},
+  arr/.style={-Stealth, thick}
+]
+\node[gateway] (gw) at (5,6) {community-gateway（入口 / 所有Controller）};
+
+\node[mod] (club)     at (1,4)   {community-club};
+\node[mod] (user)     at (3.5,4) {community-user};
+\node[mod] (activity) at (6,4)   {community-activity};
+\node[mod] (recruit)  at (8.5,4) {community-recruit};
+\node[mod] (notice)   at (1,2.5) {community-notice};
+\node[mod] (admin)    at (3.5,2.5){community-admin};
+
+\node[core] (core) at (5,1) {community-core（实体 / Repository / JWT / 邮件）};
+
+\draw[arr] (gw) -- (club);
+\draw[arr] (gw) -- (user);
+\draw[arr] (gw) -- (activity);
+\draw[arr] (gw) -- (recruit);
+\draw[arr] (gw) -- (notice);
+\draw[arr] (gw) -- (admin);
+
+\draw[arr] (club)     -- (core);
+\draw[arr] (user)     -- (core);
+\draw[arr] (activity) -- (core);
+\draw[arr] (recruit)  -- (core);
+\draw[arr] (notice)   -- (core);
+\draw[arr] (admin)    -- (core);
+\end{tikzpicture}
+\caption{系统模块依赖关系图}
+\label{fig:module-dep}
+\end{figure}
+
+\subsection{分层架构设计}
+
+系统后端采用经典四层架构，各层职责如下：
+
+\begin{table}[H]
+\centering
+\caption{后端分层架构说明}
+\begin{tabular}{lll}
+\toprule
+层次 & 组件 & 职责 \\
+\midrule
+表现层 & Controller & 接收HTTP请求，参数校验，调用Service，返回响应 \\
+业务层 & Service & 业务逻辑处理，事务管理，调用Repository \\
+持久层 & Repository & 数据库访问，封装JPA查询 \\
+实体层 & Entity & JPA实体映射，数据库表结构定义 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{系统部署架构}
+
+系统整体部署拓扑如图~\ref{fig:deploy}所示。
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  box/.style={draw, rectangle, rounded corners, minimum width=2.5cm, minimum height=0.7cm, align=center, font=\small},
+  infra/.style={draw, rectangle, rounded corners, minimum width=2.5cm, minimum height=0.7cm, align=center, font=\small, fill=green!15},
+  client/.style={draw, rectangle, rounded corners, minimum width=2.5cm, minimum height=0.7cm, align=center, font=\small, fill=yellow!20},
+  arr/.style={-Stealth}
+]
+\node[client]  (browser) at (0,5)   {浏览器 (Vue 3 SPA)};
+\node[box]     (backend) at (4,5)   {Spring Boot\\:8080};
+\node[box]     (agent)   at (8,5)   {Python Agent\\:8000};
+
+\node[infra]   (mysql)   at (1,3)   {MySQL 8\\:3306};
+\node[infra]   (redis)   at (3.5,3) {Redis\\:6379};
+\node[infra]   (mq)      at (6,3)   {RabbitMQ\\:5672};
+\node[infra]   (oss)     at (8.5,3) {Aliyun OSS};
+
+\node[infra]   (prom)    at (2,1)   {Prometheus\\:9090};
+\node[infra]   (grafana) at (5,1)   {Grafana\\:3000};
+\node[infra]   (chroma)  at (8,1)   {Chroma DB};
+
+\draw[arr] (browser) -- node[above,font=\tiny]{HTTP/WS} (backend);
+\draw[arr] (backend) -- node[above,font=\tiny]{REST} (agent);
+\draw[arr] (backend) -- (mysql);
+\draw[arr] (backend) -- (redis);
+\draw[arr] (backend) -- (mq);
+\draw[arr] (backend) -- (oss);
+\draw[arr] (backend) -- node[right,font=\tiny]{metrics} (prom);
+\draw[arr] (prom)    -- (grafana);
+\draw[arr] (agent)   -- (chroma);
+\draw[arr] (agent)   -- (mysql);
+\end{tikzpicture}
+\caption{系统部署架构图}
+\label{fig:deploy}
+\end{figure}
+
+\section{数据库设计}
+
+\subsection{ER 图设计}
+
+系统核心实体关系图如图~\ref{fig:er}所示，涵盖用户、社团、活动、招募、通知、财务、资源七大核心实体及其关联关系。
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  entity/.style={draw, rectangle, minimum width=2.2cm, minimum height=0.7cm, align=center, font=\small\bfseries, fill=blue!10},
+  rel/.style={draw, diamond, minimum width=1.5cm, minimum height=0.6cm, align=center, font=\tiny, fill=orange!20},
+  attr/.style={draw, ellipse, minimum width=1.5cm, minimum height=0.5cm, align=center, font=\tiny},
+  line/.style={-}
+]
+% Entities
+\node[entity] (user)     at (0,8)    {t\_user};
+\node[entity] (club)     at (4,8)    {t\_club};
+\node[entity] (member)   at (4,6)    {t\_club\_member};
+\node[entity] (activity) at (8,8)    {t\_activity};
+\node[entity] (signup)   at (8,6)    {t\_activity\_signup};
+\node[entity] (attend)   at (8,4)    {t\_activity\_attendance};
+\node[entity] (batch)    at (0,5)    {t\_recruit\_batch};
+\node[entity] (appform)  at (0,3)    {t\_recruit\_application};
+\node[entity] (notice)   at (4,4)    {t\_notice};
+\node[entity] (finance)  at (4,2)    {t\_club\_finance};
+\node[entity] (resource) at (8,2)    {t\_resource\_application};
+
+% Relationships
+\draw (user) -- node[above,font=\tiny]{1} (member) node[right,font=\tiny]{N} {};
+\draw (club) -- (member);
+\draw (club) -- node[above,font=\tiny]{1..N} (activity);
+\draw (user) -- node[right,font=\tiny]{1..N} (signup);
+\draw (activity) -- (signup);
+\draw (signup) -- (attend);
+\draw (club) -- node[left,font=\tiny]{1..N} (batch);
+\draw (batch) -- (appform);
+\draw (user) -- (appform);
+\draw (club) -- (notice);
+\draw (club) -- (finance);
+\draw (club) -- (resource);
+
+% Key attributes (selected)
+\node[attr] at (-1.8,8.5) {\underline{id}};
+\draw (-1.2,8.5) -- (user);
+\node[attr] at (-1.8,7.5) {username};
+\draw (-1.2,7.5) -- (user);
+
+\node[attr] at (5.8,8.5) {\underline{id}};
+\draw (5.2,8.5) -- (club);
+\node[attr] at (5.8,7.5) {name};
+\draw (5.2,7.5) -- (club);
+\node[attr] at (5.8,7.0) {status};
+\draw (5.2,7.0) -- (club);
+\end{tikzpicture}
+\caption{系统核心ER图}
+\label{fig:er}
+\end{figure}
+
+\subsection{主要数据表设计}
+
+\subsubsection{用户与角色表}
+
+\begin{table}[H]
+\centering
+\caption{t\_user 用户表}
+\begin{tabular}{llll}
+\toprule
+字段名 & 类型 & 约束 & 说明 \\
+\midrule
+id            & BIGINT        & PK, AUTO\_INCREMENT & 用户ID \\
+username      & VARCHAR(50)   & UNIQUE, NOT NULL    & 用户名 \\
+email         & VARCHAR(100)  & UNIQUE, NOT NULL    & 邮箱 \\
+password\_hash & VARCHAR(255)  & NOT NULL            & BCrypt密码哈希 \\
+avatar\_url    & VARCHAR(500)  &                     & 头像URL \\
+status        & TINYINT       & DEFAULT 1           & 状态(1正常/0禁用) \\
+created\_at    & DATETIME      & NOT NULL            & 创建时间 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{t\_club 社团表}
+\begin{tabular}{llll}
+\toprule
+字段名 & 类型 & 约束 & 说明 \\
+\midrule
+id            & BIGINT       & PK, AUTO\_INCREMENT & 社团ID \\
+name          & VARCHAR(100) & UNIQUE, NOT NULL    & 社团名称 \\
+category      & VARCHAR(50)  & NOT NULL            & 社团类型 \\
+description   & TEXT         &                     & 社团简介 \\
+logo\_url      & VARCHAR(500) &                     & 社团Logo \\
+status        & VARCHAR(20)  & NOT NULL            & 状态(PENDING/ACTIVE/FROZEN/DISSOLVED) \\
+creator\_id    & BIGINT       & FK(t\_user)         & 创建人ID \\
+created\_at    & DATETIME     & NOT NULL            & 创建时间 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{活动相关表}
+
+\begin{table}[H]
+\centering
+\caption{t\_activity 活动表}
+\begin{tabular}{llll}
+\toprule
+字段名 & 类型 & 约束 & 说明 \\
+\midrule
+id            & BIGINT       & PK, AUTO\_INCREMENT & 活动ID \\
+club\_id       & BIGINT       & FK(t\_club)         & 所属社团 \\
+title         & VARCHAR(200) & NOT NULL            & 活动标题 \\
+location      & VARCHAR(200) &                     & 活动地点 \\
+start\_time    & DATETIME     & NOT NULL            & 开始时间 \\
+end\_time      & DATETIME     & NOT NULL            & 结束时间 \\
+max\_attendees & INT          &                     & 人数上限 \\
+checkin\_code  & VARCHAR(20)  & UNIQUE              & 签到码 \\
+status        & VARCHAR(20)  & NOT NULL            & 活动状态 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{索引与性能优化设计}
+
+系统针对高频查询场景设计了以下复合索引：
+
+\begin{lstlisting}[language=SQL, caption=关键索引设计]
+-- 按社团查询活动列表（高频）
+CREATE INDEX idx_activity_club_status
+  ON t_activity(club_id, status, start_time DESC);
+
+-- 按用户查询报名记录
+CREATE INDEX idx_signup_user_activity
+  ON t_activity_signup(user_id, activity_id);
+
+-- 招募申请查询
+CREATE INDEX idx_recruit_app_batch_status
+  ON t_recruit_application(batch_id, status);
+
+-- 通知未读查询
+CREATE INDEX idx_notice_user_read
+  ON t_notice_read_status(user_id, is_read);
+\end{lstlisting}
+
+\section{安全架构设计}
+
+\subsection{认证流程设计}
+
+登录认证时序图如图~\ref{fig:auth-seq}所示。
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  actor/.style={font=\small},
+  line/.style={-Stealth, thin},
+  dline/.style={-Stealth, thin, dashed}
+]
+% Lifelines
+\draw[thick] (0,8) -- (0,0);   \node[actor] at (0,8.3) {客户端};
+\draw[thick] (3,8) -- (3,0);   \node[actor] at (3,8.3) {AuthController};
+\draw[thick] (6,8) -- (6,0);   \node[actor] at (6,8.3) {Redis};
+\draw[thick] (9,8) -- (9,0);   \node[actor] at (9,8.3) {MySQL};
+
+% Messages
+\draw[line]  (0,7.5) -- node[above,font=\tiny]{POST /auth/login} (3,7.5);
+\draw[line]  (3,7.0) -- node[above,font=\tiny]{查询用户} (9,7.0);
+\draw[dline] (9,6.7) -- node[above,font=\tiny]{返回用户信息} (3,6.7);
+\draw[line]  (3,6.3) -- node[above,font=\tiny]{检查登录失败次数} (6,6.3);
+\draw[dline] (6,6.0) -- node[above,font=\tiny]{返回计数} (3,6.0);
+\draw[line]  (3,5.5) -- node[above,font=\tiny]{生成AccessToken+RefreshToken} (3,5.2);
+\draw[line]  (3,5.0) -- node[above,font=\tiny]{存储RefreshToken} (6,5.0);
+\draw[dline] (3,4.5) -- node[above,font=\tiny]{返回AccessToken(Body)+RefreshToken(Cookie)} (0,4.5);
+
+% Token refresh
+\draw[line]  (0,3.8) -- node[above,font=\tiny]{POST /auth/refresh (携带Cookie)} (3,3.8);
+\draw[line]  (3,3.4) -- node[above,font=\tiny]{验证RefreshToken} (6,3.4);
+\draw[dline] (6,3.1) -- node[above,font=\tiny]{Token有效} (3,3.1);
+\draw[line]  (3,2.7) -- node[above,font=\tiny]{生成新AccessToken} (3,2.4);
+\draw[dline] (3,2.2) -- node[above,font=\tiny]{返回新AccessToken} (0,2.2);
+\end{tikzpicture}
+\caption{登录认证与Token刷新时序图}
+\label{fig:auth-seq}
+\end{figure}
+
+\subsection{授权设计}
+
+系统采用基于角色的访问控制（RBAC）模型，接口权限矩阵如表~\ref{tab:rbac}所示。
+
+\begin{table}[H]
+\centering
+\caption{核心接口权限矩阵}
+\label{tab:rbac}
+\begin{tabular}{lcccc}
+\toprule
+接口 & 普通用户 & 社团成员 & 社团管理员 & 系统管理员 \\
+\midrule
+GET /clubs          & \checkmark & \checkmark & \checkmark & \checkmark \\
+POST /clubs         & \checkmark &            &            &            \\
+PUT /clubs/\{id\}   &            &            & \checkmark & \checkmark \\
+POST /activities    &            &            & \checkmark &            \\
+GET /admin/users    &            &            &            & \checkmark \\
+POST /admin/approve &            &            &            & \checkmark \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{安全防护设计}
+
+\begin{enumerate}
+  \item \textbf{登录限流}：基于Redis滑动窗口，同一IP 15分钟内登录失败超过5次，锁定账户；
+  \item \textbf{XSS防护}：前端使用Element Plus内置转义，后端通过\texttt{SecurityHeadersFilter}设置\texttt{Content-Security-Policy}响应头；
+  \item \textbf{CSRF防护}：采用无状态JWT认证，天然免疫CSRF攻击；
+  \item \textbf{SQL注入防护}：全程使用JPA参数化查询，禁止字符串拼接SQL；
+  \item \textbf{审计日志}：通过AOP切面拦截敏感操作，记录操作人、时间、IP及操作内容。
+\end{enumerate}
+
+\section{接口设计}
+
+\subsection{RESTful API 设计规范}
+
+系统遵循RESTful设计规范，统一响应格式如下：
+
+\begin{lstlisting}[language=Java, caption=统一响应格式]
+{
+  "code": 200,        // 业务状态码
+  "message": "success",
+  "data": { ... },    // 响应数据
+  "timestamp": 1700000000000
+}
+\end{lstlisting}
+
+\subsection{核心接口设计}
+
+\begin{table}[H]
+\centering
+\caption{认证模块核心接口}
+\begin{tabular}{llll}
+\toprule
+方法 & 路径 & 说明 & 权限 \\
+\midrule
+POST & /api/auth/register  & 用户注册 & 公开 \\
+POST & /api/auth/login     & 用户登录 & 公开 \\
+POST & /api/auth/refresh   & 刷新Token & 公开 \\
+POST & /api/auth/logout    & 登出 & 已认证 \\
+POST & /api/auth/forgot-password & 找回密码 & 公开 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{社团管理核心接口}
+\begin{tabular}{llll}
+\toprule
+方法 & 路径 & 说明 & 权限 \\
+\midrule
+GET    & /api/clubs          & 社团列表（分页） & 公开 \\
+POST   & /api/clubs          & 申请创建社团 & 已认证 \\
+GET    & /api/clubs/\{id\}   & 社团详情 & 公开 \\
+PUT    & /api/clubs/\{id\}   & 更新社团信息 & 社团管理员 \\
+POST   & /api/clubs/\{id\}/members & 添加成员 & 社团管理员 \\
+DELETE & /api/clubs/\{id\}/members/\{uid\} & 移除成员 & 社团管理员 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{AI 服务设计}
+
+\subsection{RAG 问答系统设计}
+
+RAG问答系统整体流程如图~\ref{fig:rag}所示。
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  box/.style={draw, rectangle, rounded corners, minimum width=2.8cm, minimum height=0.7cm, align=center, font=\small},
+  arr/.style={-Stealth, thick}
+]
+\node[box, fill=yellow!20] (query)   at (0,4)   {用户提问};
+\node[box]                 (embed)   at (3.5,4)  {Embedding\\向量化};
+\node[box, fill=green!15]  (chroma)  at (7,4)    {Chroma\\相似度检索};
+\node[box]                 (context) at (7,2)    {相关文档块};
+\node[box]                 (prompt)  at (3.5,2)  {Prompt\\拼接};
+\node[box, fill=blue!15]   (llm)     at (0,2)    {DeepSeek\\LLM};
+\node[box, fill=yellow!20] (answer)  at (0,0)    {生成答案};
+
+\draw[arr] (query)   -- (embed);
+\draw[arr] (embed)   -- (chroma);
+\draw[arr] (chroma)  -- (context);
+\draw[arr] (context) -- (prompt);
+\draw[arr] (query)   -- (prompt);
+\draw[arr] (prompt)  -- (llm);
+\draw[arr] (llm)     -- (answer);
+\end{tikzpicture}
+\caption{RAG问答系统流程图}
+\label{fig:rag}
+\end{figure}
+
+\subsection{混合推荐系统设计}
+
+混合推荐系统融合协同过滤与内容推荐两路结果，最终得分计算公式为：
+
+\begin{equation}
+  \text{Score}(u, c) = \alpha \cdot \text{Score}_{\text{CF}}(u, c) + (1-\alpha) \cdot \text{Score}_{\text{CB}}(u, c)
+\end{equation}
+
+其中，$\alpha$ 为融合权重（默认0.6），$\text{Score}_{\text{CF}}$ 为SVD协同过滤得分，$\text{Score}_{\text{CB}}$ 为语义内容相似度得分。
+
+\section{前端架构设计}
+
+\subsection{页面结构与路由设计}
+
+前端路由采用Vue Router 4，通过导航守卫实现权限控制：
+
+\begin{lstlisting}[language=JavaScript, caption=路由权限守卫]
+router.beforeEach((to, from, next) => {
+  const userStore = useUserStore()
+  if (to.meta.requiresAuth && !userStore.isLoggedIn) {
+    next('/login')
+  } else if (to.meta.roles && !to.meta.roles.includes(userStore.role)) {
+    next('/403')
+  } else {
+    next()
+  }
+})
+\end{lstlisting}
+
+\subsection{状态管理设计}
+
+用户认证状态通过Pinia Store管理，包含Token、用户信息与权限列表，配合\texttt{pinia-plugin-persistedstate}持久化至\texttt{localStorage}，确保页面刷新后登录状态不丢失。

@@ -1,0 +1,37 @@
+% ============================================================
+%  摘要
+% ============================================================
+\chapter*{摘\quad 要}
+\addcontentsline{toc}{chapter}{摘要}
+
+随着高校规模的不断扩大，社团数量与成员人数持续增长，传统依赖纸质表单与人工协调的社团管理模式已难以满足现代高校管理的需求，存在信息孤岛、流程繁琐、数据难以追溯等突出问题。本文设计并实现了一套基于Spring Boot的高校社团管理系统，旨在通过信息化手段全面提升社团管理效率与用户体验。
+
+系统采用模块化单体架构，以Spring Boot 3.x为后端核心框架，结合Spring Security与JWT双令牌机制实现安全认证与授权；利用Spring Data JPA操作MySQL 8数据库，Redis提供分布式缓存与登录限流，RabbitMQ实现异步消息解耦，阿里云OSS负责文件存储。前端基于Vue 3与Element Plus构建单页应用，采用Pinia进行状态管理，通过WebSocket（STOMP/SockJS）实现实时通知推送，并集成ECharts完成数据可视化大屏。此外，系统还引入Python AI服务，基于LangChain与Chroma向量数据库构建RAG知识库问答功能，并结合SVD协同过滤与语义内容推荐实现混合社团推荐算法。
+
+系统主要实现了用户管理、社团管理、活动管理、招募管理、通知公告、财务管理、资源管理及AI智能服务八大功能模块，覆盖社团全生命周期的数字化管理需求。经过功能测试、接口测试、安全测试与性能测试，系统各项功能运行稳定，接口响应时间满足设计要求，安全防护机制有效抵御常见攻击。
+
+本系统的实现为高校社团信息化管理提供了一套完整的解决方案，具有一定的实际应用价值与推广意义。
+
+\vspace{1em}
+\noindent\textbf{关键词：}Spring Boot；Vue 3；JWT；社团管理；RAG；推荐系统
+
+\newpage
+
+% ============================================================
+%  Abstract
+% ============================================================
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+With the continuous expansion of universities, the number of student clubs and their memberships has grown significantly. Traditional club management approaches relying on paper forms and manual coordination can no longer meet the demands of modern university administration, suffering from information silos, cumbersome processes, and poor data traceability. This thesis presents the design and implementation of a campus club management system based on Spring Boot, aiming to comprehensively improve management efficiency and user experience through digitalization.
+
+The system adopts a modular monolithic architecture. The backend is built on Spring Boot 3.x, with Spring Security and a dual-token JWT mechanism for authentication and authorization. Spring Data JPA is used for MySQL 8 database access, Redis provides distributed caching and login rate limiting, RabbitMQ enables asynchronous message decoupling, and Alibaba Cloud OSS handles file storage. The frontend is a single-page application built with Vue 3 and Element Plus, using Pinia for state management, WebSocket (STOMP/SockJS) for real-time notifications, and ECharts for data visualization dashboards. Additionally, a Python AI service is integrated, implementing a RAG-based Q\&A system using LangChain and Chroma vector database, along with a hybrid club recommendation algorithm combining SVD collaborative filtering and semantic content-based recommendation.
+
+The system implements eight functional modules: user management, club management, activity management, recruitment management, announcements, financial management, resource management, and AI services, covering the full digital lifecycle of campus clubs. Through functional, API, security, and performance testing, the system demonstrates stable operation, satisfactory response times, and effective security protection against common attacks.
+
+This system provides a complete solution for campus club information management, with practical application value and potential for broader adoption.
+
+\vspace{1em}
+\noindent\textbf{Keywords:} Spring Boot; Vue 3; JWT; Club Management; RAG; Recommendation System
+
+\newpage

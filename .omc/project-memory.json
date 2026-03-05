@@ -1,0 +1,333 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1772609453554,
+  "projectRoot": "e:\\IntelliJ IDEA 2024.2.3\\code\\Community",
+  "techStack": {
+    "languages": [
+      {
+        "name": "Java",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "pom.xml"
+        ]
+      }
+    ],
+    "frameworks": [],
+    "packageManager": "maven",
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": null,
+    "testCommand": null,
+    "lintCommand": null,
+    "devCommand": null,
+    "scripts": {}
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "docs"
+    ],
+    "gitBranches": null
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "agent": {
+      "path": "agent",
+      "purpose": null,
+      "fileCount": 7,
+      "lastAccessed": 1772609453513,
+      "keyFiles": [
+        "crawler.py",
+        "Dockerfile",
+        "main.py",
+        "rag.py",
+        "recommendation.py"
+      ]
+    },
+    "community-activity": {
+      "path": "community-activity",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1772609453515,
+      "keyFiles": [
+        "pom.xml"
+      ]
+    },
+    "community-admin": {
+      "path": "community-admin",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1772609453515,
+      "keyFiles": [
+        "pom.xml"
+      ]
+    },
+    "community-club": {
+      "path": "community-club",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1772609453517,
+      "keyFiles": [
+        "pom.xml"
+      ]
+    },
+    "community-core": {
+      "path": "community-core",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1772609453517,
+      "keyFiles": [
+        "pom.xml"
+      ]
+    },
+    "community-gateway": {
+      "path": "community-gateway",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1772609453518,
+      "keyFiles": [
+        "pom.xml"
+      ]
+    },
+    "community-notice": {
+      "path": "community-notice",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1772609453519,
+      "keyFiles": [
+        "pom.xml"
+      ]
+    },
+    "community-recruit": {
+      "path": "community-recruit",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1772609453519,
+      "keyFiles": [
+        "pom.xml"
+      ]
+    },
+    "community-user": {
+      "path": "community-user",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1772609453519,
+      "keyFiles": [
+        "pom.xml"
+      ]
+    },
+    "docs": {
+      "path": "docs",
+      "purpose": "Documentation",
+      "fileCount": 5,
+      "lastAccessed": 1772609453520,
+      "keyFiles": [
+        "校园社团管理与招新系统API接口文档.md",
+        "校园社团管理与招新系统数据库设计说明书.md",
+        "校园社团管理与招新系统设计说明书.md",
+        "校园社团管理与招新系统需求规格说明书.md",
+        "校园社团管理与招新系统项目计划.md"
+      ]
+    },
+    "frontend": {
+      "path": "frontend",
+      "purpose": null,
+      "fileCount": 9,
+      "lastAccessed": 1772609453522,
+      "keyFiles": [
+        "Dockerfile",
+        "index.html",
+        "jsconfig.json",
+        "nginx.conf",
+        "package-lock.json"
+      ]
+    },
+    "monitoring": {
+      "path": "monitoring",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1772609453522,
+      "keyFiles": [
+        "prometheus.yml"
+      ]
+    },
+    "thesis": {
+      "path": "thesis",
+      "purpose": null,
+      "fileCount": 2,
+      "lastAccessed": 1772609453523,
+      "keyFiles": [
+        "main.tex",
+        "references.bib"
+      ]
+    },
+    "agent\\data": {
+      "path": "agent\\data",
+      "purpose": "Data files",
+      "fileCount": 100,
+      "lastAccessed": 1772609453524,
+      "keyFiles": [
+        "0032bdea705f70478f314062352f49f8.md",
+        "03b1c8f4e1e206236664d0d5771a8e3a.md",
+        "083a24c497678c2db11405f67b2caef6.md"
+      ]
+    },
+    "community-activity\\src": {
+      "path": "community-activity\\src",
+      "purpose": "Source code",
+      "fileCount": 0,
+      "lastAccessed": 1772609453525,
+      "keyFiles": []
+    },
+    "community-admin\\src": {
+      "path": "community-admin\\src",
+      "purpose": "Source code",
+      "fileCount": 0,
+      "lastAccessed": 1772609453525,
+      "keyFiles": []
+    },
+    "community-club\\src": {
+      "path": "community-club\\src",
+      "purpose": "Source code",
+      "fileCount": 0,
+      "lastAccessed": 1772609453525,
+      "keyFiles": []
+    },
+    "community-core\\src": {
+      "path": "community-core\\src",
+      "purpose": "Source code",
+      "fileCount": 0,
+      "lastAccessed": 1772609453526,
+      "keyFiles": []
+    },
+    "community-gateway\\src": {
+      "path": "community-gateway\\src",
+      "purpose": "Source code",
+      "fileCount": 0,
+      "lastAccessed": 1772609453526,
+      "keyFiles": []
+    },
+    "community-notice\\src": {
+      "path": "community-notice\\src",
+      "purpose": "Source code",
+      "fileCount": 0,
+      "lastAccessed": 1772609453527,
+      "keyFiles": []
+    },
+    "community-recruit\\src": {
+      "path": "community-recruit\\src",
+      "purpose": "Source code",
+      "fileCount": 0,
+      "lastAccessed": 1772609453527,
+      "keyFiles": []
+    },
+    "community-user\\src": {
+      "path": "community-user\\src",
+      "purpose": "Source code",
+      "fileCount": 0,
+      "lastAccessed": 1772609453528,
+      "keyFiles": []
+    },
+    "frontend\\dist": {
+      "path": "frontend\\dist",
+      "purpose": "Distribution/build output",
+      "fileCount": 2,
+      "lastAccessed": 1772609453529,
+      "keyFiles": [
+        "favicon.ico",
+        "index.html"
+      ]
+    },
+    "frontend\\node_modules": {
+      "path": "frontend\\node_modules",
+      "purpose": "Dependencies",
+      "fileCount": 1,
+      "lastAccessed": 1772609453529,
+      "keyFiles": []
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "frontend/src/views/student/ActivityListView.vue",
+      "accessCount": 11,
+      "lastAccessed": 1772616659895,
+      "type": "file"
+    },
+    {
+      "path": "frontend/src/views/admin/ClubManagement.vue",
+      "accessCount": 5,
+      "lastAccessed": 1772677180206,
+      "type": "file"
+    },
+    {
+      "path": "community-activity/src/main/java",
+      "accessCount": 4,
+      "lastAccessed": 1772616073772,
+      "type": "directory"
+    },
+    {
+      "path": "frontend/src/views/student/HomeView.vue",
+      "accessCount": 3,
+      "lastAccessed": 1772614988921,
+      "type": "file"
+    },
+    {
+      "path": "frontend/src/views/student/NoticeListView.vue",
+      "accessCount": 3,
+      "lastAccessed": 1772615325272,
+      "type": "file"
+    },
+    {
+      "path": "community-notice/src/main/java/com/cloud/community/notice/controller/NoticeController.java",
+      "accessCount": 3,
+      "lastAccessed": 1772615544260,
+      "type": "file"
+    },
+    {
+      "path": "frontend/src/views/student",
+      "accessCount": 3,
+      "lastAccessed": 1772615998522,
+      "type": "directory"
+    },
+    {
+      "path": "frontend/src/views/student/MyClubsView.vue",
+      "accessCount": 2,
+      "lastAccessed": 1772614883010,
+      "type": "file"
+    },
+    {
+      "path": "frontend/src/router/index.js",
+      "accessCount": 2,
+      "lastAccessed": 1772615830782,
+      "type": "file"
+    },
+    {
+      "path": "community-notice/src/main/java",
+      "accessCount": 1,
+      "lastAccessed": 1772615301880,
+      "type": "directory"
+    },
+    {
+      "path": "community-core/src/main/java",
+      "accessCount": 1,
+      "lastAccessed": 1772615535931,
+      "type": "directory"
+    },
+    {
+      "path": "community-core/src/main/java/com/cloud/community/core/model/vo/MySignupActivityVO.java",
+      "accessCount": 1,
+      "lastAccessed": 1772616082122,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}

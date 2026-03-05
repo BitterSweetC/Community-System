@@ -1,0 +1,202 @@
+% ============================================================
+%  第三章 系统需求分析
+% ============================================================
+\chapter{系统需求分析}
+
+\section{系统总体需求}
+
+\subsection{用户角色划分}
+
+本系统面向高校校内用户，按照权限与职责划分为四类角色：
+
+\begin{table}[H]
+\centering
+\caption{系统用户角色说明}
+\begin{tabular}{lll}
+\toprule
+角色 & 说明 & 主要权限 \\
+\midrule
+普通用户 & 在校学生 & 浏览社团、报名活动、提交招募申请 \\
+社团成员 & 已加入社团的学生 & 参与社团活动、查看社团内部公告 \\
+社团管理员 & 社团负责人 & 管理社团信息、发布活动、审核招募 \\
+系统管理员 & 学校管理人员 & 审批社团、管理用户、查看全局数据 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{系统功能边界}
+
+本系统覆盖社团管理全生命周期，功能边界如图~\ref{fig:system-boundary}所示。系统不涉及财务实际支付（仅记录收支流水）、移动端原生应用及校外用户访问。
+
+\section{功能性需求}
+
+\subsection{用户管理需求}
+
+\begin{enumerate}
+  \item 支持邮箱验证码注册，密码需满足强度要求（8位以上，含字母与数字）；
+  \item 支持账号密码登录，登录失败超过5次后锁定账户15分钟；
+  \item 支持通过邮箱验证码找回密码；
+  \item 用户可维护个人信息（头像、昵称、联系方式等）；
+  \item 基于RBAC模型实现细粒度权限控制，不同角色访问不同功能模块。
+\end{enumerate}
+
+\subsection{社团管理需求}
+
+\begin{enumerate}
+  \item 学生可提交社团创建申请，填写社团名称、类型、简介等信息；
+  \item 系统管理员对申请进行审批（通过/拒绝），审批结果通过通知推送给申请人；
+  \item 社团管理员可管理成员（邀请、移除、设置角色）；
+  \item 社团生命周期包含：申请中→活跃→冻结→解散四个状态，管理员可对社团执行冻结与解散操作；
+  \item 支持社团信息编辑（头像、简介、联系方式等）。
+\end{enumerate}
+
+\subsection{活动管理需求}
+
+\begin{enumerate}
+  \item 社团管理员可发布活动，填写活动名称、时间、地点、人数上限等信息；
+  \item 普通用户可报名参加活动，报名人数达到上限后自动关闭报名；
+  \item 系统生成唯一签到码，参与者扫码或输入签到码完成签到；
+  \item 活动结束后，管理员可导出签到数据（Excel格式）；
+  \item 支持活动状态管理（草稿→发布→进行中→已结束→已归档）。
+\end{enumerate}
+
+\subsection{招募管理需求}
+
+\begin{enumerate}
+  \item 社团管理员可创建招募批次，设置招募时间、名额等参数；
+  \item 支持动态表单配置，管理员可自定义申请表字段（文本、单选、多选等）；
+  \item 招募申请支持多阶段审核流程（初审→复审→录取/淘汰）；
+  \item 申请状态变更时，系统自动向申请人发送通知。
+\end{enumerate}
+
+\subsection{通知公告需求}
+
+\begin{enumerate}
+  \item 系统管理员可发布全局公告，社团管理员可发布社团内部公告；
+  \item 基于WebSocket实现实时通知推送，用户在线时即时收到通知；
+  \item 系统记录通知已读状态，支持未读数量统计与批量标记已读；
+  \item 支持通知类型分类（系统通知、活动通知、招募通知等）。
+\end{enumerate}
+
+\subsection{财务管理需求}
+
+\begin{enumerate}
+  \item 社团管理员可记录收支流水（收入/支出类型、金额、说明）；
+  \item 大额支出需经系统管理员审批；
+  \item 系统自动计算社团余额，余额不足时禁止支出操作；
+  \item 支持财务数据按时间范围查询与统计图表展示。
+\end{enumerate}
+
+\subsection{资源管理需求}
+
+\begin{enumerate}
+  \item 系统管理员维护可用资源列表（场地、设备等）；
+  \item 社团管理员可提交资源申请，指定使用时间段；
+  \item 系统自动检测时间段冲突，冲突时拒绝申请；
+  \item 申请经系统管理员审批后生效，结果通知申请人。
+\end{enumerate}
+
+\subsection{AI 智能服务需求}
+
+\begin{enumerate}
+  \item 系统根据用户历史行为与社团内容，为用户推荐感兴趣的社团；
+  \item 用户可通过自然语言向AI助手提问，获取社团相关信息的智能解答；
+  \item 管理员可触发知识库同步，将最新社团数据更新至向量数据库。
+\end{enumerate}
+
+\section{非功能性需求}
+
+\begin{enumerate}
+  \item \textbf{安全性}：所有接口需经过身份认证，敏感操作记录审计日志；防范SQL注入、XSS、CSRF等常见攻击；
+  \item \textbf{性能}：核心查询接口（社团列表、活动列表）响应时间不超过200ms；系统支持100并发用户同时在线；
+  \item \textbf{可用性}：系统提供完善的异常处理机制，单一模块故障不影响其他模块正常运行；
+  \item \textbf{可扩展性}：模块化架构设计，新增业务模块无需修改现有代码；
+  \item \textbf{易用性}：前端界面简洁直观，核心操作步骤不超过3步。
+\end{enumerate}
+
+\section{用例图与用例描述}
+
+\subsection{系统总用例图}
+
+系统总用例图如图~\ref{fig:usecase}所示，展示了四类用户角色与系统主要功能之间的交互关系。
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  actor/.style={draw, circle, minimum size=0.6cm},
+  usecase/.style={draw, ellipse, minimum width=3cm, minimum height=0.8cm, align=center, font=\small},
+  system/.style={draw, rectangle, minimum width=10cm, minimum height=9cm}
+]
+% System boundary
+\draw[thick] (0,0) rectangle (10,9);
+\node[above] at (5,9) {\textbf{社团管理系统}};
+
+% Actors
+\node[actor] (user) at (-2, 7) {};
+\node[below] at (-2,6.6) {\small 普通用户};
+
+\node[actor] (member) at (-2, 4.5) {};
+\node[below] at (-2,4.1) {\small 社团成员};
+
+\node[actor] (clubadmin) at (-2, 2) {};
+\node[below] at (-2,1.6) {\small 社团管理员};
+
+\node[actor] (sysadmin) at (12, 4.5) {};
+\node[below] at (12,4.1) {\small 系统管理员};
+
+% Use cases
+\node[usecase] (login) at (5,8.2) {登录/注册};
+\node[usecase] (browse) at (2.5,6.8) {浏览社团};
+\node[usecase] (apply) at (7.5,6.8) {报名活动};
+\node[usecase] (recruit) at (2.5,5.4) {提交招募申请};
+\node[usecase] (notice) at (7.5,5.4) {查看通知};
+\node[usecase] (manage) at (2.5,3.8) {管理社团};
+\node[usecase] (activity) at (7.5,3.8) {发布活动};
+\node[usecase] (finance) at (2.5,2.4) {财务管理};
+\node[usecase] (resource) at (7.5,2.4) {资源申请};
+\node[usecase] (audit) at (5,1.0) {审批管理};
+
+% Connections
+\draw (user) -- (login);
+\draw (user) -- (browse);
+\draw (user) -- (apply);
+\draw (user) -- (recruit);
+\draw (member) -- (notice);
+\draw (clubadmin) -- (manage);
+\draw (clubadmin) -- (activity);
+\draw (clubadmin) -- (finance);
+\draw (clubadmin) -- (resource);
+\draw (sysadmin) -- (audit);
+\draw (sysadmin) -- (notice);
+\end{tikzpicture}
+\caption{系统总用例图}
+\label{fig:usecase}
+\end{figure}
+
+\subsection{核心用例描述}
+
+\textbf{用例：活动签到}
+
+\begin{table}[H]
+\centering
+\caption{活动签到用例描述}
+\begin{tabular}{lp{9cm}}
+\toprule
+用例名称 & 活动签到 \\
+\midrule
+参与者 & 社团成员 \\
+前置条件 & 用户已登录，已报名该活动，活动处于进行中状态 \\
+主成功场景 &
+  1. 用户输入签到码或扫描二维码 \newline
+  2. 系统验证签到码有效性与活动状态 \newline
+  3. 系统记录签到信息（用户ID、时间戳） \newline
+  4. 系统通过WebSocket广播签到人数更新 \newline
+  5. 用户收到签到成功提示 \\
+扩展场景 &
+  2a. 签到码无效：系统返回错误提示 \newline
+  2b. 重复签到：系统提示已签到 \newline
+  2c. 活动未开始/已结束：系统拒绝签到 \\
+后置条件 & 签到记录持久化至数据库，签到统计数据更新 \\
+\bottomrule
+\end{tabular}
+\end{table}

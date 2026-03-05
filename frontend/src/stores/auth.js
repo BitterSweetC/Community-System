@@ -39,5 +39,16 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('user')
   }
 
-  return { token, user, setToken, setUser, logout }
+  async function refreshUser() {
+    try {
+      const response = await api.get('/api/users/me')
+      if (response.data.code === 200) {
+        setUser(response.data.data)
+      }
+    } catch (error) {
+      console.error('刷新用户信息失败:', error)
+    }
+  }
+
+  return { token, user, setToken, setUser, logout, refreshUser }
 })

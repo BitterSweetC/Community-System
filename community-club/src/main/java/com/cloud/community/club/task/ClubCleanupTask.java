@@ -28,11 +28,19 @@ public class ClubCleanupTask {
         List<Club> dissolvingClubs = clubRepository.findByStatusAndDissolutionDateBefore(Club.STATUS_DISSOLVING, sevenDaysAgo);
         
         for (Club club : dissolvingClubs) {
-            log.info("Club {} ({}) cooling-off period ended. Moving to DISSOLVED.", club.getName(), club.getId());
-            club.setStatus(Club.STATUS_DISSOLVED);
-            // Update date to start the 30-day retention countdown
-            club.setDissolutionDate(LocalDateTime.now());
-            clubRepository.save(club);
+            clubRepository.findByIdForUpdate(club.getId()).ifPresent(lockedClub -> {
+                if (!Club.STATUS_DISSOLVING.equals(lockedClub.getStatus())) {
+                    return;
+                }
+                if (lockedClub.getDissolutionDate() == null || lockedClub.getDissolutionDate().isAfter(sevenDaysAgo)) {
+                    return;
+                }
+                log.info("Club {} ({}) cooling-off period ended. Moving to DISSOLVED.", lockedClub.getName(), lockedClub.getId());
+                lockedClub.setStatus(Club.STATUS_DISSOLVED);
+                // Update date to start the 30-day retention countdown
+                lockedClub.setDissolutionDate(LocalDateTime.now());
+                clubRepository.save(lockedClub);
+            });
         }
 
         // 2. Process soft-deleted clubs (30 days)
@@ -40,10 +48,18 @@ public class ClubCleanupTask {
         List<Club> dissolvedClubs = clubRepository.findByStatusAndDissolutionDateBefore(Club.STATUS_DISSOLVED, thirtyDaysAgo);
 
         for (Club club : dissolvedClubs) {
-            log.info("Club {} ({}) has been dissolved for 30 days. Performing hard delete.", club.getName(), club.getId());
-            // Hard delete
             try {
-                clubRepository.delete(club);
+                clubRepository.findByIdForUpdate(club.getId()).ifPresent(lockedClub -> {
+                    if (!Club.STATUS_DISSOLVED.equals(lockedClub.getStatus())) {
+                        return;
+                    }
+                    if (lockedClub.getDissolutionDate() == null || lockedClub.getDissolutionDate().isAfter(thirtyDaysAgo)) {
+                        return;
+                    }
+                    log.info("Club {} ({}) has been dissolved for 30 days. Performing hard delete.", lockedClub.getName(), lockedClub.getId());
+                    // Hard delete
+                    clubRepository.delete(lockedClub);
+                });
             } catch (Exception e) {
                 log.error("Failed to delete club {}: {}", club.getId(), e.getMessage());
             }

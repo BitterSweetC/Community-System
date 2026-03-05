@@ -1,0 +1,79 @@
+% ============================================================
+%  附录
+% ============================================================
+\chapter{数据库完整表结构}
+
+以下为系统主要数据表的DDL定义（节选）：
+
+\begin{lstlisting}[language=SQL, caption=用户与社团核心表DDL]
+CREATE TABLE t_user (
+    id            BIGINT AUTO_INCREMENT PRIMARY KEY,
+    username      VARCHAR(50)  NOT NULL UNIQUE,
+    email         VARCHAR(100) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    avatar_url    VARCHAR(500),
+    status        TINYINT      NOT NULL DEFAULT 1,
+    created_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE t_club (
+    id          BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name        VARCHAR(100) NOT NULL UNIQUE,
+    category    VARCHAR(50)  NOT NULL,
+    description TEXT,
+    logo_url    VARCHAR(500),
+    status      VARCHAR(20)  NOT NULL DEFAULT 'PENDING',
+    creator_id  BIGINT       NOT NULL,
+    created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_club_creator FOREIGN KEY (creator_id) REFERENCES t_user(id)
+);
+
+CREATE TABLE t_club_member (
+    id         BIGINT AUTO_INCREMENT PRIMARY KEY,
+    club_id    BIGINT      NOT NULL,
+    user_id    BIGINT      NOT NULL,
+    role       VARCHAR(20) NOT NULL DEFAULT 'MEMBER',
+    joined_at  DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_club_user (club_id, user_id),
+    FOREIGN KEY (club_id) REFERENCES t_club(id),
+    FOREIGN KEY (user_id) REFERENCES t_user(id)
+);
+\end{lstlisting}
+
+\chapter{核心 API 接口文档}
+
+\begin{table}[H]
+\centering
+\caption{完整接口列表（节选）}
+\begin{tabular}{lllp{4cm}}
+\toprule
+方法 & 路径 & 权限 & 说明 \\
+\midrule
+POST & /api/auth/register         & 公开         & 用户注册 \\
+POST & /api/auth/login            & 公开         & 用户登录 \\
+POST & /api/auth/refresh          & 公开         & 刷新Token \\
+GET  & /api/clubs                 & 公开         & 社团列表（分页） \\
+POST & /api/clubs                 & 已认证       & 申请创建社团 \\
+PUT  & /api/clubs/\{id\}          & 社团管理员   & 更新社团信息 \\
+POST & /api/activities            & 社团管理员   & 发布活动 \\
+POST & /api/activities/checkin    & 已认证       & 活动签到 \\
+GET  & /api/recruit/batches       & 公开         & 招募批次列表 \\
+POST & /api/recruit/applications  & 已认证       & 提交招募申请 \\
+GET  & /api/notices               & 已认证       & 通知列表 \\
+POST & /api/admin/clubs/\{id\}/approve & 系统管理员 & 审批社团 \\
+GET  & /api/agent/recommend       & 已认证       & AI社团推荐 \\
+POST & /api/agent/chat            & 已认证       & AI问答 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\chapter{系统部署说明}
+
+\begin{enumerate}
+  \item 克隆代码仓库，配置\texttt{application.properties}中的数据库、Redis、RabbitMQ连接信息；
+  \item 执行\texttt{community-gateway/src/main/resources/schema.sql}初始化数据库表结构；
+  \item 启动基础设施服务：\texttt{docker-compose up -d redis rabbitmq}；
+  \item 编译并启动后端：\texttt{mvn clean package \&\& java -jar community-gateway/target/*.jar}；
+  \item 安装前端依赖并启动：\texttt{cd frontend \&\& npm install \&\& npm run dev}；
+  \item 启动AI服务：\texttt{cd agent \&\& uvicorn main:app --host 0.0.0.0 --port 8000}。
+\end{enumerate}

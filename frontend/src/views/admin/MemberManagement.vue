@@ -1,70 +1,68 @@
 <template>
   <div class="member-management">
-    <h2>成员管理</h2>
-    
-    <div class="actions" style="margin-bottom: 20px">
+    <div class="page-head">
+      <div>
+        <h2>成员管理</h2>
+        <p class="subtext">管理成员角色与状态，并导出成员名单。</p>
+      </div>
       <el-button type="success" @click="exportMembers">导出成员名单</el-button>
     </div>
 
-    <el-table :data="members" style="width: 100%" v-loading="loading">
-      <el-table-column prop="user.username" label="学号" />
-      <el-table-column prop="user.realName" label="姓名" />
-      <el-table-column prop="roleCode" label="角色">
+    <div class="table-panel">
+      <el-table :data="members" class="table-shell" v-loading="loading">
+      <el-table-column prop="user.username" label="学号" min-width="140" />
+      <el-table-column prop="user.realName" label="姓名" min-width="130" />
+      <el-table-column prop="roleCode" label="角色" width="130">
         <template #default="scope">
-          <el-tag :type="getRoleType(scope.row.roleCode)">{{ scope.row.roleCode }}</el-tag>
+          <el-tag :type="getRoleType(scope.row.roleCode)">{{ getRoleLabel(scope.row.roleCode) }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="status" label="状态">
-         <template #default="scope">
-           <el-tag :type="scope.row.status === 'ACTIVE' ? 'success' : 'info'">{{ scope.row.status }}</el-tag>
-         </template>
+      <el-table-column prop="status" label="状态" width="120">
+        <template #default="scope">
+          <el-tag :type="scope.row.status === 'ACTIVE' ? 'success' : 'info'">{{ getStatusLabel(scope.row.status) }}</el-tag>
+        </template>
       </el-table-column>
-      <el-table-column prop="joinAt" label="加入时间">
+      <el-table-column prop="joinAt" label="加入时间" min-width="170">
         <template #default="scope">
           {{ formatDate(scope.row.joinAt) }}
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="200">
+      <el-table-column label="操作" width="210" align="center">
         <template #default="scope">
           <div class="action-buttons">
-            <el-button 
+            <el-button
               v-if="scope.row.roleCode !== 'PRESIDENT'"
-              type="primary" 
+              type="primary"
               link
-              size="small" 
+              size="small"
               @click="openRoleDialog(scope.row)"
             >
               修改角色
             </el-button>
-            <el-popconfirm 
+            <el-popconfirm
               v-if="scope.row.roleCode !== 'PRESIDENT'"
               title="确定要移除该成员吗？"
               @confirm="removeMember(scope.row.user.id)"
             >
               <template #reference>
-                <el-button type="danger" size="small">删除</el-button>
+                <el-button type="danger" size="small">移除</el-button>
               </template>
             </el-popconfirm>
           </div>
         </template>
       </el-table-column>
-    </el-table>
+      </el-table>
+    </div>
 
-    <!-- Role Update Dialog -->
-    <el-dialog
-      v-model="roleDialogVisible"
-      title="修改成员角色"
-      width="30%"
-    >
-      <el-form>
-        <el-form-item label="当前成员">
+    <el-dialog v-model="roleDialogVisible" title="修改成员角色" width="460px">
+      <el-form label-width="104px">
+        <el-form-item label="成员">
           <el-input v-model="currentMemberName" disabled />
         </el-form-item>
-        <el-form-item label="选择角色">
-          <el-select v-model="selectedRole" placeholder="请选择角色">
-            <el-option label="管理员 (MANAGER)" value="MANAGER" />
-            <el-option label="普通成员 (MEMBER)" value="MEMBER" />
-            <el-option label="副社长 (VICE_PRESIDENT)" value="VICE_PRESIDENT" />
+        <el-form-item label="角色">
+          <el-select v-model="selectedRole" placeholder="请选择角色" style="width: 100%">
+            <el-option label="管理员" value="MANAGER" />
+            <el-option label="成员" value="MEMBER" />
           </el-select>
         </el-form-item>
       </el-form>
@@ -81,7 +79,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from '@/api/axios'
 import { ElMessage } from 'element-plus'
@@ -105,7 +103,7 @@ const openRoleDialog = (member) => {
 
 const updateMemberRole = async () => {
   if (!currentMember.value || !selectedRole.value) return
-  
+
   updating.value = true
   try {
     await axios.put(`/clubs/${clubId}/members/${currentMember.value.user.id}/role`, null, {
@@ -141,7 +139,7 @@ const exportMembers = async () => {
     const url = window.URL.createObjectURL(new Blob([res]))
     const link = document.createElement('a')
     link.href = url
-    link.setAttribute('download', `Club_Members_${clubId}.xlsx`)
+    link.setAttribute('download', `社团成员_${clubId}.xlsx`)
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -162,10 +160,42 @@ const removeMember = async (userId) => {
 
 const getRoleType = (role) => {
   switch (role) {
-    case 'PRESIDENT': return 'danger'
-    case 'VICE_PRESIDENT': return 'warning'
-    case 'MANAGER': return 'primary'
-    default: return 'info'
+    case 'PRESIDENT':
+      return 'danger'
+    case 'VICE_PRESIDENT':
+      return 'warning'
+    case 'MANAGER':
+      return 'primary'
+    default:
+      return 'info'
+  }
+}
+
+const getRoleLabel = (role) => {
+  switch (role) {
+    case 'PRESIDENT':
+      return '会长'
+    case 'VICE_PRESIDENT':
+      return '副会长'
+    case 'MANAGER':
+      return '管理员'
+    case 'MEMBER':
+      return '成员'
+    default:
+      return role || '-'
+  }
+}
+
+const getStatusLabel = (status) => {
+  switch (status) {
+    case 'ACTIVE':
+      return '在职'
+    case 'INACTIVE':
+      return '未激活'
+    case 'LEFT':
+      return '已退出'
+    default:
+      return status || '-'
   }
 }
 
@@ -179,11 +209,39 @@ onMounted(loadMembers)
 
 <style scoped>
 .member-management {
-  padding: 20px;
+  padding: 4px 0 8px;
 }
+
+.page-head {
+  margin-bottom: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.subtext {
+  margin: 6px 0 0;
+  color: #60748c;
+}
+
+.table-shell {
+  width: 100%;
+}
+
+.table-panel {
+  padding: 12px;
+  border: 1px solid rgba(14, 55, 94, 0.12);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 10px 24px rgba(17, 46, 77, 0.08);
+}
+
 .action-buttons {
   display: flex;
-  gap: 8px;
+  justify-content: center;
   align-items: center;
+  gap: 8px;
 }
 </style>

@@ -4,6 +4,7 @@ import com.cloud.community.core.entity.Activity;
 import com.cloud.community.core.entity.ActivityAttendance;
 import com.cloud.community.core.entity.ActivitySignup;
 import com.cloud.community.core.entity.User;
+import com.cloud.community.core.exception.BusinessException;
 import com.cloud.community.core.model.dto.ActivityUpdateDTO;
 import com.cloud.community.core.repository.ActivityAttendanceRepository;
 import com.cloud.community.core.repository.ActivityRepository;
@@ -21,6 +22,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -69,6 +71,23 @@ public class ActivityServiceImpl implements ActivityService {
     }
 
     @Override
+    public org.springframework.data.domain.Page<Activity> getActivities(Long clubId, String keyword, String clubName,
+                                                                        LocalDateTime startTimeFrom,
+                                                                        LocalDateTime startTimeTo,
+                                                                        int page, int size) {
+        String normalizedKeyword = StringUtils.hasText(keyword) ? keyword.trim() : null;
+        String normalizedClubName = StringUtils.hasText(clubName) ? clubName.trim() : null;
+        return activityRepository.searchActivities(
+                clubId,
+                normalizedKeyword,
+                normalizedClubName,
+                startTimeFrom,
+                startTimeTo,
+                org.springframework.data.domain.PageRequest.of(page, size)
+        );
+    }
+
+    @Override
     public Activity getActivityById(Long id) {
         return activityRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Activity not found"));
@@ -77,11 +96,14 @@ public class ActivityServiceImpl implements ActivityService {
     @Override
     @Transactional
     public void signup(Long activityId, Long userId) {
+        User user = userRepository.findByIdForUpdate(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
         if (signupRepository.findByActivityIdAndUserId(activityId, userId).isPresent()) {
-            throw new RuntimeException("Already signed up");
+            throw new BusinessException(40901, "您已报名该活动，请勿重复报名");
         }
         
-        Activity activity = activityRepository.findByIdWithClub(activityId)
+        Activity activity = activityRepository.findByIdForUpdate(activityId)
                 .orElseThrow(() -> new RuntimeException("Activity not found"));
 
         // Check if user is a member of the club (only for club activities)
@@ -92,9 +114,6 @@ public class ActivityServiceImpl implements ActivityService {
             }
         }
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        
         ActivitySignup signup = new ActivitySignup();
         signup.setActivity(activity);
         signup.setUser(user);
@@ -125,7 +144,7 @@ public class ActivityServiceImpl implements ActivityService {
     @Override
     @Transactional
     public void signIn(Long activityId, Long userId, String code) {
-        ActivitySignup signup = signupRepository.findByActivityIdAndUserId(activityId, userId)
+        ActivitySignup signup = signupRepository.findByActivityIdAndUserIdForUpdate(activityId, userId)
                 .orElseThrow(() -> new RuntimeException("Signup not found"));
 
         Activity activity = signup.getActivity();
@@ -147,7 +166,7 @@ public class ActivityServiceImpl implements ActivityService {
         }
         
         if ("SIGNED_IN".equals(signup.getStatus())) {
-             throw new RuntimeException("Already signed in");
+             throw new BusinessException(40902, "您已签到，请勿重复签到");
         }
         
         signup.setStatus("SIGNED_IN");
@@ -216,7 +235,7 @@ public class ActivityServiceImpl implements ActivityService {
         Activity activity = activityRepository.findByIdWithClub(id)
                 .orElseThrow(() -> new RuntimeException("Activity not found"));
         permissionService.checkClubActive(activity.getClub().getId());
-        
+
         // Notify signed up users
         List<ActivitySignup> signups = signupRepository.findByActivityId(id);
         for (ActivitySignup signup : signups) {
@@ -231,7 +250,13 @@ public class ActivityServiceImpl implements ActivityService {
                 log.error("Failed to send cancellation notification to user {}", signup.getUser().getId(), e);
             }
         }
-        
+
+        // 先删除关联记录
+        List<ActivityAttendance> attendances = attendanceRepository.findByActivityId(id);
+        attendanceRepository.deleteAll(attendances);
+        signupRepository.deleteAll(signups);
+
+        // 再删除活动
         activityRepository.deleteById(id);
     }
 }

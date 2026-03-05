@@ -21,12 +21,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -70,13 +73,35 @@ public class ActivityController {
     @GetMapping
     public Result<PageResult<ActivityVO>> getAllActivities(
             @RequestParam(required = false) Long clubId,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String clubName,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        
-        if (clubId != null) {
-            return Result.success(PageResult.of(activityService.getActivitiesByClub(clubId, page, size)).map(ActivityVO::from));
+
+        if (clubId == null
+                && !StringUtils.hasText(keyword)
+                && !StringUtils.hasText(clubName)
+                && !StringUtils.hasText(startDate)
+                && !StringUtils.hasText(endDate)) {
+            return Result.success(PageResult.of(activityService.getAllActivities(page, size)).map(ActivityVO::from));
         }
-        return Result.success(PageResult.of(activityService.getAllActivities(page, size)).map(ActivityVO::from));
+
+        LocalDateTime startTimeFrom = null;
+        LocalDateTime startTimeTo = null;
+        if (StringUtils.hasText(startDate) && StringUtils.hasText(endDate)) {
+            LocalDate start = LocalDate.parse(startDate);
+            LocalDate end = LocalDate.parse(endDate);
+            if (end.isBefore(start)) {
+                throw new IllegalArgumentException("endDate must be greater than or equal to startDate");
+            }
+            startTimeFrom = start.atStartOfDay();
+            startTimeTo = end.plusDays(1).atStartOfDay().minusNanos(1);
+        }
+
+        return Result.success(PageResult.of(activityService.getActivities(
+                clubId, keyword, clubName, startTimeFrom, startTimeTo, page, size)).map(ActivityVO::from));
     }
 
     @GetMapping("/club/{clubId}")

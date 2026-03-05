@@ -45,6 +45,14 @@ public class AdminController {
         return Result.success(clubs.stream().map(ClubVO::from).collect(Collectors.toList()));
     }
 
+    @GetMapping("/clubs/dissolving")
+    public Result<List<ClubVO>> getDissolvingClubs() {
+        User user = getCurrentUser();
+        permissionService.checkSystemAdmin(user.getId());
+        List<Club> clubs = clubService.getDissolvingClubs();
+        return Result.success(clubs.stream().map(ClubVO::from).collect(Collectors.toList()));
+    }
+
     @AuditLog(action = "APPROVE_CLUB", resourceType = "CLUB", resourceId = "#id")
     @PostMapping("/clubs/{id}/approve")
     public Result<Void> approveClub(@PathVariable Long id) {
@@ -53,7 +61,25 @@ public class AdminController {
         clubService.approveClub(id);
         return Result.success();
     }
-    
+
+    @AuditLog(action = "APPROVE_DISSOLUTION", resourceType = "CLUB", resourceId = "#id")
+    @PostMapping("/clubs/{id}/approve-dissolution")
+    public Result<Void> approveDissolution(@PathVariable Long id) {
+        User user = getCurrentUser();
+        permissionService.checkSystemAdmin(user.getId());
+        clubService.approveDissolution(id, user.getId());
+        return Result.success();
+    }
+
+    @AuditLog(action = "REJECT_DISSOLUTION", resourceType = "CLUB", resourceId = "#id")
+    @PostMapping("/clubs/{id}/reject-dissolution")
+    public Result<Void> rejectDissolution(@PathVariable Long id) {
+        User user = getCurrentUser();
+        permissionService.checkSystemAdmin(user.getId());
+        clubService.rejectDissolution(id, user.getId());
+        return Result.success();
+    }
+
     @AuditLog(action = "DELETE_CLUB", resourceType = "CLUB", resourceId = "#id")
     @DeleteMapping("/clubs/{id}")
     public Result<Void> deleteClub(@PathVariable Long id) {
@@ -73,5 +99,14 @@ public class AdminController {
         targetUser.setStatus(status);
         userRepository.save(targetUser);
         return Result.success();
+    }
+
+    @AuditLog(action = "CLEANUP_ROLES", resourceType = "SYSTEM")
+    @PostMapping("/roles/cleanup")
+    public Result<Integer> cleanupOrphanedRoles() {
+        User user = getCurrentUser();
+        permissionService.checkSystemAdmin(user.getId());
+        int count = clubService.cleanupOrphanedClubAdminRoles();
+        return Result.success(count);
     }
 }

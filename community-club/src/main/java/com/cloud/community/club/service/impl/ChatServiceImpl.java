@@ -1,6 +1,8 @@
 package com.cloud.community.club.service.impl;
 
 import com.cloud.community.club.service.ChatService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -14,6 +16,7 @@ import java.util.Map;
 
 @Service
 public class ChatServiceImpl implements ChatService {
+    private static final Logger log = LoggerFactory.getLogger(ChatServiceImpl.class);
 
     @Value("${rag.service.url:http://localhost:8000}")
     private String ragServiceUrl;
@@ -21,7 +24,7 @@ public class ChatServiceImpl implements ChatService {
     private final RestTemplate restTemplate = new RestTemplate();
 
     @Override
-    public String chat(String message) {
+    public String chat(String message, String sessionId) {
         if (message == null || message.trim().isEmpty()) {
             return "Please enter a message.";
         }
@@ -33,6 +36,9 @@ public class ChatServiceImpl implements ChatService {
         // Build body
         Map<String, String> body = new HashMap<>();
         body.put("query", message);
+        if (sessionId != null && !sessionId.trim().isEmpty()) {
+            body.put("session_id", sessionId.trim());
+        }
 
         HttpEntity<Map<String, String>> request = new HttpEntity<>(body, headers);
 
@@ -46,8 +52,8 @@ public class ChatServiceImpl implements ChatService {
             }
             return "No response from AI Agent.";
         } catch (Exception e) {
-            e.printStackTrace();
-            return "Error calling AI Agent: " + e.getMessage() + ". Please ensure the RAG service is running.";
+            log.error("Error calling AI Agent, sessionId={}", sessionId, e);
+            return "AI服务暂时不可用，请稍后再试。";
         }
     }
 
@@ -76,7 +82,7 @@ public class ChatServiceImpl implements ChatService {
                         .collect(java.util.stream.Collectors.toList());
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            log.warn("Failed to fetch club recommendations from AI service, userId={}", userId, e);
         }
         return java.util.Collections.emptyList();
     }

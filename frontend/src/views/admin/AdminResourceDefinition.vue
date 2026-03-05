@@ -4,28 +4,30 @@
       <h2>资源定义管理</h2>
       <el-button type="primary" @click="showAddDialog">新增资源</el-button>
     </div>
-    <el-table :data="resources" style="width: 100%" v-loading="loading">
-      <el-table-column prop="id" label="ID" width="80" />
-      <el-table-column prop="name" label="名称" />
-      <el-table-column prop="type" label="类型" width="100">
+    <el-table class="resource-table" :data="resources" style="width: 100%" v-loading="loading">
+      <el-table-column prop="id" label="编号" width="70" />
+      <el-table-column prop="name" label="名称" min-width="180" />
+      <el-table-column prop="type" label="类型" min-width="140">
         <template #default="scope">
-          <el-tag>{{ scope.row.type }}</el-tag>
+          <el-tag>{{ getTypeLabel(scope.row.type) }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="location" label="地点" />
-      <el-table-column prop="capacity" label="容量" />
-      <el-table-column prop="totalQuantity" label="总数量" />
-      <el-table-column prop="status" label="状态" width="100">
+      <el-table-column prop="location" label="地点" min-width="150"/>
+      <el-table-column prop="capacity" label="容量" min-width="100" />
+      <el-table-column prop="totalQuantity" label="总数量" min-width="110" />
+      <el-table-column prop="status" label="状态" min-width="110">
         <template #default="scope">
           <el-tag :type="scope.row.status === 'AVAILABLE' ? 'success' : 'danger'">
-            {{ scope.row.status }}
+            {{ getStatusLabel(scope.row.status) }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="150">
+      <el-table-column label="操作" min-width="220" align="center" class-name="action-column">
         <template #default="scope">
-          <el-button type="primary" size="small" @click="edit(scope.row)">编辑</el-button>
-          <el-button type="danger" size="small" @click="remove(scope.row.id)">删除</el-button>
+          <div class="action-buttons">
+            <el-button type="primary" size="small" @click="edit(scope.row)">编辑</el-button>
+            <el-button type="danger" size="small" @click="remove(scope.row.id)">删除</el-button>
+          </div>
         </template>
       </el-table-column>
     </el-table>
@@ -120,6 +122,14 @@ const edit = (row) => {
   dialogVisible.value = true
 }
 
+const getTypeLabel = (type) => {
+  return type === 'VENUE' ? '场地' : type === 'MATERIAL' ? '物资' : type
+}
+
+const getStatusLabel = (status) => {
+  return status === 'AVAILABLE' ? '可用' : status === 'MAINTENANCE' ? '维护中' : status
+}
+
 const submit = async () => {
   try {
     if (form.value.id) {
@@ -156,4 +166,25 @@ onMounted(load)
   align-items: center;
   margin-bottom: 20px;
 }
+
+.action-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+
+.action-buttons :deep(.el-button) {
+  margin-left: 0 !important;
+}
+
+:deep(.action-column .cell) {
+  white-space: nowrap !important;
+  overflow: visible;
+  line-height: 1.35;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
 </style>

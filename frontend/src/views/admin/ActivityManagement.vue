@@ -1,81 +1,66 @@
 <template>
   <div class="activity-management">
-    <h2>活动管理</h2>
-    
-    <div class="actions" style="margin-bottom: 20px">
+    <div class="page-head">
+      <div>
+        <h2>活动管理</h2>
+        <p class="subtext">管理活动生命周期、签到导出与资源申请。</p>
+      </div>
       <el-button type="primary" @click="dialogVisible = true">发布活动</el-button>
     </div>
 
-    <el-table :data="activities" style="width: 100%" v-loading="loading">
-      <el-table-column prop="title" label="标题" />
-      <el-table-column prop="startTime" label="开始时间">
+    <div class="table-panel">
+      <el-table :data="activities" class="table-shell" v-loading="loading">
+      <el-table-column prop="title" label="标题" min-width="200" />
+      <el-table-column prop="startTime" label="开始时间" min-width="170">
         <template #default="scope">
           {{ formatDate(scope.row.startTime) }}
         </template>
       </el-table-column>
-      <el-table-column prop="endTime" label="结束时间">
+      <el-table-column prop="endTime" label="结束时间" min-width="170">
         <template #default="scope">
           {{ formatDate(scope.row.endTime) }}
         </template>
       </el-table-column>
       <el-table-column prop="location" label="地点" width="150" show-overflow-tooltip />
-      <el-table-column label="操作" width="350">
+      <el-table-column label="操作" width="370" align="center">
         <template #default="scope">
-          <div style="display: flex; align-items: center; gap: 5px;">
-            <el-button type="primary" size="small" style="width: 60px" @click="editActivity(scope.row)">编辑</el-button>
-            <el-button type="success" size="small" style="width: 80px" @click="exportCheckIns(scope.row.id)">导出签到</el-button>
-            <el-button type="primary" size="small" style="width: 80px" @click="showResourceDialog(scope.row)">申请资源</el-button>
-            <el-popconfirm 
-              title="确定要删除这个活动吗？"
-              @confirm="deleteActivity(scope.row.id)"
-            >
+          <div class="row-actions">
+            <el-button type="primary" size="small" class="row-btn" @click="editActivity(scope.row)">编辑</el-button>
+            <el-button type="success" size="small" class="row-btn" @click="exportCheckIns(scope.row.id)">导出签到</el-button>
+            <el-button type="primary" size="small" class="row-btn" plain @click="showResourceDialog(scope.row)">申请资源</el-button>
+            <el-popconfirm title="确定删除该活动吗？" @confirm="deleteActivity(scope.row.id)">
               <template #reference>
-                <el-button type="danger" size="small" style="width: 80px">删除</el-button>
+                <el-button type="danger" size="small" class="row-btn">删除</el-button>
               </template>
             </el-popconfirm>
           </div>
         </template>
       </el-table-column>
-    </el-table>
+      </el-table>
+    </div>
 
-    <!-- Create/Edit Activity Dialog -->
-    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑活动' : '发布新活动'" width="50%">
-      <el-form :model="form" label-width="100px">
+    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑活动' : '发布活动'" width="760px">
+      <el-form :model="form" label-width="110px">
         <el-form-item label="活动标题">
           <el-input v-model="form.title" placeholder="请输入活动标题" />
         </el-form-item>
-        <el-form-item label="封面图链接">
-          <el-input v-model="form.coverUrl" placeholder="请输入封面图 URL" />
+        <el-form-item label="封面链接">
+          <el-input v-model="form.coverUrl" placeholder="请输入封面链接" />
         </el-form-item>
         <el-form-item label="活动描述">
-          <el-input 
-            v-model="form.description" 
-            type="textarea" 
-            rows="4" 
-            placeholder="请输入活动描述" 
-          />
+          <el-input v-model="form.description" type="textarea" rows="4" placeholder="请输入活动描述" />
         </el-form-item>
         <el-form-item label="活动类型">
-          <el-select v-model="form.type" placeholder="请选择活动类型">
+          <el-select v-model="form.type" placeholder="请选择活动类型" style="width: 100%">
             <el-option label="线下活动" value="Offline" />
             <el-option label="线上活动" value="Online" />
           </el-select>
         </el-form-item>
         <el-form-item label="开始时间">
-          <el-date-picker
-            v-model="form.startTime"
-            type="datetime"
-            placeholder="选择开始时间"
-            style="width: 100%"
-          />
+          <el-date-picker v-model="form.startTime" type="datetime" placeholder="选择开始时间" style="width: 100%" />
         </el-form-item>
         <el-form-item label="结束时间">
-          <el-date-picker
-            v-model="form.endTime"
-            type="datetime"
-            placeholder="选择结束时间"
-            style="width: 100%"
-          />
+          <el-date-picker v-model="form.endTime" type="datetime" placeholder="选择结束时间" style="width: 100%" />
         </el-form-item>
         <el-form-item label="活动地点">
           <el-input v-model="form.location" placeholder="请输入活动地点" />
@@ -91,13 +76,13 @@
             <img v-if="form.coverUrl" :src="form.coverUrl" class="cover-preview" />
             <el-icon v-else class="cover-uploader-icon"><Plus /></el-icon>
           </el-upload>
-          <div class="upload-tip">建议尺寸 800x450 (16:9)，支持 JPG/PNG，小于 2MB</div>
+          <div class="upload-tip">建议比例 16:9，支持常见图片格式，图片小于 2 兆字节</div>
         </el-form-item>
         <el-form-item label="最大人数">
           <el-input-number v-model="form.maxParticipants" :min="1" />
         </el-form-item>
         <el-form-item label="签到码">
-           <el-input v-model="form.checkinCode" placeholder="可选：设置签到码" maxlength="20" show-word-limit />
+          <el-input v-model="form.checkinCode" placeholder="可选" maxlength="20" show-word-limit />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -108,11 +93,10 @@
       </template>
     </el-dialog>
 
-    <!-- Resource Dialog -->
-    <el-dialog v-model="resourceDialogVisible" title="申请资源" width="500px">
-      <el-form :model="resourceForm" label-width="80px">
+    <el-dialog v-model="resourceDialogVisible" title="申请活动资源" width="580px">
+      <el-form :model="resourceForm" label-width="92px">
         <el-form-item label="资源">
-          <el-select v-model="resourceForm.resource.id" placeholder="请选择资源" @change="handleResourceChange">
+          <el-select v-model="resourceForm.resource.id" placeholder="请选择资源" @change="handleResourceChange" style="width: 100%">
             <el-option
               v-for="item in resources"
               :key="item.id"
@@ -122,12 +106,16 @@
           </el-select>
         </el-form-item>
         <el-form-item label="类型" v-if="selectedResource">
-          <el-tag>{{ selectedResource.type }}</el-tag>
+          <el-tag>{{ getResourceTypeLabel(selectedResource.type) }}</el-tag>
         </el-form-item>
         <el-form-item label="数量">
-          <el-input-number v-model="resourceForm.quantity" :min="1" :max="selectedResource ? (selectedResource.type === 'VENUE' ? 1 : selectedResource.totalQuantity) : 999" />
+          <el-input-number
+            v-model="resourceForm.quantity"
+            :min="1"
+            :max="selectedResource ? (selectedResource.type === 'VENUE' ? 1 : selectedResource.totalQuantity) : 999"
+          />
         </el-form-item>
-        <el-form-item label="时间">
+        <el-form-item label="时间范围">
           <el-date-picker
             v-model="resourceTimeRange"
             type="datetimerange"
@@ -135,8 +123,9 @@
             start-placeholder="开始时间"
             end-placeholder="结束时间"
             disabled
+            style="width: 100%"
           />
-          <div style="font-size: 12px; color: #999">时间已锁定为活动时间</div>
+          <div class="form-tip">时间已锁定为活动时间</div>
         </el-form-item>
         <el-form-item label="备注">
           <el-input v-model="resourceForm.description" type="textarea" />
@@ -153,14 +142,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from '@/api/axios'
 import { ElMessage } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 
 const route = useRoute()
-const clubId = route.params.clubId // If managing specific club
+const clubId = route.params.clubId
 const activities = ref([])
 const resources = ref([])
 const loading = ref(false)
@@ -178,13 +167,17 @@ const resourceForm = ref({
 })
 
 const selectedResource = computed(() => {
-  return resources.value.find(r => r.id === resourceForm.value.resource.id)
+  return resources.value.find((r) => r.id === resourceForm.value.resource.id)
 })
 
 const handleResourceChange = () => {
   if (selectedResource.value && selectedResource.value.type === 'VENUE') {
     resourceForm.value.quantity = 1
   }
+}
+
+const getResourceTypeLabel = (type) => {
+  return type === 'VENUE' ? '场地' : type === 'MATERIAL' ? '物资' : type
 }
 
 const loadResources = async () => {
@@ -214,11 +207,11 @@ const beforeCoverUpload = (rawFile) => {
   const isLt2M = rawFile.size / 1024 / 1024 < 2
 
   if (!isImage) {
-    ElMessage.error('上传图片只能是 JPG/PNG 格式!')
+    ElMessage.error('上传图片格式不正确，请使用常见图片格式')
     return false
   }
   if (!isLt2M) {
-    ElMessage.error('图片大小不能超过 2MB!')
+    ElMessage.error('图片大小不能超过 2 兆字节')
     return false
   }
   return true
@@ -238,7 +231,7 @@ const uploadCover = async (options) => {
     form.value.coverUrl = res
     ElMessage.success('封面上传成功')
   } catch (error) {
-    console.error('Upload failed:', error)
+    console.error('封面上传失败:', error)
     ElMessage.error('上传失败，请稍后重试')
   }
 }
@@ -332,7 +325,7 @@ const showResourceDialog = (activity) => {
     activity: { id: activity.id },
     resource: { id: null },
     quantity: 1,
-    description: `为活动申请: ${activity.title}`
+    description: `为活动申请：${activity.title}`
   }
   resourceTimeRange.value = [activity.startTime, activity.endTime]
   loadResources()
@@ -374,7 +367,7 @@ const exportCheckIns = async (activityId) => {
     const url = window.URL.createObjectURL(new Blob([res]))
     const link = document.createElement('a')
     link.href = url
-    link.setAttribute('download', `Activity_CheckIns_${activityId}.xlsx`)
+    link.setAttribute('download', `活动签到_${activityId}.xlsx`)
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -396,46 +389,85 @@ onMounted(() => {
 
 <style scoped>
 .activity-management {
-  padding: 20px;
+  padding: 4px 0 8px;
+}
+
+.page-head {
+  margin-bottom: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.subtext {
+  margin: 6px 0 0;
+  color: #60748c;
+}
+
+.table-shell {
+  width: 100%;
+}
+
+.table-panel {
+  padding: 12px;
+  border: 1px solid rgba(14, 55, 94, 0.12);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 10px 24px rgba(17, 46, 77, 0.08);
+}
+
+.row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.row-btn {
+  min-width: 0;
+}
+
+:deep(.row-btn.el-button--small) {
+  padding: 6px 8px;
 }
 
 .cover-uploader {
-  border: 1px dashed var(--el-border-color);
-  border-radius: 6px;
-  cursor: pointer;
-  position: relative;
+  width: 180px;
+  height: 102px;
+  border-radius: 10px;
+  border: 1px dashed #aebfd3;
   overflow: hidden;
-  width: 240px;
-  height: 135px;
   display: flex;
-  justify-content: center;
   align-items: center;
-  transition: var(--el-transition-duration-fast);
-}
-
-.cover-uploader:hover {
-  border-color: var(--el-color-primary);
+  justify-content: center;
+  cursor: pointer;
+  background: #f6faff;
 }
 
 .cover-uploader-icon {
-  font-size: 28px;
-  color: #8c939d;
-  width: 240px;
-  height: 135px;
-  text-align: center;
-  line-height: 135px;
+  font-size: 26px;
+  color: #6c839a;
 }
 
 .cover-preview {
-  width: 240px;
-  height: 135px;
-  display: block;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
 }
 
 .upload-tip {
+  margin-top: 6px;
   font-size: 12px;
-  color: #909399;
-  margin-top: 8px;
+  color: #7188a1;
+}
+
+.form-tip {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #7188a1;
 }
 </style>

@@ -12,6 +12,10 @@ public interface ActivityService {
     org.springframework.data.domain.Page<Activity> getActivitiesByClub(Long clubId, int page, int size);
     List<Activity> getAllActivities();
     org.springframework.data.domain.Page<Activity> getAllActivities(int page, int size);
+    org.springframework.data.domain.Page<Activity> getActivities(Long clubId, String keyword, String clubName,
+                                                                 java.time.LocalDateTime startTimeFrom,
+                                                                 java.time.LocalDateTime startTimeTo,
+                                                                 int page, int size);
     Activity getActivityById(Long id);
     
     void signup(Long activityId, Long userId);

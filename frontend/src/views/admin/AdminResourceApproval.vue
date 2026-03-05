@@ -5,7 +5,7 @@
       <el-table-column prop="club.name" label="申请社团" width="150" />
       <el-table-column label="类型" width="100">
         <template #default="scope">
-          <el-tag>{{ scope.row.resource ? scope.row.resource.type : '-' }}</el-tag>
+          <el-tag>{{ scope.row.resource ? getResourceTypeLabel(scope.row.resource.type) : '-' }}</el-tag>
         </template>
       </el-table-column>
       <el-table-column label="资源名称">
@@ -25,7 +25,7 @@
         </template>
       </el-table-column>
       <el-table-column prop="description" label="备注" />
-      <el-table-column label="操作" width="200">
+      <el-table-column label="操作" width="200" align="center">
         <template #default="scope">
           <el-button type="success" size="small" @click="approve(scope.row.id)">通过</el-button>
           <el-button type="danger" size="small" @click="reject(scope.row.id)">拒绝</el-button>
@@ -73,6 +73,10 @@ const reject = async (id) => {
   } catch (error) {
     ElMessage.error('操作失败')
   }
+}
+
+const getResourceTypeLabel = (type) => {
+  return type === 'VENUE' ? '场地' : type === 'MATERIAL' ? '物资' : type
 }
 
 const formatTime = (time) => {

@@ -1,88 +1,106 @@
-<template>
-  <div class="academic-container">
-    <div class="page-hero">
-      <div class="page-hero-inner">
-        <div class="page-hero-title">
-          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
-          <h1>公告信息</h1>
+﻿<template>
+  <div class="notice-page">
+    <section class="hero-section">
+      <div class="hero-grid"></div>
+      <div class="hero-container">
+        <p class="hero-kicker">Notice Center</p>
+        <h1>公告信息</h1>
+        <p>查看最新校园公告，掌握第一手资讯与通知。</p>
+        <div class="hero-meta">
+          <span>当前结果：{{ total }} 条公告</span>
+          <span>每页展示：{{ pageSize }} 条</span>
         </div>
-        <p class="page-hero-sub">查看最新校园公告，掌握第一手资讯</p>
       </div>
-    </div>
+    </section>
 
-    <div class="filter-bar">
-      <el-form :inline="true" class="search-form">
-        <el-form-item label="标题搜索">
-          <el-input v-model="searchTitle" placeholder="请输入公告标题">
-            <template #prefix>
-              <el-icon><Search /></el-icon>
-            </template>
-          </el-input>
-        </el-form-item>
-        <el-form-item label="日期范围">
-          <el-date-picker
-            v-model="dateRange"
-            type="daterange"
-            range-separator="至"
-            start-placeholder="开始日期"
-            end-placeholder="结束日期"
-          />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleSearch">查询</el-button>
-          <el-button @click="resetSearch">重置</el-button>
-        </el-form-item>
-      </el-form>
-    </div>
+    <section class="content-container">
+      <div class="filter-panel">
+        <el-form :inline="true" class="search-form" @submit.prevent="handleSearch">
+          <el-form-item label="标题搜索">
+            <el-input
+              v-model="searchTitle"
+              placeholder="请输入公告标题"
+              clearable
+              style="width: 260px"
+              @keyup.enter="handleSearch"
+            >
+              <template #prefix>
+                <el-icon><Search /></el-icon>
+              </template>
+            </el-input>
+          </el-form-item>
 
-    <div class="data-table-wrapper">
-      <el-table 
-        :data="notices" 
-        style="width: 100%" 
-        stripe 
-        border
-        header-cell-class-name="table-header"
-        v-loading="loading"
-      >
-        <el-table-column prop="publishedAt" label="发布日期" width="180">
-          <template #default="scope">
-            {{ formatDate(scope.row.publishedAt) }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="scope" label="分类" width="120">
+          <el-form-item label="日期范围">
+            <el-date-picker
+              v-model="dateRange"
+              type="daterange"
+              range-separator="至"
+              start-placeholder="开始日期"
+              end-placeholder="结束日期"
+              value-format="YYYY-MM-DD"
+            />
+          </el-form-item>
+
+          <el-form-item class="action-group">
+            <el-button type="primary" class="btn-primary" @click="handleSearch">查询</el-button>
+            <el-button @click="resetSearch">重置</el-button>
+          </el-form-item>
+        </el-form>
+      </div>
+
+      <div class="table-panel">
+        <el-table
+          :data="notices"
+          stripe
+          border
+          header-cell-class-name="table-header"
+          v-loading="loading"
+          style="width: 100%"
+        >
+          <el-table-column prop="publishedAt" label="发布日期" width="180">
             <template #default="scope">
-                <el-tag size="small">{{ scope.row.scope === 'PUBLIC' ? '全校' : '社团' }}</el-tag>
+              {{ formatDate(scope.row.publishedAt) }}
             </template>
-        </el-table-column>
-        <el-table-column prop="title" label="公告标题" min-width="300">
-          <template #default="scope">
-            <a class="table-link" @click="viewNotice(scope.row)">{{ scope.row.title }}</a>
-          </template>
-        </el-table-column>
-        <el-table-column prop="publisherName" label="发布单位" width="150" />
-      </el-table>
+          </el-table-column>
 
-      <div class="pagination-container">
-        <el-pagination
-          background
-          layout="total, prev, pager, next, jumper"
-          :total="total"
-          :page-size="pageSize"
-          v-model:current-page="currentPage"
-          @current-change="handlePageChange"
-        />
+          <el-table-column prop="scope" label="分类" width="120" align="center">
+            <template #default="scope">
+              <el-tag size="small">{{ scope.row.scope === 'PUBLIC' ? '全校' : '社团' }}</el-tag>
+            </template>
+          </el-table-column>
+
+          <el-table-column prop="title" label="公告标题" min-width="360">
+            <template #default="scope">
+              <button class="table-link" @click="viewNotice(scope.row)">
+                {{ scope.row.title }}
+              </button>
+            </template>
+          </el-table-column>
+
+          <el-table-column prop="publisherName" label="发布单位" width="180" />
+        </el-table>
+
+        <div class="pagination-container">
+          <el-pagination
+            background
+            layout="total, prev, pager, next, jumper"
+            :total="total"
+            :page-size="pageSize"
+            v-model:current-page="currentPage"
+            @current-change="handlePageChange"
+          />
+        </div>
       </div>
-    </div>
+    </section>
 
-    <!-- Notice Detail Dialog -->
-    <el-dialog v-model="dialogVisible" :title="currentNotice.title" width="60%">
+    <el-dialog v-model="dialogVisible" :title="currentNotice.title || '公告详情'" width="62%">
       <div class="notice-detail">
         <div class="detail-meta">
-          <span>发布时间：{{ formatDate(currentNotice.publishedAt) }}</span>
-          <span>发布人：{{ currentNotice.publisherName || '管理员' }}</span>
+          <span>发布时间：{{ formatDate(currentNotice.publishedAt) || '-' }}</span>
+          <span>发布单位：{{ currentNotice.publisherName || '管理员' }}</span>
         </div>
         <div class="detail-content">
-          {{ currentNotice.content }}
+          {{ currentNotice.content || '暂无公告内容' }}
         </div>
       </div>
     </el-dialog>
@@ -90,11 +108,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { onMounted, ref } from 'vue'
+import { Search } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 import axios from '@/api/axios'
 
-const router = useRouter()
 const notices = ref([])
 const loading = ref(false)
 const currentPage = ref(1)
@@ -106,6 +124,26 @@ const dateRange = ref([])
 const dialogVisible = ref(false)
 const currentNotice = ref({})
 
+const normalizeList = (payload) => {
+  if (!payload) {
+    return []
+  }
+
+  if (Array.isArray(payload)) {
+    return payload
+  }
+
+  if (Array.isArray(payload.list)) {
+    return payload.list
+  }
+
+  if (Array.isArray(payload.content)) {
+    return payload.content
+  }
+
+  return []
+}
+
 const fetchNotices = async () => {
   loading.value = true
   try {
@@ -113,31 +151,34 @@ const fetchNotices = async () => {
       page: currentPage.value - 1,
       size: pageSize.value
     }
-    // Simulate filtering in frontend or backend if supported
+
+    if (searchTitle.value.trim()) {
+      params.title = searchTitle.value.trim()
+    }
+
+    if (dateRange.value && dateRange.value.length === 2) {
+      params.startDate = dateRange.value[0]
+      params.endDate = dateRange.value[1]
+    }
+
     const res = await axios.get('/notices', { params })
-    let data = []
-    if (res.list) {
-      data = res.list
-      total.value = res.total
-    } else if (res.content) {
-      data = res.content
-      total.value = res.totalElements
+    const data = normalizeList(res)
+
+    if (Array.isArray(res?.list)) {
+      total.value = res.total ?? data.length
+    } else if (Array.isArray(res?.content)) {
+      total.value = res.totalElements ?? data.length
     } else {
-      data = res
-      total.value = res.length
+      total.value = data.length
     }
-    
-    // Frontend filter simulation (since backend might strictly filter by keyword only)
-    if (searchTitle.value) {
-        data = data.filter(n => n.title.includes(searchTitle.value))
-    }
-    
-    // Mock publisher name since it's an ID usually
-    data = data.map(n => ({...n, publisherName: n.clubId ? '社团管理员' : '教务处'}))
-    
-    notices.value = data
+
+    notices.value = data.map((item) => ({
+      ...item,
+      publisherName: item.publisherName || (item.clubId ? '社团管理员' : '教务处')
+    }))
   } catch (error) {
     console.error('Failed to fetch notices:', error)
+    ElMessage.error(error.response?.data?.message || error.message || '公告加载失败')
   } finally {
     loading.value = false
   }
@@ -165,10 +206,13 @@ const viewNotice = (notice) => {
 }
 
 const formatDate = (dateStr) => {
-  if (!dateStr) return ''
-  return new Date(dateStr).toLocaleDateString('zh-CN', { 
-    year: 'numeric', 
-    month: '2-digit', 
+  if (!dateStr) {
+    return ''
+  }
+
+  return new Date(dateStr).toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
     day: '2-digit'
   })
 }
@@ -179,150 +223,195 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.academic-container {
-  background-color: #f3f4f6;
-  min-height: 80vh;
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Noto+Serif+SC:wght@500;700&display=swap');
+
+* {
+  box-sizing: border-box;
 }
 
-.page-hero {
-  background: linear-gradient(135deg, #92400e 0%, #f59e0b 100%);
-  padding: 100px 32px 40px;
-  margin-bottom: 24px;
+.notice-page {
+  --ink: #0f1c2a;
+  --muted: #55667a;
+  --surface: rgba(255, 255, 255, 0.88);
+  --border: rgba(15, 28, 42, 0.12);
+
+  min-height: 100vh;
+  padding-bottom: 30px;
+  background: linear-gradient(180deg, #f7f1e7 0%, #efe8dc 44%, #e8eeea 100%);
+  color: var(--ink);
+  font-family: 'Outfit', sans-serif;
 }
 
-.page-hero-inner {
-  max-width: 1200px;
+.hero-section {
+  position: relative;
+  padding: 104px 24px 34px;
+  overflow: hidden;
 }
 
-.back-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(255,255,255,0.15);
-  border: 1px solid rgba(255,255,255,0.3);
-  color: white;
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 13px;
-  cursor: pointer;
-  transition: background 0.2s;
+.hero-grid {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 8% 14%, rgba(15, 118, 110, 0.18), transparent 28%),
+    radial-gradient(circle at 92% 20%, rgba(194, 65, 12, 0.18), transparent 34%),
+    linear-gradient(165deg, #f8f3e8 0%, #eee7d8 60%, #e4ece8 100%);
+}
+
+.hero-grid::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(rgba(15, 28, 42, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 28, 42, 0.03) 1px, transparent 1px);
+  background-size: 34px 34px;
+}
+
+.hero-container {
+  position: relative;
+  z-index: 1;
+  max-width: 1240px;
+  margin: 0 auto;
+}
+
+.hero-kicker {
+  margin: 0 0 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.hero-container h1 {
+  margin: 0;
+  font-family: 'Noto Serif SC', serif;
+  font-size: clamp(2rem, 4vw, 3rem);
+}
+
+.hero-container p {
+  margin: 10px 0 0;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.hero-meta {
+  margin-top: 14px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.hero-meta span {
+  font-size: 0.86rem;
+  border-radius: 999px;
+  padding: 6px 12px;
+  color: #355069;
+  border: 1px solid rgba(15, 28, 42, 0.12);
+  background: rgba(255, 255, 255, 0.66);
+}
+
+.content-container {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.filter-panel {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 12px 24px rgba(15, 28, 42, 0.08);
+  padding: 14px 16px 0;
   margin-bottom: 16px;
 }
 
-.back-btn:hover {
-  background: rgba(255,255,255,0.25);
-}
-
-.breadcrumb {
-  font-size: 13px;
-  color: rgba(255,255,255,0.65);
-  margin-bottom: 12px;
-}
-
-.breadcrumb-link {
-  color: rgba(255,255,255,0.75);
-  text-decoration: none;
-  transition: color 0.2s;
-}
-
-.breadcrumb-link:hover {
-  color: white;
-}
-
-.separator {
-  margin: 0 8px;
-  color: rgba(255,255,255,0.4);
-}
-
-.page-hero-title {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 0 0 8px;
-  color: white;
-}
-
-.page-hero-title h1 {
-  margin: 0;
-  font-size: 28px;
-  font-weight: 700;
-}
-
-.page-hero-title svg {
-  opacity: 0.9;
-  flex-shrink: 0;
-}
-
-.page-hero-sub {
-  margin: 0;
-  font-size: 14px;
-  color: rgba(255,255,255,0.75);
-}
-
-.filter-bar {
-  background-color: #fff;
-  padding: 16px 20px;
-  border-radius: 8px;
-  margin: 0 32px 20px;
-  border: 1px solid #e4e7ed;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-}
-
 .search-form {
-  margin-bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
 }
 
-.data-table-wrapper {
-  margin: 0 32px 32px;
-  border: 1px solid #ebeef5;
-  border-radius: 8px;
+.action-group {
+  margin-left: auto;
+}
+
+.btn-primary {
+  border: none;
+  background: linear-gradient(135deg, #c2410c 0%, #9a3412 100%);
+}
+
+.table-panel {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 12px 24px rgba(15, 28, 42, 0.08);
   overflow: hidden;
-  background: #fff;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 
 :deep(.table-header) {
-  background-color: #f5f7fa !important;
-  color: #333;
-  font-weight: bold;
+  background: #f4f7f7 !important;
+  color: var(--ink);
+  font-weight: 700;
 }
 
 .table-link {
-  color: #333;
-  font-weight: 500;
-  transition: all 0.3s;
+  border: 0;
+  background: transparent;
+  color: #1f6fa8;
+  font-family: inherit;
+  font-size: 0.95rem;
   cursor: pointer;
-  text-decoration: none;
+  padding: 0;
+  text-align: left;
 }
 
 .table-link:hover {
-  color: #409EFF;
   text-decoration: underline;
 }
 
 .pagination-container {
-  padding: 20px;
+  padding: 18px;
   display: flex;
   justify-content: center;
 }
 
 .notice-detail {
-  padding: 10px;
+  padding: 6px;
 }
 
 .detail-meta {
-  color: #999;
-  font-size: 12px;
-  border-bottom: 1px solid #eee;
-  padding-bottom: 10px;
-  margin-bottom: 20px;
   display: flex;
-  gap: 20px;
+  gap: 18px;
+  flex-wrap: wrap;
+  color: #6f7f91;
+  font-size: 0.85rem;
+  border-bottom: 1px solid #e7ecee;
+  padding-bottom: 10px;
+  margin-bottom: 14px;
 }
 
 .detail-content {
   line-height: 1.8;
-  font-size: 16px;
+  font-size: 0.98rem;
   white-space: pre-wrap;
+  color: var(--ink);
+}
+
+@media (max-width: 900px) {
+  .hero-section {
+    padding-top: 90px;
+  }
+
+  .content-container {
+    padding: 0 14px;
+  }
+
+  .action-group {
+    margin-left: 0;
+  }
+
+  :deep(.el-form-item) {
+    margin-right: 8px;
+  }
 }
 </style>

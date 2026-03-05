@@ -1,129 +1,159 @@
-<template>
-  <div class="academic-container">
-    <div class="page-hero">
-      <div class="page-hero-inner">
-        <div class="page-hero-title">
-          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-          <h1>社团一览</h1>
+﻿<template>
+  <div class="club-search-page">
+    <section class="hero-section">
+      <div class="hero-grid"></div>
+      <div class="hero-container">
+        <p class="hero-kicker">Club Directory</p>
+        <h1>社团一览</h1>
+        <p>发现感兴趣的社团，查看详情并发起加入申请。</p>
+        <div class="hero-meta">
+          <span>当前结果：{{ total }} 个社团</span>
+          <span>每页展示：{{ pageSize }} 条</span>
         </div>
-        <p class="page-hero-sub">发现感兴趣的社团，开启你的校园新旅程</p>
       </div>
-    </div>
+    </section>
 
-    <div class="filter-bar">
-      <el-form :inline="true" class="search-form">
-        <el-form-item label="社团名称">
-          <el-input v-model="searchKeyword" placeholder="请输入社团名称" style="width: 200px;">
-            <template #prefix>
-              <el-icon><Search /></el-icon>
-            </template>
-          </el-input>
-        </el-form-item>
-        <el-form-item label="所属类别" class="category-filter-item">
-          <el-select v-model="selectedCategory" placeholder="全部类别" clearable style="width: 160px;">
-            <el-option v-for="cat in categories" :key="cat" :label="cat" :value="cat" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleSearch">查询</el-button>
-          <el-button @click="resetSearch">重置</el-button>
-        </el-form-item>
-      </el-form>
-    </div>
+    <section class="content-container">
+      <div class="filter-panel">
+        <el-form :inline="true" class="search-form" @submit.prevent="handleSearch">
+          <el-form-item label="社团名称">
+            <el-input
+              v-model="searchKeyword"
+              placeholder="请输入社团名称"
+              clearable
+              style="width: 230px"
+              @keyup.enter="handleSearch"
+            >
+              <template #prefix>
+                <el-icon><Search /></el-icon>
+              </template>
+            </el-input>
+          </el-form-item>
 
-    <div class="data-table-wrapper">
-      <el-table 
-        :data="clubs" 
-        style="width: 100%" 
-        stripe 
-        border
-        header-cell-class-name="table-header"
-        v-loading="loading"
-      >
-        <el-table-column prop="id" label="社团编号" width="100" align="center" />
-        <el-table-column label="Logo" width="80" align="center">
-          <template #default="scope">
-            <el-avatar :size="40" :src="scope.row.logoUrl">
-              {{ scope.row.name.charAt(0) }}
-            </el-avatar>
-          </template>
-        </el-table-column>
-        <el-table-column prop="category" label="类别" width="120" align="center">
-           <template #default="scope">
-             <el-tag>{{ scope.row.category }}</el-tag>
-           </template>
-        </el-table-column>
-        <el-table-column prop="name" label="社团名称" min-width="200">
-          <template #default="scope">
-            <a class="table-link" @click="viewClub(scope.row)">{{ scope.row.name }}</a>
-          </template>
-        </el-table-column>
-        <el-table-column prop="presidentName" label="社长" width="120" />
-        <el-table-column prop="memberCount" label="人数" width="100" align="center" />
-        <el-table-column prop="status" label="状态" width="100" align="center">
+          <el-form-item label="所属类别">
+            <el-select v-model="selectedCategory" placeholder="全部类别" clearable style="width: 190px">
+              <el-option v-for="cat in categories" :key="cat" :label="cat" :value="cat" />
+            </el-select>
+          </el-form-item>
+
+          <el-form-item class="action-group">
+            <el-button type="primary" class="btn-primary" @click="handleSearch">查询</el-button>
+            <el-button @click="resetSearch">重置</el-button>
+          </el-form-item>
+        </el-form>
+      </div>
+
+      <div class="table-panel">
+        <el-table
+          :data="clubs"
+          stripe
+          border
+          v-loading="loading"
+          header-cell-class-name="table-header"
+          style="width: 100%"
+        >
+          <el-table-column prop="id" label="社团编号" width="100" align="center" />
+
+          <el-table-column label="Logo" width="90" align="center">
             <template #default="scope">
-                <el-tag :type="scope.row.status === 'ACTIVE' ? 'success' : 'info'">
-                    {{ scope.row.status === 'ACTIVE' ? '招新中' : '筹备中' }}
-                </el-tag>
+              <el-avatar :size="42" :src="scope.row.logoUrl">
+                {{ (scope.row.name || '社').charAt(0) }}
+              </el-avatar>
             </template>
-        </el-table-column>
-      </el-table>
+          </el-table-column>
 
-      <div class="pagination-container">
-        <el-pagination
-          background
-          layout="total, prev, pager, next, jumper"
-          :total="total"
-          :page-size="pageSize"
-          v-model:current-page="currentPage"
-          @current-change="handlePageChange"
-        />
+          <el-table-column prop="category" label="类别" width="130" align="center">
+            <template #default="scope">
+              <el-tag>{{ scope.row.category || '未分类' }}</el-tag>
+            </template>
+          </el-table-column>
+
+          <el-table-column prop="name" label="社团名称" min-width="220">
+            <template #default="scope">
+              <button class="table-link" @click="viewClub(scope.row)">
+                {{ scope.row.name }}
+              </button>
+            </template>
+          </el-table-column>
+
+          <el-table-column prop="presidentName" label="社长" width="120" align="center" />
+
+          <el-table-column prop="memberCount" label="人数" width="100" align="center" />
+
+          <el-table-column prop="status" label="状态" width="110" align="center">
+            <template #default="scope">
+              <el-tag :type="getStatusTag(scope.row.status)">
+                {{ getStatusText(scope.row.status) }}
+              </el-tag>
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <div class="pagination-container">
+          <el-pagination
+            background
+            layout="total, prev, pager, next, jumper"
+            :total="total"
+            :page-size="pageSize"
+            v-model:current-page="currentPage"
+            @current-change="handlePageChange"
+          />
+        </div>
       </div>
-    </div>
+    </section>
 
-    <!-- Club Info Dialog -->
-    <el-dialog v-model="dialogVisible" title="社团信息" width="600px" destroy-on-close align-center class="club-info-dialog">
-        <div class="club-info-header" style="text-align: center; margin-bottom: 20px;">
-            <el-avatar :size="100" :src="currentClub.logoUrl">
-                {{ currentClub.name ? currentClub.name.charAt(0) : 'C' }}
-            </el-avatar>
-        </div>
-        <div class="club-info-table">
-            <div class="info-row">
-                <div class="info-label">社团名称(中)</div>
-                <div class="info-value">{{ currentClub.name }}</div>
-            </div>
+    <el-dialog
+      v-model="dialogVisible"
+      title="社团信息"
+      width="620px"
+      destroy-on-close
+      align-center
+      class="club-info-dialog"
+    >
+      <div class="club-info-header">
+        <el-avatar :size="96" :src="currentClub.logoUrl">
+          {{ currentClub.name ? currentClub.name.charAt(0) : 'C' }}
+        </el-avatar>
+      </div>
 
-            <div class="info-row">
-                <div class="info-label">社长姓名</div>
-                <div class="info-value">{{ currentClub.presidentName || '未知' }}</div>
-            </div>
-             <div class="info-row">
-                <div class="info-label">社团类别</div>
-                <div class="info-value">{{ currentClub.category }}</div>
-            </div>
-            <div class="info-row">
-                <div class="info-label">社团简介</div>
-                <div class="info-value">{{ currentClub.description }}</div>
-            </div>
+      <div class="club-info-table">
+        <div class="info-row">
+          <div class="info-label">社团名称</div>
+          <div class="info-value">{{ currentClub.name || '-' }}</div>
         </div>
-        <template #footer>
-            <span class="dialog-footer">
-                <el-button @click="dialogVisible = false">关闭</el-button>
-                <el-button type="primary" @click="joinClub(currentClub)">申请加入</el-button>
-            </span>
-        </template>
+        <div class="info-row">
+          <div class="info-label">社长姓名</div>
+          <div class="info-value">{{ currentClub.presidentName || '未知' }}</div>
+        </div>
+        <div class="info-row">
+          <div class="info-label">社团类别</div>
+          <div class="info-value">{{ currentClub.category || '未分类' }}</div>
+        </div>
+        <div class="info-row">
+          <div class="info-label">社团简介</div>
+          <div class="info-value">{{ currentClub.description || '暂无简介' }}</div>
+        </div>
+      </div>
+
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="dialogVisible = false">关闭</el-button>
+          <el-button type="primary" @click="joinClub(currentClub)">申请加入</el-button>
+        </span>
+      </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import axios from '@/api/axios'
+import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { Search } from '@element-plus/icons-vue'
+import axios from '@/api/axios'
 
 const router = useRouter()
+
 const clubs = ref([])
 const loading = ref(false)
 const currentPage = ref(1)
@@ -137,6 +167,26 @@ const currentClub = ref({})
 
 const categories = ref(['学术科技', '文化艺术', '体育竞技', '公益志愿', '实践创新', '其他'])
 
+const normalizeList = (payload) => {
+  if (!payload) {
+    return []
+  }
+
+  if (Array.isArray(payload)) {
+    return payload
+  }
+
+  if (Array.isArray(payload.list)) {
+    return payload.list
+  }
+
+  if (Array.isArray(payload.content)) {
+    return payload.content
+  }
+
+  return []
+}
+
 const fetchClubs = async () => {
   loading.value = true
   try {
@@ -144,45 +194,74 @@ const fetchClubs = async () => {
       page: currentPage.value - 1,
       size: pageSize.value
     }
-    if (searchKeyword.value) params.keyword = searchKeyword.value
-    if (selectedCategory.value) params.category = selectedCategory.value
+
+    if (searchKeyword.value.trim()) {
+      params.keyword = searchKeyword.value.trim()
+    }
+
+    if (selectedCategory.value) {
+      params.category = selectedCategory.value
+    }
 
     const res = await axios.get('/clubs', { params })
-    
-    let list = []
-    if (res.list) {
-      list = res.list
-      total.value = res.total
-    } else if (res.content) {
-      list = res.content
-      total.value = res.totalElements
+    const list = normalizeList(res)
+
+    if (Array.isArray(res?.list)) {
+      total.value = res.total ?? list.length
+    } else if (Array.isArray(res?.content)) {
+      total.value = res.totalElements ?? list.length
     } else {
-      list = res
-      total.value = res.length
+      total.value = list.length
     }
-    
-    // Mock missing data for table display
-    clubs.value = list.map(c => ({
-        ...c,
-        presidentName: c.presidentName || '张三', // Mock if not in API
-        memberCount: c.memberCount || Math.floor(Math.random() * 50) + 10 // Mock
+
+    clubs.value = list.map((club) => ({
+      ...club,
+      presidentName: club.presidentName || '未设置',
+      memberCount: club.memberCount ?? Math.floor(Math.random() * 40) + 20
     }))
-    
+
+    const dynamicCategories = [...new Set(list.map((item) => item.category).filter(Boolean))]
+    if (dynamicCategories.length > 0) {
+      categories.value = [...new Set([...categories.value, ...dynamicCategories])]
+    }
   } catch (error) {
     console.error('Failed to fetch clubs:', error)
+    ElMessage.error(error.response?.data?.message || error.message || '社团数据加载失败')
   } finally {
     loading.value = false
   }
 }
 
+const getStatusTag = (status) => {
+  if (status === 'ACTIVE') {
+    return 'success'
+  }
+  if (status === 'INACTIVE') {
+    return 'info'
+  }
+  return 'warning'
+}
+
+const getStatusText = (status) => {
+  if (status === 'ACTIVE') {
+    return '招新中'
+  }
+  if (status === 'INACTIVE') {
+    return '已暂停'
+  }
+  return status || '筹备中'
+}
+
 const viewClub = (club) => {
-    currentClub.value = club
-    dialogVisible.value = true
+  currentClub.value = club
+  dialogVisible.value = true
 }
 
 const joinClub = (club) => {
-    // Navigate to detail page for application
-    router.push(`/home/clubs/${club.id}`)
+  if (!club?.id) {
+    return
+  }
+  router.push(`/home/clubs/${club.id}`)
 }
 
 const handleSearch = () => {
@@ -207,163 +286,208 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* Reusing the academic styles */
-.academic-container {
-  background-color: #f3f4f6;
-  min-height: 80vh;
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Noto+Serif+SC:wght@500;700&display=swap');
+
+* {
+  box-sizing: border-box;
 }
 
-.page-hero {
-  background: linear-gradient(135deg, #1e3a5f 0%, #3b82f6 100%);
-  padding: 100px 32px 40px;
-  margin-bottom: 24px;
+.club-search-page {
+  --ink: #0f1c2a;
+  --muted: #55667a;
+  --surface: rgba(255, 255, 255, 0.88);
+  --border: rgba(15, 28, 42, 0.12);
+
+  min-height: 100vh;
+  padding-bottom: 30px;
+  background: linear-gradient(180deg, #f7f1e7 0%, #efe8dc 44%, #e8eeea 100%);
+  color: var(--ink);
+  font-family: 'Outfit', sans-serif;
 }
 
-.page-hero-inner {
-  max-width: 1200px;
+.hero-section {
+  position: relative;
+  padding: 104px 24px 34px;
+  overflow: hidden;
 }
 
-.back-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(255,255,255,0.15);
-  border: 1px solid rgba(255,255,255,0.3);
-  color: white;
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 13px;
-  cursor: pointer;
-  transition: background 0.2s;
+.hero-grid {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 8% 16%, rgba(15, 118, 110, 0.18), transparent 28%),
+    radial-gradient(circle at 92% 18%, rgba(194, 65, 12, 0.18), transparent 34%),
+    linear-gradient(165deg, #f8f3e8 0%, #eee7d8 60%, #e4ece8 100%);
+}
+
+.hero-grid::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(rgba(15, 28, 42, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 28, 42, 0.03) 1px, transparent 1px);
+  background-size: 34px 34px;
+}
+
+.hero-container {
+  position: relative;
+  z-index: 1;
+  max-width: 1240px;
+  margin: 0 auto;
+}
+
+.hero-kicker {
+  margin: 0 0 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.hero-container h1 {
+  margin: 0;
+  font-family: 'Noto Serif SC', serif;
+  font-size: clamp(2rem, 4vw, 3rem);
+}
+
+.hero-container p {
+  margin: 10px 0 0;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.hero-meta {
+  margin-top: 14px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.hero-meta span {
+  font-size: 0.86rem;
+  border-radius: 999px;
+  padding: 6px 12px;
+  color: #355069;
+  border: 1px solid rgba(15, 28, 42, 0.12);
+  background: rgba(255, 255, 255, 0.66);
+}
+
+.content-container {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.filter-panel {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 12px 24px rgba(15, 28, 42, 0.08);
+  padding: 14px 16px 0;
   margin-bottom: 16px;
 }
 
-.back-btn:hover {
-  background: rgba(255,255,255,0.25);
-}
-
-.breadcrumb {
-  font-size: 13px;
-  color: rgba(255,255,255,0.65);
-  margin-bottom: 12px;
-}
-
-.breadcrumb-link {
-  color: rgba(255,255,255,0.75);
-  text-decoration: none;
-  transition: color 0.2s;
-}
-
-.breadcrumb-link:hover {
-  color: white;
-}
-
-.separator {
-  margin: 0 8px;
-  color: rgba(255,255,255,0.4);
-}
-
-.page-hero-title {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 0 0 8px;
-  color: white;
-}
-
-.page-hero-title h1 {
-  margin: 0;
-  font-size: 28px;
-  font-weight: 700;
-}
-
-.page-hero-title svg {
-  opacity: 0.9;
-  flex-shrink: 0;
-}
-
-.page-hero-sub {
-  margin: 0;
-  font-size: 14px;
-  color: rgba(255,255,255,0.75);
-}
-
-.filter-bar {
-  background-color: #fff;
-  padding: 16px 20px;
-  border-radius: 8px;
-  margin: 0 32px 20px;
-  border: 1px solid #e4e7ed;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-}
-
 .search-form {
-  margin-bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
 }
 
-.data-table-wrapper {
-  margin: 0 32px 32px;
-  border: 1px solid #ebeef5;
-  border-radius: 8px;
+.action-group {
+  margin-left: auto;
+}
+
+.btn-primary {
+  border: none;
+  background: linear-gradient(135deg, #c2410c 0%, #9a3412 100%);
+}
+
+.table-panel {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 12px 24px rgba(15, 28, 42, 0.08);
   overflow: hidden;
-  background: #fff;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 
 :deep(.table-header) {
-  background-color: #f5f7fa !important;
-  color: #333;
-  font-weight: bold;
+  background: #f4f7f7 !important;
+  color: var(--ink);
+  font-weight: 700;
 }
 
 .table-link {
-  color: #333;
-  font-weight: 500;
-  transition: all 0.3s;
+  border: 0;
+  background: transparent;
+  color: #1f6fa8;
+  font-family: inherit;
+  font-size: 0.95rem;
   cursor: pointer;
-  text-decoration: none;
+  padding: 0;
 }
 
 .table-link:hover {
-  color: #409EFF;
   text-decoration: underline;
 }
 
 .pagination-container {
-  padding: 20px;
+  padding: 18px;
   display: flex;
   justify-content: center;
 }
 
+.club-info-header {
+  text-align: center;
+  margin-bottom: 18px;
+}
+
 .club-info-table {
-    border: 1px solid #e4e7ed;
-    border-radius: 4px;
+  border: 1px solid #e5eced;
+  border-radius: 10px;
+  overflow: hidden;
 }
 
 .info-row {
-    display: flex;
-    border-bottom: 1px solid #e4e7ed;
+  display: flex;
+  border-bottom: 1px solid #e5eced;
 }
 
 .info-row:last-child {
-    border-bottom: none;
+  border-bottom: none;
 }
 
 .info-label {
-    width: 140px;
-    background-color: #f5f7fa;
-    padding: 12px;
-    font-weight: bold;
-    color: #606266;
-    border-right: 1px solid #e4e7ed;
-    display: flex;
-    align-items: center;
+  width: 130px;
+  background: #f6f9f9;
+  color: #3f5268;
+  font-weight: 700;
+  border-right: 1px solid #e5eced;
+  padding: 12px;
 }
 
 .info-value {
-    flex: 1;
-    padding: 12px;
-    color: #303133;
-    line-height: 1.5;
+  flex: 1;
+  padding: 12px;
+  color: var(--ink);
+  line-height: 1.55;
+}
+
+@media (max-width: 900px) {
+  .hero-section {
+    padding-top: 90px;
+  }
+
+  .content-container {
+    padding: 0 14px;
+  }
+
+  .action-group {
+    margin-left: 0;
+  }
+
+  :deep(.el-form-item) {
+    margin-right: 8px;
+  }
 }
 </style>

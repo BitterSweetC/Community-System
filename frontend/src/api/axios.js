@@ -29,7 +29,9 @@ instance.interceptors.response.use(
       return res.data
     } else {
       console.error(res.message)
-      return Promise.reject(new Error(res.message || 'Error'))
+      const err = new Error(res.message || 'Error')
+      err.bizCode = res.code
+      return Promise.reject(err)
     }
   },
   (error) => {

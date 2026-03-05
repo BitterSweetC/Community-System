@@ -1,9 +1,13 @@
 package com.cloud.community.core.repository;
 
 import com.cloud.community.core.entity.Activity;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
@@ -14,8 +18,28 @@ public interface ActivityRepository extends JpaRepository<Activity, Long> {
     @Query("SELECT a FROM Activity a JOIN FETCH a.club WHERE a.id = :id")
     Optional<Activity> findByIdWithClub(@Param("id") Long id);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT a FROM Activity a WHERE a.id = :id")
+    Optional<Activity> findByIdForUpdate(@Param("id") Long id);
+
     List<Activity> findByClubId(Long clubId);
     org.springframework.data.domain.Page<Activity> findByClubId(Long clubId, org.springframework.data.domain.Pageable pageable);
+
+    @Query("""
+            SELECT a FROM Activity a
+            JOIN a.club c
+            WHERE (:clubId IS NULL OR c.id = :clubId)
+              AND (:keyword IS NULL OR LOWER(a.title) LIKE LOWER(CONCAT('%', :keyword, '%')))
+              AND (:clubName IS NULL OR LOWER(c.name) LIKE LOWER(CONCAT('%', :clubName, '%')))
+              AND (:startTimeFrom IS NULL OR a.startTime >= :startTimeFrom)
+              AND (:startTimeTo IS NULL OR a.startTime <= :startTimeTo)
+            """)
+    Page<Activity> searchActivities(@Param("clubId") Long clubId,
+                                    @Param("keyword") String keyword,
+                                    @Param("clubName") String clubName,
+                                    @Param("startTimeFrom") LocalDateTime startTimeFrom,
+                                    @Param("startTimeTo") LocalDateTime startTimeTo,
+                                    Pageable pageable);
 
     boolean existsByClubIdAndStatusIn(Long clubId, java.util.Collection<String> statuses);
 

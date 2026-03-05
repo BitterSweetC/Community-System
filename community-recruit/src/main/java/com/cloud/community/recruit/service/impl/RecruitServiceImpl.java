@@ -6,12 +6,14 @@ import com.cloud.community.user.service.PermissionService;
 import com.cloud.community.core.entity.RecruitApplication;
 import com.cloud.community.core.entity.RecruitBatch;
 import com.cloud.community.core.entity.RecruitFormField;
+import com.cloud.community.core.exception.BusinessException;
 import com.cloud.community.core.repository.RecruitApplicationRepository;
 import com.cloud.community.core.repository.RecruitBatchRepository;
 import com.cloud.community.core.repository.RecruitFormFieldRepository;
 import com.cloud.community.core.repository.MemberRepository;
 import com.cloud.community.core.repository.UserRepository;
 import com.cloud.community.recruit.service.RecruitService;
+import com.cloud.community.club.service.ClubService;
 import com.cloud.community.core.model.dto.NotificationMessageDTO;
 import com.cloud.community.core.constant.RabbitConstants;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +34,7 @@ public class RecruitServiceImpl implements RecruitService {
     private final UserRepository userRepository;
     private final PermissionService permissionService;
     private final RabbitTemplate rabbitTemplate;
+    private final ClubService clubService;
 
     @Override
     @Transactional
@@ -43,7 +46,7 @@ public class RecruitServiceImpl implements RecruitService {
 
     @Override
     public List<RecruitBatch> getBatchesByClub(Long clubId) {
-        return batchRepository.findByClubId(clubId);
+        return batchRepository.findByClubIdOrderByStartTimeDesc(clubId);
     }
 
     @Override
@@ -97,12 +100,12 @@ public class RecruitServiceImpl implements RecruitService {
         if (applicationRepository.findByBatchIdAndUserId(
                 batch.getId(), 
                 application.getUser().getId()).isPresent()) {
-            throw new RuntimeException("Already applied to this batch");
+            throw new BusinessException(40911, "您已提交过该招新批次申请，请勿重复提交");
         }
 
         // 4. Check if already a member of the club
         if (memberRepository.findByClubIdAndUserId(batch.getClub().getId(), application.getUser().getId()).isPresent()) {
-            throw new RuntimeException("You are already a member of this club");
+            throw new BusinessException(40916, "您已经是该社团成员，无需重复申请");
         }
         
         // 5. Set full batch object to application
@@ -127,11 +130,15 @@ public class RecruitServiceImpl implements RecruitService {
     @Override
     @Transactional
     public void reviewApplicationFirst(Long applicationId, boolean pass, String comment, Long operatorId) {
-        RecruitApplication app = applicationRepository.findById(applicationId)
+        RecruitApplication app = applicationRepository.findByIdForUpdate(applicationId)
                 .orElseThrow(() -> new RuntimeException("Application not found"));
         
         permissionService.checkClubAdmin(operatorId, app.getBatch().getClub().getId());
         permissionService.checkClubActive(app.getBatch().getClub().getId());
+
+        if (!"PENDING".equals(app.getFirstReviewStatus())) {
+            throw new BusinessException(40912, "该申请的一审已处理，请勿重复操作");
+        }
         
         app.setFirstReviewStatus(pass ? "PASSED" : "REJECTED");
         app.setFirstReviewComment(comment);
@@ -156,11 +163,18 @@ public class RecruitServiceImpl implements RecruitService {
     @Override
     @Transactional
     public void reviewApplicationFinal(Long applicationId, boolean pass, String comment, Long operatorId) {
-        RecruitApplication app = applicationRepository.findById(applicationId)
+        RecruitApplication app = applicationRepository.findByIdForUpdate(applicationId)
                 .orElseThrow(() -> new RuntimeException("Application not found"));
         
         permissionService.checkClubAdmin(operatorId, app.getBatch().getClub().getId());
         permissionService.checkClubActive(app.getBatch().getClub().getId());
+
+        if (!"PASSED".equals(app.getFirstReviewStatus())) {
+            throw new BusinessException(40913, "该申请一审未通过，无法进行终审");
+        }
+        if (!"PENDING".equals(app.getFinalReviewStatus())) {
+            throw new BusinessException(40914, "该申请终审已处理，请勿重复操作");
+        }
 
         if (pass) {
              // Lock Batch to check quota safely
@@ -170,7 +184,7 @@ public class RecruitServiceImpl implements RecruitService {
              if (batch.getQuota() != null && batch.getQuota() > 0) {
                  long approvedCount = applicationRepository.countByBatchIdAndFinalReviewStatus(batch.getId(), "PASSED");
                  if (approvedCount >= batch.getQuota()) {
-                     throw new RuntimeException("Recruitment quota exceeded");
+                     throw new BusinessException(40915, "招新名额已满，无法继续通过");
                  }
              }
         }
@@ -179,17 +193,15 @@ public class RecruitServiceImpl implements RecruitService {
         app.setFinalReviewComment(comment);
         
         if (pass) {
-            // Directly add member via repository to bypass duplicate-check in ClubService.addMember
+            // 使用 ClubService 的标准方法添加成员
             boolean alreadyMember = memberRepository.findByClubIdAndUserId(
                     app.getBatch().getClub().getId(), app.getUser().getId()).isPresent();
             if (!alreadyMember) {
-                Member member = new Member();
-                member.setClub(app.getBatch().getClub());
-                member.setUser(app.getUser());
-                member.setRoleCode("MEMBER");
-                member.setStatus("ACTIVE");
-                member.setJoinAt(java.time.LocalDateTime.now());
-                memberRepository.save(member);
+                clubService.addMember(
+                    app.getBatch().getClub().getId(),
+                    app.getUser().getId(),
+                    "MEMBER"
+                );
             }
         }
         
