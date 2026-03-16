@@ -1,148 +1,219 @@
 # 校园社团管理与招新系统
 
-## 项目简介
+一个基于 `Spring Boot 3`、`Vue 3`、`FastAPI` 的校园社团管理与招新系统。
 
-这是一个基于 Spring Boot 3.x 开发的校园社团管理与招新系统后端服务，提供完整的社团管理、招新、活动管理、公告通知等功能。
+当前仓库的实际形态是：
+- Java 后端采用 **Maven 多模块单体** 架构
+- 前端采用 **Vue 3 + JavaScript + Vite**
+- AI 能力由独立的 **FastAPI RAG / 推荐服务** 提供
+- 基础设施依赖 **MySQL / Redis / RabbitMQ / Prometheus / Grafana**
+
+## 项目能力
+
+当前已落地的主要功能：
+
+- 用户注册、登录、刷新、登出、忘记密码
+- 社团创建、查询、推荐、成员管理、解散流程
+- 招新批次、表单字段、报名、初审/终审、导出
+- 活动创建、报名、签到、签到导出
+- 公告发布、站内通知、未读统计
+- 资源申请与审批
+- 财务流水与审批
+- 审计日志与统计接口
+- AI 问答与社团推荐
 
 ## 技术栈
 
-- **后端框架**: Spring Boot 3.2.0
-- **安全框架**: Spring Security + JWT
-- **数据持久化**: Spring Data JPA
-- **数据库**: MySQL 8.0
-- **缓存**: Redis
-- **构建工具**: Maven
+### 后端
+- `Spring Boot 3.2.x`
+- `Spring Security + JWT`
+- `Spring Data JPA`
+- `MySQL 8.0`
+- `Redis`
+- `RabbitMQ`
+- `Micrometer + Prometheus`
 
-## 环境要求
+### 前端
+- `Vue 3`
+- `Vite`
+- `Pinia`
+- `Vue Router`
+- `Element Plus`
+- `ECharts`
 
-- JDK 17+
-- Maven 3.6+
-- MySQL 8.0+
-- Redis 6.0+ (可选，用于缓存和分布式锁)
+### AI / 智能体
+- `FastAPI`
+- `Chroma`
+- `DeepSeek API`
 
-## 快速开始
+### 文件与通知
+- 阿里云 `OSS`
+- `SMTP` 邮件
 
-### 1. 数据库准备
+## 仓库结构
 
-创建数据库：
-
-```sql
-CREATE DATABASE community_db CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+```text
+.
+├─ community-core        # 公共实体、仓储、统一返回体、审计、OSS、邮件等
+├─ community-gateway     # Spring Boot 启动入口、认证、安全、Dashboard、WebSocket
+├─ community-user        # 用户资料、密码修改、文件上传
+├─ community-club        # 社团、成员、推荐、资源、财务、统计、聊天入口
+├─ community-recruit     # 招新批次、表单字段、报名、审核、导出
+├─ community-activity    # 活动、报名、签到、导出
+├─ community-notice      # 公告、通知、RabbitMQ 消费
+├─ community-admin       # 系统管理、审计日志
+├─ frontend              # Vue 3 前端
+├─ agent                 # FastAPI RAG / 推荐服务
+├─ monitoring            # Prometheus 配置
+└─ docs                  # 项目文档
 ```
 
-### 2. 配置文件
+## 运行方式
 
-修改 `src/main/resources/application.properties` 中的数据库连接信息：
+### 方式一：Docker Compose
 
-```properties
-spring.datasource.url=jdbc:mysql://localhost:3306/community_db?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-spring.datasource.username=root
-spring.datasource.password=your_password
-```
+项目根目录已提供 `docker-compose.yml`，可启动：
 
-### 3. 运行项目
+- `mysql`
+- `app`
+- `frontend`
+- `redis`
+- `rabbitmq`
+- `rag-service`
+- `prometheus`
+- `grafana`
+
+启动命令：
 
 ```bash
-# 使用 Maven 运行
-mvn spring-boot:run
-
-# 或者先编译再运行
-mvn clean package
-java -jar target/Community-0.0.1-SNAPSHOT.jar
+docker compose up -d --build
 ```
 
-项目启动后，访问 `http://localhost:8080`
+默认访问地址：
 
-### 4. 初始化数据（可选）
+- 后端：`http://localhost:8080`
+- 前端：`http://localhost:5173`
+- RabbitMQ 管理台：`http://localhost:15672`
+- Prometheus：`http://localhost:9090`
+- Grafana：`http://localhost:3000`
 
-系统使用 JPA 自动建表（`spring.jpa.hibernate.ddl-auto=update`），首次运行会自动创建表结构。
+### 方式二：本地分别启动
 
-建议手动创建初始角色数据：
+#### 1. 准备基础依赖
+- JDK `17+`
+- Maven `3.6+`
+- MySQL `8.0+`
+- Redis
+- RabbitMQ
+- Node.js `20+`
+- Python `3.10+`（用于 `agent`）
 
-```sql
-INSERT INTO t_role (code, name, description, created_at, updated_at) VALUES
-('VISITOR', '游客', '未登录用户', NOW(), NOW()),
-('STUDENT', '学生', '普通学生用户', NOW(), NOW()),
-('CLUB_ADMIN', '社团管理员', '社团内部管理人员', NOW(), NOW()),
-('ADMIN', '系统管理员', '系统管理员', NOW(), NOW());
+#### 2. 启动后端
+
+```bash
+./mvnw.cmd -pl community-gateway -am spring-boot:run
 ```
 
-## API 文档
+或先编译：
 
-### 认证接口
-
-- `POST /api/auth/login` - 用户登录
-
-### 用户接口
-
-- `GET /api/users/me` - 获取当前用户信息
-- `PUT /api/users/me` - 更新用户信息
-
-### 社团接口
-
-- `GET /api/clubs` - 搜索社团列表
-- `GET /api/clubs/{id}` - 获取社团详情
-- `POST /api/clubs` - 创建社团（需认证）
-- `PUT /api/clubs/{id}` - 更新社团信息
-- `POST /api/clubs/{id}/approve` - 审核社团（管理员）
-- `POST /api/clubs/{id}/freeze` - 冻结社团（管理员）
-
-### 招新接口
-
-- `POST /api/recruit/batches` - 创建招新批次
-- `POST /api/recruit/batches/{batchId}/fields` - 定义表单字段
-- `POST /api/recruit/applications` - 提交报名申请
-- `POST /api/recruit/applications/{id}/first-review` - 初审
-- `POST /api/recruit/applications/{id}/final-review` - 复审
-- `GET /api/recruit/batches/{batchId}/applications` - 查询报名列表
-
-### 活动接口
-
-- `POST /api/activities` - 创建活动
-- `GET /api/activities/{id}` - 获取活动详情
-- `POST /api/activities/{id}/signup` - 报名活动
-- `DELETE /api/activities/{id}/signup` - 取消报名
-- `POST /api/activities/{id}/attendance` - 活动签到
-- `POST /api/activities/{id}/archive` - 活动归档
-
-### 公告接口
-
-- `POST /api/notices` - 发布公告
-- `GET /api/notices` - 查询公告列表
-- `GET /api/notices/{id}` - 获取公告详情
-- `POST /api/notices/{id}/read` - 标记已读
-
-## 项目结构
-
+```bash
+./mvnw.cmd -pl community-gateway -am clean package
 ```
-src/main/java/com/cloud/community/
-├── common/          # 通用类（BaseEntity, ApiResponse等）
-├── config/          # 配置类（Security, JPA等）
-├── controller/      # REST控制器
-├── dto/             # 数据传输对象
-├── entity/          # 实体类
-├── exception/       # 异常处理
-├── repository/      # 数据访问层
-├── security/        # 安全相关
-├── service/         # 业务逻辑层
-└── util/            # 工具类
+
+#### 3. 启动前端
+
+```bash
+cd frontend
+npm install
+npm run dev
 ```
+
+#### 4. 启动 AI 服务
+
+```bash
+cd agent
+pip install -r requirements.txt
+python main.py
+```
+
+## 配置说明
+
+后端主配置位于：
+
+- `community-gateway/src/main/resources/application.properties`
+
+重点配置项包括：
+
+- 数据库：`DB_HOST`、`DB_NAME`、`DB_USERNAME`、`DB_PASSWORD`
+- Redis：`REDIS_HOST`、`REDIS_PASSWORD`
+- RabbitMQ：`RABBITMQ_HOST`、`RABBITMQ_USERNAME`、`RABBITMQ_PASSWORD`
+- JWT：`JWT_SECRET`
+- AI 服务：`RAG_SERVICE_URL`
+- OSS：`OSS_ENDPOINT`、`OSS_BUCKET_NAME`
+- 邮件：`MAIL_HOST`、`MAIL_USERNAME`、`MAIL_PASSWORD`
+
+推荐通过环境变量注入，不建议把生产密钥直接写入配置文件。
+
+## 认证说明
+
+当前系统实际认证方式为：
+
+- 后端签发 `JWT`
+- 浏览器通过 `HttpOnly Cookie` 持有 access token / refresh token
+- 前端通过 `withCredentials` 自动携带 Cookie
+- 后端也兼容 `Authorization: Bearer <token>`，主要用于测试或非浏览器客户端
+
+因此，浏览器主流程并不是“前端手动保存 Bearer Token”。
+
+## API 概览
+
+以下是当前仓库中已存在的主要接口分组：
+
+- `/api/auth`：注册、登录、刷新、登出、忘记密码、重置密码
+- `/api/users`：当前用户资料、改密、我的活动
+- `/api/files`：文件上传
+- `/api/clubs`：社团、成员、推荐、解散流程
+- `/api/recruit`：招新批次、字段、报名、审核、导出
+- `/api/activities`：活动、报名、签到、导出
+- `/api/notices`：公告
+- `/api/notifications`：站内通知
+- `/api/resources`：资源定义与资源申请
+- `/api/finance`：财务流水与审批
+- `/api/admin`：系统管理
+- `/api/admin/audit-logs`：审计日志
+- `/api/dashboard`：仪表盘统计
+- `/api/stats`：系统统计与社团统计
+- `/api/club/chat`：AI 问答
+
+更完整的接口说明请查看：
+
+- `docs/校园社团管理与招新系统API接口文档.md:1`
+
+## 文档索引
+
+- 设计说明：`docs/校园社团管理与招新系统设计说明书.md:1`
+- 数据库说明：`docs/校园社团管理与招新系统数据库设计说明书.md:1`
+- API 文档：`docs/校园社团管理与招新系统API接口文档.md:1`
+- 需求规格：`docs/校园社团管理与招新系统需求规格说明书.md:1`
+- 项目计划：`docs/校园社团管理与招新系统项目计划.md:1`
+
+## 测试现状
+
+当前仓库中已存在的测试主要包括：
+
+- `community-gateway` 认证相关测试
+- `community-user` 用户服务测试
+- `community-club` 社团服务测试
+
+整体测试覆盖仍有提升空间，建议后续补充更多控制器级、服务级和集成测试。
 
 ## 注意事项
 
-1. **JWT Secret**: 生产环境请修改 `application.properties` 中的 `jwt.secret` 为强密钥
-2. **数据库**: 确保 MySQL 服务已启动
-3. **Redis**: Redis 为可选，如未安装可注释相关配置
-4. **时区**: 系统默认使用 Asia/Shanghai 时区
+- 当前项目是 **模块化单体**，不是多个独立部署的 Java 微服务。
+- 数据库初始化脚本目前不完整，部署前应确认库表准备方式。
+- 生产环境请务必清理明文敏感配置并改用环境变量或密钥管理方案。
+- 若启用 AI 推荐与问答，需要保证 `agent` 服务和相关依赖正常运行。
 
-## 开发说明
+## License
 
-- 使用 JPA 自动建表，首次运行会自动创建表结构
-- 所有 API 返回统一格式：`{code, message, data}`
-- 认证使用 JWT Bearer Token，在请求头中添加：`Authorization: Bearer <token>`
-- 分页参数：`page`（从1开始），`size`（每页数量）
-
-## 许可证
-
-本项目仅供学习和参考使用。
-
+本项目当前主要用于学习、课程设计与项目演示，请根据实际需要自行补充许可证与部署规范。

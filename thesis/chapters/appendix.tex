@@ -1,79 +1,238 @@
 % ============================================================
 %  附录
 % ============================================================
-\chapter{数据库完整表结构}
+\chapter{数据库关键表结构（节选）}
 
-以下为系统主要数据表的DDL定义（节选）：
+以下 DDL 与项目 \texttt{community-gateway/src/main/resources/schema.sql} 保持一致（节选）：
 
-\begin{lstlisting}[language=SQL, caption=用户与社团核心表DDL]
-CREATE TABLE t_user (
-    id            BIGINT AUTO_INCREMENT PRIMARY KEY,
-    username      VARCHAR(50)  NOT NULL UNIQUE,
-    email         VARCHAR(100) NOT NULL UNIQUE,
-    password_hash VARCHAR(255) NOT NULL,
-    avatar_url    VARCHAR(500),
-    status        TINYINT      NOT NULL DEFAULT 1,
-    created_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
+\begin{lstlisting}[language=SQL, caption=用户、角色、社团与成员表]
+CREATE TABLE `t_user` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `username` varchar(50) NOT NULL,
+  `password_hash` varchar(255) NOT NULL,
+  `real_name` varchar(50) DEFAULT NULL,
+  `email` varchar(100) DEFAULT NULL,
+  `mobile` varchar(20) DEFAULT NULL,
+  `status` varchar(20) NOT NULL DEFAULT 'ACTIVE',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_username` (`username`)
 );
 
-CREATE TABLE t_club (
-    id          BIGINT AUTO_INCREMENT PRIMARY KEY,
-    name        VARCHAR(100) NOT NULL UNIQUE,
-    category    VARCHAR(50)  NOT NULL,
-    description TEXT,
-    logo_url    VARCHAR(500),
-    status      VARCHAR(20)  NOT NULL DEFAULT 'PENDING',
-    creator_id  BIGINT       NOT NULL,
-    created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_club_creator FOREIGN KEY (creator_id) REFERENCES t_user(id)
+CREATE TABLE `t_role` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `code` varchar(32) NOT NULL,
+  `name` varchar(64) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_role_code` (`code`)
 );
 
-CREATE TABLE t_club_member (
-    id         BIGINT AUTO_INCREMENT PRIMARY KEY,
-    club_id    BIGINT      NOT NULL,
-    user_id    BIGINT      NOT NULL,
-    role       VARCHAR(20) NOT NULL DEFAULT 'MEMBER',
-    joined_at  DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY uk_club_user (club_id, user_id),
-    FOREIGN KEY (club_id) REFERENCES t_club(id),
-    FOREIGN KEY (user_id) REFERENCES t_user(id)
+CREATE TABLE `t_club` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL,
+  `category` varchar(50) NOT NULL,
+  `status` varchar(20) NOT NULL DEFAULT 'PENDING',
+  `created_by` bigint NOT NULL,
+  `balance` decimal(10,2) DEFAULT '0.00',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_club_name` (`name`)
+);
+
+CREATE TABLE `t_member` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `club_id` bigint NOT NULL,
+  `user_id` bigint NOT NULL,
+  `role_code` varchar(32) NOT NULL DEFAULT 'MEMBER',
+  `status` varchar(20) NOT NULL DEFAULT 'ACTIVE',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_club_user` (`club_id`,`user_id`)
 );
 \end{lstlisting}
 
-\chapter{核心 API 接口文档}
+\begin{lstlisting}[language=SQL, caption=活动、招新、通知相关表]
+CREATE TABLE `t_activity` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `club_id` bigint NOT NULL,
+  `title` varchar(200) NOT NULL,
+  `start_time` datetime(6) NOT NULL,
+  `end_time` datetime(6) NOT NULL,
+  `checkin_code` varchar(20) DEFAULT NULL,
+  `status` varchar(20) NOT NULL DEFAULT 'DRAFT',
+  PRIMARY KEY (`id`)
+);
+
+CREATE TABLE `t_recruit_batch` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `club_id` bigint NOT NULL,
+  `title` varchar(100) NOT NULL,
+  `start_time` datetime(6) NOT NULL,
+  `end_time` datetime(6) NOT NULL,
+  `quota` int DEFAULT NULL,
+  `status` varchar(20) NOT NULL DEFAULT 'DRAFT',
+  PRIMARY KEY (`id`)
+);
+
+CREATE TABLE `t_recruit_application` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `batch_id` bigint NOT NULL,
+  `user_id` bigint NOT NULL,
+  `apply_data` json NOT NULL,
+  `first_review_status` varchar(20) DEFAULT 'PENDING',
+  `final_review_status` varchar(20) DEFAULT 'PENDING',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_batch_user` (`batch_id`,`user_id`)
+);
+
+CREATE TABLE `t_notification` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `user_id` bigint NOT NULL,
+  `title` varchar(200) NOT NULL,
+  `content` text NOT NULL,
+  `type` varchar(20) NOT NULL,
+  `is_read` bit(1) NOT NULL DEFAULT b'0',
+  PRIMARY KEY (`id`)
+);
+\end{lstlisting}
+
+\chapter{核心接口清单（节选）}
 
 \begin{table}[H]
 \centering
-\caption{完整接口列表（节选）}
-\begin{tabular}{lllp{4cm}}
+\caption{认证与用户接口}
+\begin{tabular}{llll}
 \toprule
-方法 & 路径 & 权限 & 说明 \\
+方法 & 路径 & 说明 & 访问控制 \\
 \midrule
-POST & /api/auth/register         & 公开         & 用户注册 \\
-POST & /api/auth/login            & 公开         & 用户登录 \\
-POST & /api/auth/refresh          & 公开         & 刷新Token \\
-GET  & /api/clubs                 & 公开         & 社团列表（分页） \\
-POST & /api/clubs                 & 已认证       & 申请创建社团 \\
-PUT  & /api/clubs/\{id\}          & 社团管理员   & 更新社团信息 \\
-POST & /api/activities            & 社团管理员   & 发布活动 \\
-POST & /api/activities/checkin    & 已认证       & 活动签到 \\
-GET  & /api/recruit/batches       & 公开         & 招募批次列表 \\
-POST & /api/recruit/applications  & 已认证       & 提交招募申请 \\
-GET  & /api/notices               & 已认证       & 通知列表 \\
-POST & /api/admin/clubs/\{id\}/approve & 系统管理员 & 审批社团 \\
-GET  & /api/agent/recommend       & 已认证       & AI社团推荐 \\
-POST & /api/agent/chat            & 已认证       & AI问答 \\
+POST & /api/auth/register & 用户注册 & 公开 \\
+POST & /api/auth/login & 用户登录 & 公开 \\
+POST & /api/auth/refresh & 刷新会话 & 公开（需 refresh\_token Cookie） \\
+POST & /api/auth/logout & 登出 & 公开（携带会话 Cookie 时清理服务端会话） \\
+GET & /api/users/me & 获取当前用户资料 & 已登录 \\
+PUT & /api/users/me & 修改当前用户资料 & 已登录 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\chapter{系统部署说明}
+\begin{table}[H]
+\centering
+\caption{社团、活动、招新接口}
+\begin{tabular}{llll}
+\toprule
+方法 & 路径 & 说明 & 访问控制 \\
+\midrule
+GET & /api/clubs & 社团分页查询 & 公开 \\
+POST & /api/clubs & 创建社团申请 & 已登录 \\
+POST & /api/activities & 创建活动 & CLUB\_ADMIN/ADMIN \\
+POST & /api/activities/\{id\}/signup & 活动报名 & 已登录 \\
+POST & /api/activities/\{id\}/signin & 活动签到 & 已登录 \\
+POST & /api/recruit/batches & 创建招新批次 & CLUB\_ADMIN/ADMIN \\
+POST & /api/recruit/applications & 提交招新申请 & 已登录 \\
+POST & /api/recruit/applications/\{id\}/final-review & 终审 & CLUB\_ADMIN/ADMIN \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{公告与通知、资源、财务、审计与 AI 接口}
+\begin{tabular}{llll}
+\toprule
+方法 & 路径 & 说明 & 访问控制 \\
+\midrule
+GET & /api/notifications & 我的通知列表 & 已登录 \\
+POST & /api/notices & 发布公告 & CLUB\_ADMIN/ADMIN \\
+POST & /api/resources/applications & 资源申请 & CLUB\_ADMIN/ADMIN \\
+POST & /api/resources/applications/\{id\}/approve & 资源审批 & ADMIN \\
+POST & /api/finance/transactions & 提交财务申请 & CLUB\_ADMIN/ADMIN \\
+POST & /api/finance/transactions/\{id\}/approve & 财务审批 & ADMIN \\
+GET & /api/admin/audit-logs & 审计日志查询 & ADMIN \\
+POST & /api/club/chat & AI 问答入口 & 公开（带频控） \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\chapter{部署与运行说明}
 
 \begin{enumerate}
-  \item 克隆代码仓库，配置\texttt{application.properties}中的数据库、Redis、RabbitMQ连接信息；
-  \item 执行\texttt{community-gateway/src/main/resources/schema.sql}初始化数据库表结构；
-  \item 启动基础设施服务：\texttt{docker-compose up -d redis rabbitmq}；
-  \item 编译并启动后端：\texttt{mvn clean package \&\& java -jar community-gateway/target/*.jar}；
-  \item 安装前端依赖并启动：\texttt{cd frontend \&\& npm install \&\& npm run dev}；
-  \item 启动AI服务：\texttt{cd agent \&\& uvicorn main:app --host 0.0.0.0 --port 8000}。
+  \item 准备环境变量（数据库、Redis、RabbitMQ、JWT、邮件与 OSS 配置）；
+  \item 使用 Docker Compose 启动基础服务：\texttt{mysql}、\texttt{redis}、\texttt{rabbitmq}、\texttt{rag-service}；
+  \item 启动后端应用容器 \texttt{community-app}；
+  \item 启动前端容器 \texttt{community-frontend}，由 Nginx 反向代理 \texttt{/api} 到后端；
+  \item 使用 Prometheus 与 Grafana 观察运行指标并进行运维监控。
+\end{enumerate}
+
+\chapter{测试工件留档说明}
+
+JMeter 补测的原始汇总文件、\texttt{JTL}、日志、HTML 报告与复现脚本已作为工程补充材料留档。正文仅引用整理后的关键指标，不直接展示本地绝对路径；如需复现实验，可优先查阅项目根目录下的 \texttt{paper\_outputs/jmeter/run-20260313-122447/} 以及 \texttt{scripts/jmeter/run-paper-benchmarks.ps1}。其中，\texttt{summary.md}、\texttt{summary.json} 与 \texttt{benchmark-context.json} 用于说明脚本配置、环境上下文与关键统计结果。
+
+\chapter{AI 评估工件与复现入口说明}
+
+为降低正文对工程路径与留档细节的干扰，本文将 AI 评估相关的代码入口、链路工件与说明性清单统一挂载于项目目录。表~\ref{tab:ai-artifacts} 给出当前主要留档位置。
+
+\begin{table}[H]
+\centering
+\caption{AI 评估工件与复现入口}
+\label{tab:ai-artifacts}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{p{3.1cm}p{4.8cm}p{6.2cm}}
+\toprule
+类别 & 路径（相对项目根目录） & 说明 \\
+\midrule
+主链路压测结果 & \texttt{paper\_outputs/jmeter/}\newline \texttt{run-20260313-122447/} & 包含 AI 问答所在整套 JMeter 补测的 \texttt{summary.md}、\texttt{summary.json}、\texttt{benchmark-context.json}、\texttt{ai-chat.jtl} 与 HTML 报告，用于复现正文中的性能基线。 \\
+\midrule
+低强度在线链路结果 & \texttt{paper\_outputs/jmeter/}\newline \texttt{ai-low-20260313-103422/}\newline \texttt{result.json} & 记录 5 并发、10 次请求条件下的 AI 问答链路结果，用于支撑“低强度下仍存在时延与超时”的观察。 \\
+\midrule
+推荐模式对比留档 & \texttt{paper\_outputs/ai\_eval\_raw/}\newline \texttt{recommend-compare-20260313-201643/} & 包含 \texttt{compare\_summary.csv/json} 以及 cf、cb、hybrid 子目录下的 \texttt{summary\_records}、\texttt{ranking\_records} 与 \texttt{ranking\_records\_top5}，用于复现正文中的同批 300 用户推荐模式对比；其中 hybrid 原始 \texttt{ranking\_records} 为 1530 行，同口径比较以 \texttt{ranking\_records\_top5} 为准。 \\
+\midrule
+探索性基准材料 & \texttt{paper\_outputs/benchmarks/}\newline \texttt{paper-benchmark-20260313-091504.json/.md} & 早期 Node.js 基准实验输出，可作为补充背景，不作为正文主表的直接统计来源。 \\
+\midrule
+问答服务代码入口 & \texttt{agent/rag.py} & 包含 RAG 问答链路、检索器调用与会话上下文处理逻辑，是 AI 问答实现的主要入口。 \\
+\midrule
+推荐服务代码入口 & \texttt{agent/recommendation.py} & 包含混合推荐、冷启动回退与排序融合逻辑，是推荐模块实现的主要入口。 \\
+\midrule
+知识数据目录 & \texttt{agent/data/} & 存放知识库构建所需的社团、活动等源数据。 \\
+\midrule
+向量库持久目录 & \texttt{agent/chroma\_db/} & 存放 Chroma 向量索引与持久化结果，用于本地问答链路复现。 \\
+\midrule
+工件清单文件 & \texttt{paper\_outputs/}\newline \texttt{ai\_artifact\_manifest.md} & 汇总各类 AI 评估工件的用途、边界与归档建议，便于答辩或后续归档时单独查阅。 \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+上述工件现已同时覆盖“可复现的在线链路与性能结果”“推荐模式对比原始记录”以及“AI 模块代码与数据入口”三类内容。需要说明的是，正文中的 200 题人工核验结果目前仍仅保留聚合统计，仓库内尚未包含逐题判定表与题集原文；但推荐策略对比已经补充留档 \texttt{compare\_summary}、各模式的 \texttt{summary\_records}、\texttt{ranking\_records} 与统一口径的 \texttt{ranking\_records\_top5} 等机器可读原始记录，可复现同批 300 用户的横向比较。由于当前仍缺少推荐相关性标签、点击/转化日志与在线 A/B 实验结果，本文仍将该部分界定为阶段性工程观察，而非可公开复算的标准 benchmark 数据集。
+
+如需在最终答辩或归档阶段进一步增强可审计性，宜补充提交三类材料：一是 200 题题集与逐题人工判定表；二是推荐对比指标的计算脚本、相关性标注口径与必要的数据字典；三是与本附录路径对应的运行环境说明。
+
+\chapter{AI 辅助写作与核验说明}
+
+本文在选题梳理、结构规划、语言润色、引用核对与格式检查阶段使用了 AI 辅助工具。AI 参与范围主要包括：论文结构建议生成、章节修改意见整理、参考文献存在性核验流程支持、摘要与结论口径一致性检查，以及交付阶段的格式与材料清单整理。
+
+需要强调的是，本文的研究选题、系统实现、测试执行、结果判断、结论取舍与最终文字责任均由作者本人承担。凡涉及系统功能、实验数据、性能结果、评估边界与学术结论的内容，均以项目代码、测试工件、人工核验结果及作者最终审定为准，而非直接采信 AI 自动生成内容。
+
+对 AI 输出的使用遵循以下原则：
+\begin{enumerate}
+  \item 不将 AI 生成内容未经核验直接作为事实性证据写入正文；
+  \item 对引用、数据与研究结论采用人工复核与工件对照；
+  \item 对无法独立验证的 AI 输出不纳入正式结论；
+  \item 由作者对全文准确性、完整性与学术诚信承担最终责任。
+\end{enumerate}
+
+\chapter{最终交付材料建议}
+
+为便于论文答辩、归档与后续复查，建议最终提交时至少准备以下材料：
+\begin{enumerate}
+  \item 论文源文件：\texttt{main.tex}、\texttt{chapters/*.tex}、\texttt{references.bib}；
+  \item 图像与附录材料：\texttt{chapters/figures/} 目录及附录中提及的关键说明；
+  \item 测试工件：\texttt{paper\_outputs/jmeter/} 下的主链路与低强度链路结果；
+  \item AI 评估工件：\texttt{paper\_outputs/ai\_eval\_raw/} 下的推荐模式对比记录；
+  \item 代码与数据入口说明：\texttt{agent/rag.py}、\texttt{agent/recommendation.py} 与 \texttt{agent/data/}；
+  \item 如条件允许，补充提交 200 题题集、逐题人工判定表、推荐相关性标注口径与必要的数据字典。
+\end{enumerate}
+
+若后续需要生成正式 PDF 归档版，宜在具备 CTeX/XeLaTeX 与 BibTeX 工具链的环境中完成编译，并在提交前再次检查以下项目：
+\begin{enumerate}
+  \item 中文字体、目录、图表与参考文献是否正确生成；
+  \item 中英文摘要、正文与附录中的关键数据是否与工件保持一致；
+  \item 参考文献编号、图表编号与正文引用是否连续且无缺失；
+  \item 附录中的 AI 说明、工件路径与最终提交材料是否齐全。
 \end{enumerate}

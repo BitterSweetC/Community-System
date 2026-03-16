@@ -68,10 +68,10 @@ class ClubServiceImplTest {
         member.setRoleCode("PRESIDENT");
         member.setStatus("ACTIVE");
 
-        when(clubRepository.findById(clubId)).thenReturn(Optional.of(dissolvedClub));
+        when(clubRepository.findByIdForUpdate(clubId)).thenReturn(Optional.of(dissolvedClub));
         when(memberRepository.findByClubId(clubId)).thenReturn(List.of(member));
         when(memberRepository.findByUserId(userId)).thenReturn(List.of(member));
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(userRepository.findByIdForUpdate(userId)).thenReturn(Optional.of(user));
         when(roleRepository.findByCode("CLUB_ADMIN")).thenReturn(Optional.of(clubAdminRole));
         when(roleRepository.findByCode("USER")).thenReturn(Optional.of(userRole));
         when(clubRepository.save(dissolvedClub)).thenReturn(dissolvedClub);
@@ -115,7 +115,7 @@ class ClubServiceImplTest {
         activeClubMember.setRoleCode("MANAGER");
         activeClubMember.setStatus("ACTIVE");
 
-        when(clubRepository.findById(clubId)).thenReturn(Optional.of(dissolvedClub));
+        when(clubRepository.findByIdForUpdate(clubId)).thenReturn(Optional.of(dissolvedClub));
         when(memberRepository.findByClubId(clubId)).thenReturn(List.of(dissolvedClubMember));
         when(memberRepository.findByUserId(userId)).thenReturn(List.of(dissolvedClubMember, activeClubMember));
         when(clubRepository.save(dissolvedClub)).thenReturn(dissolvedClub);
@@ -125,7 +125,6 @@ class ClubServiceImplTest {
         assertThat(user.getRoles()).contains(clubAdminRole);
         verify(userRepository, never()).save(user);
         verify(roleRepository, never()).findByCode("CLUB_ADMIN");
-        verify(clubRepository).incrementVisitCount(anyLong());
     }
 
     @Test
@@ -153,16 +152,16 @@ class ClubServiceImplTest {
         president.setRoleCode("PRESIDENT");
         president.setStatus("ACTIVE");
 
-        when(clubRepository.findById(clubId)).thenReturn(Optional.of(club));
+        when(clubRepository.findByIdForUpdate(clubId)).thenReturn(Optional.of(club));
         when(clubRepository.save(club)).thenReturn(club);
         when(memberRepository.findByClubId(clubId)).thenReturn(List.of(president));
+        when(userRepository.findByIdForUpdate(100L)).thenReturn(Optional.of(user));
         when(roleRepository.findByCode("CLUB_ADMIN")).thenReturn(Optional.of(clubAdminRole));
-        when(roleRepository.findByCode("USER")).thenReturn(Optional.of(userRole));
 
         clubService.approveClub(clubId);
 
         assertThat(user.getRoles()).contains(clubAdminRole);
-        assertThat(user.getRoles()).doesNotContain(userRole);
+        assertThat(user.getRoles()).contains(userRole);
         verify(userRepository).save(user);
     }
 }

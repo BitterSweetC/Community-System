@@ -21,7 +21,12 @@
       "Bash(curl -s -X POST http://localhost:8080/api/auth/login -H \"Content-Type: application/json\" -d '{\"\"username\"\":\"\"admin\"\",\"\"password\"\":\"\"123456\"\"}' -c /tmp/admin_cookies.txt)",
       "Bash(curl -s -X POST http://localhost:8080/api/auth/login -H \"Content-Type: application/json\" -d '{\"\"username\"\":\"\"student\"\",\"\"password\"\":\"\"123456\"\"}')",
       "Bash(curl -s http://localhost:8080/api/clubs/1/members -b /tmp/admin_cookies.txt)",
-      "Bash(curl -s -X POST \"http://localhost:8080/api/clubs/1/members?userId=2&role=MEMBER\" -b /tmp/admin_cookies.txt)"
+      "Bash(curl -s -X POST \"http://localhost:8080/api/clubs/1/members?userId=2&role=MEMBER\" -b /tmp/admin_cookies.txt)",
+      "Bash(wc:*)",
+      "Bash(xelatex:*)"
     ]
-  }
+  },
+  "disabledMcpjsonServers": [
+    "MCP_DOCKER"
+  ]
 }

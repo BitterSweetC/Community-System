@@ -88,8 +88,6 @@ services:
   rag-service:
     build: ./agent
     container_name: community-rag
-    ports:
-      - "8000:8000"
     volumes:
       - ./agent/data:/app/data
       - ./agent/chroma_db:/app/chroma_db
@@ -97,6 +95,7 @@ services:
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
       - DEEPSEEK_API_URL=https://api.deepseek.com
       - DB_URL=mysql+pymysql://root:gyh%23@mysql:3306/community_db
+      - EMBEDDING_PROVIDER=local-hash
     depends_on:
       mysql:
         condition: service_healthy
@@ -107,6 +106,7 @@ services:
     container_name: community-prometheus
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml
     ports:
       - "9090:9090"
     restart: always

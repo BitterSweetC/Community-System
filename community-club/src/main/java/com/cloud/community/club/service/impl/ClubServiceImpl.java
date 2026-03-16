@@ -85,10 +85,10 @@ public class ClubServiceImpl implements ClubService {
     }
 
     @Override
-    public List<Club> getRecommendedClubs(Long userId) {
+    public List<Club> getRecommendedClubs(Long userId, String mode) {
         // 0. Try Collaborative Filtering via Python Agent
         try {
-            List<Long> recommendedIds = chatService.getRecommendations(userId);
+            List<Long> recommendedIds = chatService.getRecommendations(userId, mode);
             if (recommendedIds != null && !recommendedIds.isEmpty()) {
                 List<Club> clubs = clubRepository.findAllById(recommendedIds);
                 // Maintain order from recommendation
@@ -420,7 +420,7 @@ public class ClubServiceImpl implements ClubService {
                 .forEach(m -> grantClubAdminRole(m.getUser()));
     }
 
-    // Keep USER and CLUB_ADMIN mutually exclusive: promoting to CLUB_ADMIN removes USER.
+    // Preserve USER role when promoting to CLUB_ADMIN so users retain student capabilities.
     private void grantClubAdminRole(User user) {
         if (user == null || user.getId() == null) {
             return;
@@ -438,12 +438,6 @@ public class ClubServiceImpl implements ClubService {
                 .orElseThrow(() -> new RuntimeException("Role CLUB_ADMIN not found"));
         if (!lockedUser.getRoles().contains(clubAdminRole)) {
             lockedUser.getRoles().add(clubAdminRole);
-            changed = true;
-        }
-
-        Role userRole = roleRepository.findByCode("USER").orElse(null);
-        if (userRole != null && lockedUser.getRoles().contains(userRole)) {
-            lockedUser.getRoles().remove(userRole);
             changed = true;
         }
 
@@ -517,8 +511,8 @@ public class ClubServiceImpl implements ClubService {
                 } else if (userRole != null
                         && refreshedUser.getRoles() != null
                         && refreshedUser.getRoles().contains(clubAdminRole)
-                        && refreshedUser.getRoles().contains(userRole)) {
-                    refreshedUser.getRoles().remove(userRole);
+                        && !refreshedUser.getRoles().contains(userRole)) {
+                    refreshedUser.getRoles().add(userRole);
                     userRepository.save(refreshedUser);
                     count++;
                 }

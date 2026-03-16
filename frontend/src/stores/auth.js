@@ -2,28 +2,36 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import api from '@/api/axios'
 
-export const useAuthStore = defineStore('auth', () => {
-  // token 不再存储真实 JWT（已改为 HttpOnly Cookie）
-  // 保留 token ref 供现有模板中的 v-if/路由守卫使用，值为 'authenticated' 或 ''
-  const token = ref(localStorage.getItem('token') || '')
-  const user = ref(JSON.parse(localStorage.getItem('user') || 'null'))
+function parseStoredUser() {
+  try {
+    return JSON.parse(localStorage.getItem('user') || 'null')
+  } catch (_) {
+    localStorage.removeItem('user')
+    return null
+  }
+}
 
-  function setToken() {
-    // HttpOnly Cookie 由后端写入，前端无需操作真实 token
-    // 保留此方法避免改动调用方（LoginView、LoginDialog）
+export const useAuthStore = defineStore('auth', () => {
+  const token = ref(localStorage.getItem('token') || '')
+  const user = ref(parseStoredUser())
+
+  function setToken(nextToken) {
+    token.value = nextToken ? 'authenticated' : ''
+    if (token.value) {
+      localStorage.setItem('token', token.value)
+    } else {
+      localStorage.removeItem('token')
+    }
   }
 
   function setUser(newUser) {
     user.value = newUser
     if (newUser) {
       localStorage.setItem('user', JSON.stringify(newUser))
-      // 标记"已认证"状态（非真实 JWT）
-      token.value = 'authenticated'
-      localStorage.setItem('token', 'authenticated')
+      setToken('authenticated')
     } else {
       localStorage.removeItem('user')
-      token.value = ''
-      localStorage.removeItem('token')
+      setToken('')
     }
   }
 
@@ -31,22 +39,21 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       await api.post('/auth/logout')
     } catch (_) {
-      // 即使接口失败也清除本地状态
+      // Ignore logout API failures and still clear local session.
     }
     user.value = null
-    token.value = ''
-    localStorage.removeItem('token')
+    setToken('')
     localStorage.removeItem('user')
   }
 
   async function refreshUser() {
     try {
-      const response = await api.get('/api/users/me')
-      if (response.data.code === 200) {
-        setUser(response.data.data)
+      const me = await api.get('/users/me')
+      if (me) {
+        setUser(me)
       }
     } catch (error) {
-      console.error('刷新用户信息失败:', error)
+      console.error('Failed to refresh user info:', error)
     }
   }
 

@@ -15,6 +15,7 @@ class QueryRequest(BaseModel):
 class RecommendRequest(BaseModel):
     user_id: int
     top_k: int = 5
+    mode: str = "hybrid"
 
 
 class SyncRequest(BaseModel):
@@ -52,8 +53,12 @@ async def clear_session(session_id: str):
 @app.post("/recommend")
 async def recommend(request: RecommendRequest):
     try:
-        club_ids = recommendation_service.get_recommendations(request.user_id, request.top_k)
-        return {"club_ids": club_ids}
+        club_ids = recommendation_service.get_recommendations_by_mode(
+            request.user_id,
+            request.top_k,
+            request.mode,
+        )
+        return {"club_ids": club_ids, "mode": request.mode}
     except Exception as e:
         print(f"Recommendation error: {e}")
         return {"club_ids": []}

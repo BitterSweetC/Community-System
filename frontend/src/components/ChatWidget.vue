@@ -1,78 +1,63 @@
 <template>
   <div class="chat-widget-container">
-    <!-- Chat Toggle Button (Always Visible) -->
-      <button 
-        class="chat-toggle-btn" 
-        @click="toggleChat"
-        title="打开AI助手"
-        :class="{ 'is-active': isOpen }"
-      >
-        <transition name="icon-fade" mode="out-in">
-           <el-icon v-if="!isOpen" class="icon"><ChatDotRound /></el-icon>
-           <el-icon v-else class="icon"><ArrowDown /></el-icon>
-        </transition>
-      </button>
+    <button
+      class="chat-toggle-btn"
+      @click="toggleChat"
+      title="打开 AI 助手"
+      :class="{ 'is-active': isOpen }"
+    >
+      <transition name="icon-fade" mode="out-in">
+        <el-icon v-if="!isOpen" class="icon"><ChatDotRound /></el-icon>
+        <el-icon v-else class="icon"><ArrowDown /></el-icon>
+      </transition>
+    </button>
 
-      <!-- Chat Window -->
-      <transition name="slide-up">
-        <div v-if="isOpen" class="chat-window">
-          <!-- Header -->
-          <div class="chat-header">
-            <div class="header-left">
-              <el-icon><Service /></el-icon>
-              <span>社团智能助手</span>
-            </div>
-            <!-- Header Close Button Removed (Use Toggle Button) -->
-          </div>
-
-          <!-- Messages Area -->
-          <div class="chat-messages" ref="messagesRef">
-            <div v-if="messages.length === 0" class="welcome-box">
-              <p>👋 你好！我是社团AI助手。</p>
-              <p>你可以问我：</p>
-              <div class="tags">
-                <span @click="setInput('最近有什么热门活动？')">热门活动</span>
-                <span @click="setInput('如何创建新社团？')">创建社团</span>
-                <span @click="setInput('社团招新什么时候开始？')">招新时间</span>
-              </div>
-            </div>
-            
-            <div 
-              v-for="(msg, idx) in messages" 
-              :key="idx" 
-              class="message-row"
-              :class="msg.role"
-            >
-              <div class="avatar" v-if="msg.role === 'ai'">
-                <el-icon><Service /></el-icon>
-              </div>
-              <div class="bubble">
-                <div v-if="msg.loading" class="typing-indicator">
-                  <span></span><span></span><span></span>
-                </div>
-                <div v-else>{{ msg.content }}</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Input Area -->
-          <div class="chat-input-area">
-            <textarea 
-              v-model="inputMessage" 
-              placeholder="请输入您的问题..." 
-              @keydown.enter.prevent="sendMessage"
-              :disabled="isLoading"
-            ></textarea>
-            <button 
-              class="send-btn" 
-              @click="sendMessage" 
-              :disabled="!inputMessage.trim() || isLoading"
-            >
-              <el-icon><Position /></el-icon>
-            </button>
+    <transition name="slide-up">
+      <div v-if="isOpen" class="chat-window">
+        <div class="chat-header">
+          <div class="header-left">
+            <el-icon><Service /></el-icon>
+            <span>社团智能助手</span>
           </div>
         </div>
-      </transition>
+
+        <div class="chat-messages" ref="messagesRef">
+          <div v-if="messages.length === 0" class="welcome-box">
+            <p>你好！我是社团 AI 助手。</p>
+            <p>你可以问我：</p>
+            <div class="tags">
+              <span @click="setInput('最近有什么热门活动？')">热门活动</span>
+              <span @click="setInput('如何创建新社团？')">创建社团</span>
+              <span @click="setInput('社团招新什么时候开始？')">招新时间</span>
+            </div>
+          </div>
+
+          <div v-for="(msg, idx) in messages" :key="idx" class="message-row" :class="msg.role">
+            <div class="avatar" v-if="msg.role === 'ai'">
+              <el-icon><Service /></el-icon>
+            </div>
+            <div class="bubble">
+              <div v-if="msg.loading" class="typing-indicator">
+                <span></span><span></span><span></span>
+              </div>
+              <div v-else>{{ msg.content }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="chat-input-area">
+          <textarea
+            v-model="inputMessage"
+            placeholder="请输入您的问题..."
+            @keydown.enter.prevent="sendMessage"
+            :disabled="isLoading"
+          ></textarea>
+          <button class="send-btn" @click="sendMessage" :disabled="!inputMessage.trim() || isLoading">
+            <el-icon><Position /></el-icon>
+          </button>
+        </div>
+      </div>
+    </transition>
   </div>
 </template>
 
@@ -81,7 +66,6 @@ import { ref, nextTick } from 'vue'
 import { ArrowDown, ChatDotRound, Position, Service } from '@element-plus/icons-vue'
 import api from '@/api/axios'
 
-// --- State ---
 const isOpen = ref(false)
 const inputMessage = ref('')
 const isLoading = ref(false)
@@ -89,7 +73,6 @@ const messages = ref([])
 const messagesRef = ref(null)
 const CHAT_SESSION_KEY = 'chat_session_id'
 
-// --- Actions ---
 const toggleChat = () => {
   isOpen.value = !isOpen.value
   if (isOpen.value) {
@@ -141,7 +124,7 @@ const sendMessage = async () => {
   } catch (error) {
     console.error('Chat Error:', error)
     messages.value[aiMsgIndex].loading = false
-    messages.value[aiMsgIndex].content = '😔 抱歉，我现在有点累，请稍后再试。'
+    messages.value[aiMsgIndex].content = '抱歉，我现在有点忙，请稍后再试。'
   } finally {
     isLoading.value = false
     scrollToBottom()
@@ -150,7 +133,6 @@ const sendMessage = async () => {
 </script>
 
 <style scoped>
-/* Container positioned absolutely relative to parent (Layout) */
 .chat-widget-container {
   position: absolute;
   bottom: 30px;
@@ -159,11 +141,10 @@ const sendMessage = async () => {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   display: flex;
   flex-direction: column;
-  align-items: flex-end; /* Align items to the right */
-  pointer-events: none; /* Allow clicks to pass through empty space */
+  align-items: flex-end;
+  pointer-events: none;
 }
 
-/* Toggle Button */
 .chat-toggle-btn {
   position: relative;
   width: 60px;
@@ -196,7 +177,6 @@ const sendMessage = async () => {
   font-size: 28px;
 }
 
-/* Chat Window */
 .chat-window {
   position: relative;
   bottom: auto;
@@ -216,7 +196,6 @@ const sendMessage = async () => {
   pointer-events: auto;
 }
 
-/* Header */
 .chat-header {
   padding: 16px 20px;
   background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
@@ -235,7 +214,6 @@ const sendMessage = async () => {
   font-size: 16px;
 }
 
-/* Messages Area */
 .chat-messages {
   flex: 1;
   padding: 20px;
@@ -281,7 +259,6 @@ const sendMessage = async () => {
   transform: translateY(-2px);
 }
 
-/* Message Bubbles */
 .message-row {
   display: flex;
   gap: 10px;
@@ -333,7 +310,6 @@ const sendMessage = async () => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
-/* Typing Indicator */
 .typing-indicator span {
   display: inline-block;
   width: 6px;
@@ -352,7 +328,6 @@ const sendMessage = async () => {
   40% { transform: scale(1); }
 }
 
-/* Input Area */
 .chat-input-area {
   padding: 16px;
   background: white;
@@ -405,7 +380,6 @@ textarea:focus {
   box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
 }
 
-/* Transitions */
 .scale-enter-active, .scale-leave-active { transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
 .scale-enter-from, .scale-leave-to { opacity: 0; transform: scale(0.5); }
 

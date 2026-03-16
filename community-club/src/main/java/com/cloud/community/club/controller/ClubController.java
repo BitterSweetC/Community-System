@@ -76,7 +76,8 @@ public class ClubController {
     }
 
     @GetMapping("/recommended")
-    public Result<List<ClubVO>> getRecommendedClubs() {
+    public Result<List<ClubVO>> getRecommendedClubs(
+            @RequestParam(required = false, defaultValue = "hybrid") String mode) {
         Long userId = null;
         try {
             User user = getCurrentUser();
@@ -84,7 +85,7 @@ public class ClubController {
         } catch (Exception e) {
             // User not authenticated or not found, proceed with null userId
         }
-        List<Club> clubs = clubService.getRecommendedClubs(userId);
+        List<Club> clubs = clubService.getRecommendedClubs(userId, mode);
         return Result.success(clubs.stream().map(ClubVO::from).collect(Collectors.toList()));
     }
 

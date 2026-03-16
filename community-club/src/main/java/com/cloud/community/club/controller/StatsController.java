@@ -78,7 +78,7 @@ public class StatsController {
     }
 
     @GetMapping("/club/{clubId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'CLUB_ADMIN', 'STUDENT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CLUB_ADMIN', 'USER')")
     public Result<Map<String, Object>> getClubStats(@PathVariable Long clubId) {
         Map<String, Object> stats = new HashMap<>();
         

@@ -5,198 +5,186 @@
 
 \section{系统总体需求}
 
-\subsection{用户角色划分}
+\subsection{用户与权限主体}
 
-本系统面向高校校内用户，按照权限与职责划分为四类角色：
+系统中“账号角色”与“社团内岗位”是两层概念。账号角色用于全局访问控制，社团内岗位用于社团内部管理授权。角色划分如表~\ref{tab:user-roles} 所示。
 
 \begin{table}[H]
 \centering
-\caption{系统用户角色说明}
+\caption{系统角色与权限范围}
+\label{tab:user-roles}
 \begin{tabular}{lll}
 \toprule
-角色 & 说明 & 主要权限 \\
+主体类型 & 代码/身份 & 权限范围 \\
 \midrule
-普通用户 & 在校学生 & 浏览社团、报名活动、提交招募申请 \\
-社团成员 & 已加入社团的学生 & 参与社团活动、查看社团内部公告 \\
-社团管理员 & 社团负责人 & 管理社团信息、发布活动、审核招募 \\
-系统管理员 & 学校管理人员 & 审批社团、管理用户、查看全局数据 \\
+访客 & 未登录用户 & 浏览公开社团、活动、公告、招新信息 \\
+普通用户 & USER & 个人资料维护、活动报名与签到、提交招新申请 \\
+社团管理员 & CLUB\_ADMIN & 管理所属社团的活动、成员、招新、公告、资源、财务申请 \\
+系统管理员 & ADMIN & 全局审批、系统审计、全局统计、用户状态管理 \\
+社团内岗位 & PRESIDENT / MANAGER / MEMBER & 社团内操作细分权限（由业务规则控制） \\
 \bottomrule
 \end{tabular}
 \end{table}
+\subsection{系统边界}
 
-\subsection{系统功能边界}
+本系统覆盖“社团创建与审批、成员管理、活动管理、招新管理、公告与通知、资源申请、财务审批、审计与统计、AI 问答与推荐”等完整流程。系统暂不包含真实支付结算、统一身份平台（CAS/OAuth）对接、移动端原生 App。
 
-本系统覆盖社团管理全生命周期，功能边界如图~\ref{fig:system-boundary}所示。系统不涉及财务实际支付（仅记录收支流水）、移动端原生应用及校外用户访问。
+\subsection{需求来源与分析方法}
+
+本文的需求分析主要服务于系统设计与实现型论文的工程建模，需求来源并非单一问卷或访谈结果，而是基于以下三类依据进行综合归纳：
+
+\begin{enumerate}
+  \item \textbf{典型业务流程}：围绕高校社团管理中较常见的创建审批、活动组织、招新审核、资源申请、财务审批与通知触达等流程，梳理系统需要覆盖的核心环节；
+  \item \textbf{角色与权限边界}：结合访客、普通用户、社团管理员与系统管理员等主体的职责差异，归纳不同角色在认证、授权与业务操作上的功能诉求；
+  \item \textbf{现有系统不足与项目约束}：结合绪论中的现有系统对比分析，以及本项目当前的部署条件、技术栈与实现范围，提炼非功能性需求与 AI 服务边界。
+\end{enumerate}
+
+因此，第三章更强调“面向实现的场景化需求整理”，其作用在于为后续系统设计、模块划分与测试验证提供依据，而不是将其作为独立的人因实验或问卷研究结论。
 
 \section{功能性需求}
 
-\subsection{用户管理需求}
+\subsection{认证与账户需求}
 
 \begin{enumerate}
-  \item 支持邮箱验证码注册，密码需满足强度要求（8位以上，含字母与数字）；
-  \item 支持账号密码登录，登录失败超过5次后锁定账户15分钟；
-  \item 支持通过邮箱验证码找回密码；
-  \item 用户可维护个人信息（头像、昵称、联系方式等）；
-  \item 基于RBAC模型实现细粒度权限控制，不同角色访问不同功能模块。
+  \item 用户可注册、登录、登出、刷新会话、找回密码；
+  \item 密码强度要求为“至少 8 位且同时包含字母和数字”；
+  \item 登录失败计数基于 Redis，15 分钟窗口内超过 10 次将触发限频；
+  \item 会话以 HttpOnly Cookie 传递，服务端可主动失效会话。
 \end{enumerate}
 
 \subsection{社团管理需求}
 
 \begin{enumerate}
-  \item 学生可提交社团创建申请，填写社团名称、类型、简介等信息；
-  \item 系统管理员对申请进行审批（通过/拒绝），审批结果通过通知推送给申请人；
-  \item 社团管理员可管理成员（邀请、移除、设置角色）；
-  \item 社团生命周期包含：申请中→活跃→冻结→解散四个状态，管理员可对社团执行冻结与解散操作；
-  \item 支持社团信息编辑（头像、简介、联系方式等）。
+  \item 用户可提交社团创建申请，初始状态为 \texttt{PENDING}；
+  \item 管理员审批通过后社团状态变为 \texttt{ACTIVE}；
+  \item 社团支持解散流程：\texttt{DISSOLVING}（冷静期）到 \texttt{DISSOLVED}；
+  \item 社团管理员可进行成员增删、角色调整、社团信息维护、成员导出。
 \end{enumerate}
 
 \subsection{活动管理需求}
 
 \begin{enumerate}
-  \item 社团管理员可发布活动，填写活动名称、时间、地点、人数上限等信息；
-  \item 普通用户可报名参加活动，报名人数达到上限后自动关闭报名；
-  \item 系统生成唯一签到码，参与者扫码或输入签到码完成签到；
-  \item 活动结束后，管理员可导出签到数据（Excel格式）；
-  \item 支持活动状态管理（草稿→发布→进行中→已结束→已归档）。
+  \item 社团管理员可创建活动并发布；
+  \item 用户可报名活动，重复报名应被拒绝；
+  \item 签到需满足“已报名 + 活动时间窗口有效 + 签到码正确（若配置）”；
+  \item 支持签到明细导出与 WebSocket 实时签到人数广播；
+  \item 活动状态支持 \texttt{DRAFT/PUBLISHED/IN\_PROGRESS/ENDED} 的自动推进。
 \end{enumerate}
 
-\subsection{招募管理需求}
+\subsection{招新管理需求}
 
 \begin{enumerate}
-  \item 社团管理员可创建招募批次，设置招募时间、名额等参数；
-  \item 支持动态表单配置，管理员可自定义申请表字段（文本、单选、多选等）；
-  \item 招募申请支持多阶段审核流程（初审→复审→录取/淘汰）；
-  \item 申请状态变更时，系统自动向申请人发送通知。
+  \item 社团管理员可创建招新批次与动态表单字段；
+  \item 用户可提交申请并查询本人申请历史；
+  \item 招新审核分一审、终审两阶段；
+  \item 终审通过前需校验名额，且录取后自动补充成员关系；
+  \item 支持批次申请数据导出（Excel）。
 \end{enumerate}
 
-\subsection{通知公告需求}
+\subsection{公告与通知、资源与财务需求}
 
 \begin{enumerate}
-  \item 系统管理员可发布全局公告，社团管理员可发布社团内部公告；
-  \item 基于WebSocket实现实时通知推送，用户在线时即时收到通知；
-  \item 系统记录通知已读状态，支持未读数量统计与批量标记已读；
-  \item 支持通知类型分类（系统通知、活动通知、招募通知等）。
+  \item 支持站内通知分页查询、未读统计、单条已读与全部已读；
+  \item 社团或系统公告发布后应触发异步通知分发并落库，前端可轮询读取最新通知状态；
+  \item 资源申请需进行时段冲突/库存校验，并由管理员审批；
+  \item 财务申请采用“提交-审批”流程，支出申请需校验社团余额。
 \end{enumerate}
 
-\subsection{财务管理需求}
+\subsection{AI 服务需求}
 
 \begin{enumerate}
-  \item 社团管理员可记录收支流水（收入/支出类型、金额、说明）；
-  \item 大额支出需经系统管理员审批；
-  \item 系统自动计算社团余额，余额不足时禁止支出操作；
-  \item 支持财务数据按时间范围查询与统计图表展示。
-\end{enumerate}
-
-\subsection{资源管理需求}
-
-\begin{enumerate}
-  \item 系统管理员维护可用资源列表（场地、设备等）；
-  \item 社团管理员可提交资源申请，指定使用时间段；
-  \item 系统自动检测时间段冲突，冲突时拒绝申请；
-  \item 申请经系统管理员审批后生效，结果通知申请人。
-\end{enumerate}
-
-\subsection{AI 智能服务需求}
-
-\begin{enumerate}
-  \item 系统根据用户历史行为与社团内容，为用户推荐感兴趣的社团；
-  \item 用户可通过自然语言向AI助手提问，获取社团相关信息的智能解答；
-  \item 管理员可触发知识库同步，将最新社团数据更新至向量数据库。
+  \item 用户可通过聊天入口进行社团知识问答；
+  \item 系统可按用户兴趣与行为推荐社团；
+  \item 问答服务需要具备会话上下文能力与降级可用性；
+  \item 推荐服务需具备冷启动兜底策略。
 \end{enumerate}
 
 \section{非功能性需求}
 
 \begin{enumerate}
-  \item \textbf{安全性}：所有接口需经过身份认证，敏感操作记录审计日志；防范SQL注入、XSS、CSRF等常见攻击；
-  \item \textbf{性能}：核心查询接口（社团列表、活动列表）响应时间不超过200ms；系统支持100并发用户同时在线；
-  \item \textbf{可用性}：系统提供完善的异常处理机制，单一模块故障不影响其他模块正常运行；
-  \item \textbf{可扩展性}：模块化架构设计，新增业务模块无需修改现有代码；
-  \item \textbf{易用性}：前端界面简洁直观，核心操作步骤不超过3步。
+  \item \textbf{安全性}：接口访问遵循认证与授权规则，敏感操作可审计追踪；
+  \item \textbf{一致性}：高并发写路径通过数据库锁控制，避免重复审批与重复报名；
+  \item \textbf{可用性}：通知与部分非关键流程采用消息异步分发，减少主流程阻塞；
+  \item \textbf{可维护性}：模块化单体组织结构，统一异常处理与统一响应格式；
+  \item \textbf{可观测性}：暴露业务与运行指标，支持 Prometheus 抓取与 Grafana 展示。
 \end{enumerate}
 
-\section{用例图与用例描述}
+\paragraph{验证口径说明}
+第三章提出的是面向实现的目标需求，而不是默认都已经以同等强度完成实证验证。后文对这些需求采用三类口径加以区分：一是已有直接测试证据支持的条目，如认证边界、并发写路径与部分性能基线；二是已有实现与局部观察支持、但尚缺专项实验的条目，如异步通知、可观测性与 AI 问答降级；三是仅完成实现基础、仍待更严格评估的条目，如推荐相关性质量与 AI 模块的外部可推广性。因此，后续章节不会将“已实现”直接表述为“已充分验证”，而是结合证据强度明确给出结论边界。
+
+\section{用例分析}
 
 \subsection{系统总用例图}
-
-系统总用例图如图~\ref{fig:usecase}所示，展示了四类用户角色与系统主要功能之间的交互关系。
 
 \begin{figure}[H]
 \centering
 \begin{tikzpicture}[
   actor/.style={draw, circle, minimum size=0.6cm},
   usecase/.style={draw, ellipse, minimum width=3cm, minimum height=0.8cm, align=center, font=\small},
-  system/.style={draw, rectangle, minimum width=10cm, minimum height=9cm}
+  line/.style={-}
 ]
-% System boundary
-\draw[thick] (0,0) rectangle (10,9);
-\node[above] at (5,9) {\textbf{社团管理系统}};
+\draw[thick] (0,0) rectangle (11,9);
+\node[above] at (5.5,9) {\textbf{校园社团管理系统}};
 
-% Actors
-\node[actor] (user) at (-2, 7) {};
-\node[below] at (-2,6.6) {\small 普通用户};
+\node[actor] (visitor) at (-1.8,7.4) {};
+\node[below] at (-1.8,7.0) {\small 访客};
+\node[actor] (user) at (-1.8,5.2) {};
+\node[below] at (-1.8,4.8) {\small USER};
+\node[actor] (clubadmin) at (-1.8,2.9) {};
+\node[below] at (-1.8,2.5) {\small CLUB\_ADMIN};
+\node[actor] (admin) at (12.6,4.9) {};
+\node[below] at (12.6,4.5) {\small ADMIN};
 
-\node[actor] (member) at (-2, 4.5) {};
-\node[below] at (-2,4.1) {\small 社团成员};
+\node[usecase] (browse) at (2.8,7.4) {浏览社团/活动/公告};
+\node[usecase] (auth) at (2.8,5.8) {登录/注册/找回密码};
+\node[usecase] (apply) at (2.8,4.2) {活动报名/签到\\提交招新申请};
+\node[usecase] (clubops) at (7.4,6.3) {社团管理\\成员与公告管理};
+\node[usecase] (activityops) at (7.4,4.7) {活动发布\\招新审核};
+\node[usecase] (resourceops) at (7.4,3.1) {资源与财务申请};
+\node[usecase] (sysops) at (9.2,5.0) {全局审批与审计\\统计看板};
+\node[usecase] (aiops) at (5.5,1.5) {AI 问答与推荐};
 
-\node[actor] (clubadmin) at (-2, 2) {};
-\node[below] at (-2,1.6) {\small 社团管理员};
-
-\node[actor] (sysadmin) at (12, 4.5) {};
-\node[below] at (12,4.1) {\small 系统管理员};
-
-% Use cases
-\node[usecase] (login) at (5,8.2) {登录/注册};
-\node[usecase] (browse) at (2.5,6.8) {浏览社团};
-\node[usecase] (apply) at (7.5,6.8) {报名活动};
-\node[usecase] (recruit) at (2.5,5.4) {提交招募申请};
-\node[usecase] (notice) at (7.5,5.4) {查看通知};
-\node[usecase] (manage) at (2.5,3.8) {管理社团};
-\node[usecase] (activity) at (7.5,3.8) {发布活动};
-\node[usecase] (finance) at (2.5,2.4) {财务管理};
-\node[usecase] (resource) at (7.5,2.4) {资源申请};
-\node[usecase] (audit) at (5,1.0) {审批管理};
-
-% Connections
-\draw (user) -- (login);
-\draw (user) -- (browse);
-\draw (user) -- (apply);
-\draw (user) -- (recruit);
-\draw (member) -- (notice);
-\draw (clubadmin) -- (manage);
-\draw (clubadmin) -- (activity);
-\draw (clubadmin) -- (finance);
-\draw (clubadmin) -- (resource);
-\draw (sysadmin) -- (audit);
-\draw (sysadmin) -- (notice);
+\draw[line] (visitor) -- (browse);
+\draw[line] (visitor) -- (auth);
+\draw[line] (user) -- (auth);
+\draw[line] (user) -- (apply);
+\draw[line] (user) -- (aiops);
+\draw[line] (clubadmin) -- (clubops);
+\draw[line] (clubadmin) -- (activityops);
+\draw[line] (clubadmin) -- (resourceops);
+\draw[line] (clubadmin) -- (aiops);
+\draw[line] (admin) -- (sysops);
+\draw[line] (admin) -- (clubops);
+\draw[line] (admin) -- (resourceops);
 \end{tikzpicture}
 \caption{系统总用例图}
 \label{fig:usecase}
 \end{figure}
 
-\subsection{核心用例描述}
-
-\textbf{用例：活动签到}
+\subsection{核心用例：活动签到}
 
 \begin{table}[H]
 \centering
 \caption{活动签到用例描述}
-\begin{tabular}{lp{9cm}}
+\begin{tabular}{lp{9.2cm}}
 \toprule
-用例名称 & 活动签到 \\
+项目 & 描述 \\
 \midrule
-参与者 & 社团成员 \\
-前置条件 & 用户已登录，已报名该活动，活动处于进行中状态 \\
+用例名称 & 活动签到 \\
+参与者 & 已登录用户（通常为已加入社团成员） \\
+前置条件 & 已报名活动，当前时间位于活动开始与结束时间之间 \\
 主成功场景 &
-  1. 用户输入签到码或扫描二维码 \newline
-  2. 系统验证签到码有效性与活动状态 \newline
-  3. 系统记录签到信息（用户ID、时间戳） \newline
-  4. 系统通过WebSocket广播签到人数更新 \newline
-  5. 用户收到签到成功提示 \\
-扩展场景 &
-  2a. 签到码无效：系统返回错误提示 \newline
-  2b. 重复签到：系统提示已签到 \newline
-  2c. 活动未开始/已结束：系统拒绝签到 \\
-后置条件 & 签到记录持久化至数据库，签到统计数据更新 \\
+1) 用户提交签到请求并携带签到码（若活动设置） \newline
+2) 系统校验报名状态与时间窗口 \newline
+3) 系统校验签到码并检测是否重复签到 \newline
+4) 写入签到记录并更新报名状态 \newline
+5) 通过 WebSocket 广播最新签到人数 \\
+异常分支 &
+2a) 未报名：拒绝签到 \newline
+2b) 活动未开始或已结束：拒绝签到 \newline
+3a) 签到码错误：拒绝签到 \newline
+3b) 已签到：提示重复签到 \\
+后置条件 & 签到数据入库，前端看板可实时看到人数变化 \\
 \bottomrule
 \end{tabular}
 \end{table}

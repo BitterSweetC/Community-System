@@ -58,7 +58,7 @@ public class ChatServiceImpl implements ChatService {
     }
 
     @Override
-    public java.util.List<Long> getRecommendations(Long userId) {
+    public java.util.List<Long> getRecommendations(Long userId, String mode) {
         if (userId == null) return java.util.Collections.emptyList();
 
         HttpHeaders headers = new HttpHeaders();
@@ -67,6 +67,7 @@ public class ChatServiceImpl implements ChatService {
         Map<String, Object> body = new HashMap<>();
         body.put("user_id", userId);
         body.put("top_k", 5);
+        body.put("mode", mode == null || mode.trim().isEmpty() ? "hybrid" : mode.trim().toLowerCase());
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
 

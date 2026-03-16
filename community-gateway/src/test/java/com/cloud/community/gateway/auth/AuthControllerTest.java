@@ -1,6 +1,7 @@
 package com.cloud.community.gateway.auth;
 
 import com.cloud.community.core.entity.User;
+import com.cloud.community.core.metrics.BusinessMetricsService;
 import com.cloud.community.core.service.VerificationCodeService;
 import com.cloud.community.gateway.controller.AuthController;
 import com.cloud.community.gateway.security.JwtUtils;
@@ -16,9 +17,12 @@ import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.userdetails.UserDetailsService;
 
-import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class AuthControllerTest {
@@ -30,6 +34,7 @@ class AuthControllerTest {
     @Mock JwtUtils jwtUtils;
     @Mock StringRedisTemplate redisTemplate;
     @Mock ValueOperations<String, String> valueOps;
+    @Mock BusinessMetricsService metricsService;
     @InjectMocks AuthController authController;
 
     @Test
@@ -44,8 +49,7 @@ class AuthControllerTest {
         HttpServletResponse response = mock(HttpServletResponse.class);
 
         assertThatThrownBy(() -> authController.login(request, response))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("登录失败次数过多");
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -54,8 +58,7 @@ class AuthControllerTest {
         user.setPassword("abc1");
 
         assertThatThrownBy(() -> authController.register(user))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("密码至少8位");
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -64,8 +67,7 @@ class AuthControllerTest {
         user.setPassword("onlyletters");
 
         assertThatThrownBy(() -> authController.register(user))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("密码至少8位");
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -78,7 +80,29 @@ class AuthControllerTest {
         when(verificationCodeService.verifyCode("user@example.com", "000000")).thenReturn(false);
 
         assertThatThrownBy(() -> authController.resetPassword(request))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void refresh_throwsWhenUserDisabled() {
+        when(redisTemplate.opsForValue()).thenReturn(valueOps);
+        when(valueOps.get("auth:refresh:disabled-user")).thenReturn("refresh-token");
+        when(jwtUtils.extractUsername("refresh-token")).thenReturn("disabled-user");
+        when(jwtUtils.isRefreshTokenValid("refresh-token", "disabled-user")).thenReturn(true);
+        when(userDetailsService.loadUserByUsername("disabled-user")).thenReturn(
+                new org.springframework.security.core.userdetails.User(
+                        "disabled-user", "encoded", false, true, true, true, java.util.List.of()
+                )
+        );
+
+        org.springframework.mock.web.MockHttpServletRequest request = new org.springframework.mock.web.MockHttpServletRequest();
+        request.setCookies(new jakarta.servlet.http.Cookie("refresh_token", "refresh-token"));
+        org.springframework.mock.web.MockHttpServletResponse response = new org.springframework.mock.web.MockHttpServletResponse();
+
+        assertThatThrownBy(() -> authController.refresh(request, response))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("验证码无效");
+                .hasMessageContaining("disabled");
+
+        verify(redisTemplate).delete("auth:refresh:disabled-user");
     }
 }

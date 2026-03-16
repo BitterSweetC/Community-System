@@ -9,13 +9,14 @@ from datetime import datetime
 from sqlalchemy import create_engine, text
 from sklearn.decomposition import TruncatedSVD
 from sklearn.preprocessing import MinMaxScaler
-from langchain_community.embeddings import SentenceTransformerEmbeddings
+from local_embeddings import create_embeddings
 
 EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 
 # Hybrid weights
 W_CF = 0.6
 W_CB = 0.4
+VALID_MODES = {"cf", "cb", "hybrid"}
 
 
 class RecommendationService:
@@ -24,7 +25,8 @@ class RecommendationService:
             os.getenv("DB_URL", "mysql+pymysql://root:password@localhost:3306/community_db")
         )
         print("Loading embedding model...")
-        self.embeddings = SentenceTransformerEmbeddings(model_name=EMBEDDING_MODEL)
+        self.embeddings, provider = create_embeddings(EMBEDDING_MODEL)
+        print(f"Embedding provider: {provider}")
         self._club_emb_cache: dict[int, np.ndarray] = {}
 
     # ── Data Loading ──────────────────────────────────────────────────────────
@@ -98,9 +100,13 @@ class RecommendationService:
         missing = df_clubs[~df_clubs["id"].isin(self._club_emb_cache)]
         if missing.empty:
             return
-        vecs = self.embeddings.embed_documents(missing["combined_text"].tolist())
-        for cid, vec in zip(missing["id"], vecs):
-            self._club_emb_cache[int(cid)] = np.array(vec)
+        try:
+            vecs = self.embeddings.embed_documents(missing["combined_text"].tolist())
+            for cid, vec in zip(missing["id"], vecs):
+                self._club_emb_cache[int(cid)] = np.array(vec)
+        except Exception as e:
+            # Keep recommendations available via CF/cold-start path.
+            print(f"Embedding generation failed, skip semantic features: {e}")
 
     # ── Collaborative Filtering (SVD) ─────────────────────────────────────────
 
@@ -133,7 +139,7 @@ class RecommendationService:
     def _cb_scores(self, user_id: int, df: pd.DataFrame,
                    candidates: list[int]) -> dict[int, float]:
         user_hist = df[df["user_id"] == user_id]
-        if user_hist.empty:
+        if user_hist.empty or not self._club_emb_cache:
             return {}
 
         # Build user profile vector: weighted average of interacted club embeddings
@@ -181,9 +187,48 @@ class RecommendationService:
         scaled = MinMaxScaler().fit_transform(vals).flatten()
         return dict(zip(scores.keys(), scaled))
 
+    @staticmethod
+    def _normalise_mode(mode: str | None) -> str:
+        if mode is None:
+            return "hybrid"
+        normalized = str(mode).strip().lower()
+        if normalized in VALID_MODES:
+            return normalized
+        return "hybrid"
+
+    @staticmethod
+    def _rank_scores(
+        candidates: list[int],
+        cf_norm: dict[int, float],
+        cb_norm: dict[int, float],
+        mode: str,
+    ) -> list[tuple[int, float]]:
+        ranked: list[tuple[int, float]] = []
+        for cid in candidates:
+            if mode == "cf":
+                score = cf_norm.get(cid, 0.0)
+            elif mode == "cb":
+                score = cb_norm.get(cid, 0.0)
+            else:
+                score = W_CF * cf_norm.get(cid, 0.0) + W_CB * cb_norm.get(cid, 0.0)
+            ranked.append((cid, score))
+        ranked.sort(key=lambda x: x[1], reverse=True)
+        return ranked
+
     # ── Public API ────────────────────────────────────────────────────────────
 
     def get_recommendations(self, user_id: int, top_k: int = 5) -> list[int]:
+        return self.get_recommendations_by_mode(user_id, top_k, "hybrid")
+
+    def get_recommendations_by_mode(
+        self,
+        user_id: int,
+        top_k: int = 5,
+        mode: str = "hybrid",
+    ) -> list[int]:
+        mode = self._normalise_mode(mode)
+        top_k = max(int(top_k), 1)
+
         try:
             df_interactions = self._load_interactions()
             df_clubs = self._load_clubs()
@@ -228,14 +273,15 @@ class RecommendationService:
             cf_norm = self._normalise(cf_raw)
             cb_norm = self._normalise(cb_raw)
 
-            # Hybrid fusion
-            final: list[tuple[int, float]] = []
-            for cid in candidates:
-                s = W_CF * cf_norm.get(cid, 0.0) + W_CB * cb_norm.get(cid, 0.0)
-                final.append((cid, s))
+            if mode == "cf" and not cf_norm:
+                return self._cold_start(df_clubs, top_k)
+            if mode == "cb" and not cb_norm:
+                return self._cold_start(df_clubs, top_k)
+            if mode == "hybrid" and not cf_norm and not cb_norm:
+                return self._cold_start(df_clubs, top_k)
 
-            final.sort(key=lambda x: x[1], reverse=True)
-            return [cid for cid, _ in final[:top_k]]
+            ranked = self._rank_scores(candidates, cf_norm, cb_norm, mode)
+            return [cid for cid, _ in ranked[:top_k]]
 
         except Exception as e:
             import traceback

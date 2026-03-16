@@ -24,6 +24,8 @@ import java.io.IOException;
 @Slf4j
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+    private static final String ACCESS_KEY_PREFIX = "auth:token:";
+
     private final JwtUtils jwtUtils;
     private final UserDetailsService userDetailsService;
     private final StringRedisTemplate redisTemplate;
@@ -36,14 +38,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     ) throws ServletException, IOException {
 
         String jwt = extractToken(request);
-
         if (jwt == null) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // 服务端会话校验（Redis）
-        if (Boolean.FALSE.equals(redisTemplate.hasKey("auth:token:" + jwt))) {
+        if (Boolean.FALSE.equals(redisTemplate.hasKey(ACCESS_KEY_PREFIX + jwt))) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -51,8 +51,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             String username = jwtUtils.extractUsername(jwt);
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
-                if (jwtUtils.isTokenValid(jwt, userDetails)) {
+                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+                if (!userDetails.isEnabled()) {
+                    redisTemplate.delete(ACCESS_KEY_PREFIX + jwt);
+                } else if (jwtUtils.isTokenValid(jwt, userDetails)) {
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                             userDetails, null, userDetails.getAuthorities());
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
@@ -66,11 +68,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    /**
-     * 优先从 HttpOnly Cookie 中读取 token，兼容 Authorization Header（API 客户端场景）。
-     */
     private String extractToken(HttpServletRequest request) {
-        // 1. Cookie
         if (request.getCookies() != null) {
             for (Cookie cookie : request.getCookies()) {
                 if ("access_token".equals(cookie.getName())) {
@@ -78,7 +76,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
             }
         }
-        // 2. Authorization Header (fallback for API/test clients)
+
         String authHeader = request.getHeader("Authorization");
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             return authHeader.substring(7);

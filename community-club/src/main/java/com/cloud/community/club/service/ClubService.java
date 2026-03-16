@@ -20,7 +20,11 @@ public interface ClubService {
      * @param userId current user ID (nullable)
      * @return list of recommended clubs
      */
-    List<Club> getRecommendedClubs(Long userId);
+    default List<Club> getRecommendedClubs(Long userId) {
+        return getRecommendedClubs(userId, "hybrid");
+    }
+
+    List<Club> getRecommendedClubs(Long userId, String mode);
     
     // Pagination
     org.springframework.data.domain.Page<Club> searchClubs(String keyword, String category, int page, int size);

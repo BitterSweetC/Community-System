@@ -5,6 +5,7 @@ import com.cloud.community.core.constant.RabbitConstants;
 import com.cloud.community.core.entity.Resource;
 import com.cloud.community.core.entity.ResourceApplication;
 import com.cloud.community.core.exception.BusinessException;
+import com.cloud.community.core.metrics.BusinessMetricsService;
 import com.cloud.community.core.model.dto.NotificationMessageDTO;
 import com.cloud.community.core.repository.ResourceApplicationRepository;
 import com.cloud.community.core.repository.ResourceRepository;
@@ -26,6 +27,7 @@ public class ResourceServiceImpl implements ResourceService {
     private final ResourceRepository resourceDefinitionRepository;
     private final RabbitTemplate rabbitTemplate;
     private final SimpMessagingTemplate messagingTemplate;
+    private final BusinessMetricsService metricsService;
 
     @Override
     @Transactional
@@ -69,6 +71,7 @@ public class ResourceServiceImpl implements ResourceService {
         application.setStatus("APPROVED");
         application.setApproverId(approverId);
         resourceRepository.save(application);
+        metricsService.recordApprovalHandled("resource", "approved", application.getCreatedAt());
 
         String resourceName = resourceDefinitionRepository.findById(application.getResourceId())
                 .map(Resource::getName)
@@ -94,6 +97,7 @@ public class ResourceServiceImpl implements ResourceService {
         application.setStatus("REJECTED");
         application.setApproverId(approverId);
         resourceRepository.save(application);
+        metricsService.recordApprovalHandled("resource", "rejected", application.getCreatedAt());
 
         String resourceName = resourceDefinitionRepository.findById(application.getResourceId())
                 .map(Resource::getName)

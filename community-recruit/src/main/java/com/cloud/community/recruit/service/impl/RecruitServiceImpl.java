@@ -7,6 +7,7 @@ import com.cloud.community.core.entity.RecruitApplication;
 import com.cloud.community.core.entity.RecruitBatch;
 import com.cloud.community.core.entity.RecruitFormField;
 import com.cloud.community.core.exception.BusinessException;
+import com.cloud.community.core.metrics.BusinessMetricsService;
 import com.cloud.community.core.repository.RecruitApplicationRepository;
 import com.cloud.community.core.repository.RecruitBatchRepository;
 import com.cloud.community.core.repository.RecruitFormFieldRepository;
@@ -35,6 +36,7 @@ public class RecruitServiceImpl implements RecruitService {
     private final PermissionService permissionService;
     private final RabbitTemplate rabbitTemplate;
     private final ClubService clubService;
+    private final BusinessMetricsService metricsService;
 
     @Override
     @Transactional
@@ -143,6 +145,7 @@ public class RecruitServiceImpl implements RecruitService {
         app.setFirstReviewStatus(pass ? "PASSED" : "REJECTED");
         app.setFirstReviewComment(comment);
         applicationRepository.save(app);
+        metricsService.recordApprovalHandled("recruit_first", pass ? "approved" : "rejected", app.getCreatedAt());
 
         // Send notification
         try {
@@ -206,6 +209,7 @@ public class RecruitServiceImpl implements RecruitService {
         }
         
         applicationRepository.save(app);
+        metricsService.recordApprovalHandled("recruit_final", pass ? "approved" : "rejected", app.getCreatedAt());
 
         // Send notification
         try {

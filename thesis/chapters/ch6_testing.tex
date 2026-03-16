@@ -3,168 +3,352 @@
 % ============================================================
 \chapter{系统测试}
 
-\section{测试策略与环境}
+\section{测试目标与方法}
 
-本系统采用分层测试策略，覆盖单元测试、接口测试、安全测试与性能测试四个层次。测试环境配置如表~\ref{tab:test-env}所示。
+本章测试目标是验证系统在“认证、权限、业务规则”上的实现有效性，并记录当前版本的可复现证据与剩余风险。需要强调的是，本章测试以阶段性工程验证为主，重点确认当前版本的可用性、主要性能边界与已暴露的问题，不等同于生产环境下的长期稳定性验证，也不构成严格意义上的大规模用户实验或公开 benchmark 评测。测试采用如下方法：
+\begin{enumerate}
+  \item \textbf{单元测试}：基于 JUnit 5 + Mockito，验证服务层关键逻辑；
+  \item \textbf{前端流程验证}：基于 Playwright 复跑登录关键链路；
+  \item \textbf{接口验证}：依据可直接复跑的 HTTP 请求检查核心接口流程；
+  \item \textbf{安全检查}：验证未授权访问、越权访问、登录限频等安全行为；
+  \item \textbf{稳定性检查}：通过异常路径和并发冲突场景验证业务幂等。
+\end{enumerate}
+
+\section{测试环境}
 
 \begin{table}[H]
 \centering
-\caption{测试环境配置}
+\caption{测试环境说明}
 \label{tab:test-env}
 \begin{tabular}{ll}
 \toprule
 配置项 & 说明 \\
 \midrule
-服务器     & 4核8GB内存，Windows 11 \\
-数据库     & MySQL 8.0，测试库独立隔离 \\
-测试框架   & JUnit 5 + Mockito（单元）、Postman（接口）\\
-性能测试   & Apache JMeter 5.6 \\
-代码覆盖率 & JaCoCo \\
+操作系统 & Windows 10 Home China 25H2（Build 26200，本地） \\
+CPU / 逻辑核数 & 11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz / 16 \\
+物理内存 & 15.65 GiB \\
+JDK（应用运行时） & 21 \\
+Maven & Maven Wrapper（\texttt{mvnw.cmd}） \\
+数据库 & MySQL 8（Docker） \\
+缓存/消息队列 & Redis 7 / RabbitMQ 3.12（Docker） \\
+测试/压测工具 & JUnit 5、Mockito、Surefire、Apache JMeter 5.5 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\section{单元测试}
+\section{自动化测试复跑结果}
 
-针对核心Service层与工具类编写单元测试，使用Mockito模拟Repository依赖，确保业务逻辑的正确性。
+\subsection{执行命令}
 
-\begin{lstlisting}[language=Java, caption=ClubService单元测试示例]
-@ExtendWith(MockitoExtension.class)
-class ClubServiceTest {
+本轮复跑命令如下：
+\begin{lstlisting}[language=bash, caption=测试执行命令]
+.\mvnw.cmd test -DfailIfNoTests=false
 
-    @Mock
-    private ClubRepository clubRepository;
+cd frontend
+$env:E2E_BASE_URL='http://127.0.0.1:5173'
+npm run test:e2e:ci
 
-    @InjectMocks
-    private ClubServiceImpl clubService;
-
-    @Test
-    void createClub_shouldSaveAndReturnClub() {
-        ClubCreateRequest req = new ClubCreateRequest("测试社团", "文艺", "简介");
-        Club saved = Club.builder().id(1L).name("测试社团").build();
-        when(clubRepository.save(any())).thenReturn(saved);
-
-        ClubDTO result = clubService.createClub(req, 1L);
-
-        assertThat(result.getId()).isEqualTo(1L);
-        verify(clubRepository, times(1)).save(any());
-    }
-
-    @Test
-    void approveClub_withInvalidStatus_shouldThrow() {
-        Club club = Club.builder().id(1L).status(ClubStatus.ACTIVE).build();
-        when(clubRepository.findById(1L)).thenReturn(Optional.of(club));
-
-        assertThatThrownBy(() -> clubService.approveClub(1L, true))
-            .isInstanceOf(BusinessException.class)
-            .hasMessageContaining("状态");
-    }
-}
+cd ..
+powershell -ExecutionPolicy Bypass -File scripts\jmeter\run-paper-benchmarks.ps1
 \end{lstlisting}
 
-主要模块测试覆盖率统计如表~\ref{tab:coverage}所示。
+\subsection{结果汇总}
 
 \begin{table}[H]
 \centering
-\caption{单元测试覆盖率统计}
-\label{tab:coverage}
-\begin{tabular}{lcc}
-\toprule
-模块 & 行覆盖率 & 分支覆盖率 \\
-\midrule
-JwtUtils          & 92\% & 88\% \\
-ClubService       & 85\% & 80\% \\
-ActivityService   & 83\% & 78\% \\
-AuthService       & 90\% & 85\% \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\section{接口测试}
-
-使用Postman对核心接口进行功能测试，覆盖正常场景与异常场景。
-
-\begin{table}[H]
-\centering
-\caption{认证接口测试用例}
+\caption{单元测试结果汇总}
+\label{tab:unit-result}
 \begin{tabular}{llll}
 \toprule
-用例编号 & 测试场景 & 预期结果 & 实际结果 \\
+类型 & 测试对象 & 结果 & 说明 \\
 \midrule
-TC-AUTH-01 & 正确账号密码登录 & 返回AccessToken & 通过 \\
-TC-AUTH-02 & 错误密码登录 & 返回401，失败计数+1 & 通过 \\
-TC-AUTH-03 & 连续失败5次后登录 & 返回429，账户锁定 & 通过 \\
-TC-AUTH-04 & 携带有效Token访问 & 正常返回数据 & 通过 \\
-TC-AUTH-05 & 携带过期Token访问 & 返回401 & 通过 \\
-TC-AUTH-06 & 使用RefreshToken刷新 & 返回新AccessToken & 通过 \\
+后端单元测试 & UserServiceImplTest & 通过（4/4） & 用户注册、密码更新与异常路径正常 \\
+后端单元测试 & AuthControllerTest & 通过（5/5） & 登录限频、密码强度、重置密码与禁用用户 refresh 异常路径正常 \\
+后端单元测试 & ClubServiceImplTest & 通过（3/3） & 审批与强制解散后的角色变更逻辑正常 \\
+后端并发测试 & FinanceServiceImplConcurrencyTest & 通过（1/1） & 财务审批并发控制正常 \\
+后端并发测试 & ResourceServiceImplConcurrencyTest & 通过（1/1） & 资源审批并发控制正常 \\
+后端并发测试 & ActivityServiceImplConcurrencyTest & 通过（1/1） & 活动报名并发保护正常 \\
+前端流程测试 & login-flow.spec.js & 通过（1/1） & 登录点击流程能够跳转至 \texttt{/home} \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\subsection{结果解释与边界}
+
+\begin{enumerate}
+  \item 截至 2026 年 3 月 16 日，2026 年 3 月 13 日复跑的全量 Maven 测试结果与后续定向回归结果保持一致，说明此前文稿中“网关与社团模块存在未通过单元测试”的描述已不再代表当前代码状态；
+  \item 当前自动化回归总计覆盖 6 个 Java 测试类、15 个后端用例与 1 条前端 Playwright 登录流程，主要集中在认证、角色变更与并发约束等关键路径；在此基础上，2026 年 3 月 16 日又补充完成了 1 轮请求级端到端 smoke 复跑，用于验证主要业务闭环；
+  \item 因此，本节可以支撑“当前版本已具备基本可复现的关键路径验证，且主要业务链路能够在本机容器环境下跑通”这一结论，但仍不足以推出“系统已经验证充分”或“质量风险已经完全消除”的更强结论。
+\end{enumerate}
+
+\section{接口与安全验证}
+
+\subsection{认证与权限行为验证}
+
+本节以可直接复跑的 HTTP 请求为主，辅以 \texttt{AuthControllerTest} 中的异常路径单元测试，对认证与权限链路进行工程层面的行为确认；相关结果仅用于说明当前实现是否符合设计预期，不等同于专门渗透测试、漏洞扫描或系统化安全评估。表~\ref{tab:security-smoke} 给出了本轮请求级验证的结果。
 
 \begin{table}[H]
 \centering
-\caption{社团管理接口测试用例}
-\begin{tabular}{llll}
+\caption{认证与权限行为烟测结果}
+\label{tab:security-smoke}
+\begin{tabular}{p{6.2cm}ccp{4.5cm}}
 \toprule
-用例编号 & 测试场景 & 预期结果 & 实际结果 \\
+验证项 & 未登录/普通用户 & 管理员 & 结果说明 \\
 \midrule
-TC-CLUB-01 & 普通用户创建社团申请 & 返回201，状态PENDING & 通过 \\
-TC-CLUB-02 & 管理员审批通过 & 社团状态变为ACTIVE & 通过 \\
-TC-CLUB-03 & 非管理员执行审批 & 返回403 & 通过 \\
-TC-CLUB-04 & 创建同名社团 & 返回400，提示重名 & 通过 \\
-TC-CLUB-05 & 冻结活跃社团 & 状态变为FROZEN & 通过 \\
+\texttt{GET /api/dashboard/stats} & 403 & 200 & 受保护业务接口对未登录请求生效拦截 \\
+\texttt{GET /actuator/prometheus} & 403 & 200 & 监控端点的管理员角色隔离生效 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\section{安全测试}
+此外，\texttt{AuthControllerTest} 已覆盖登录限频、密码强度校验、重置密码验证码异常路径以及“禁用用户 refresh 被拒绝”的回归场景；2026 年 3 月 16 日的请求级 smoke 还验证了管理员禁用用户后，既有 \texttt{access\_token} 请求返回 403、禁用状态下重新登录返回 401、恢复后可以再次正常登录。需要强调的是，本轮仅完成鉴权边界与关键异常分支验证，尚未系统覆盖 CSRF 专项测试、依赖漏洞扫描与渗透测试场景。
 
-\begin{table}[H]
+\subsection{端到端业务链路复跑}
+
+2026 年 3 月 16 日，本文在 Docker Compose 在线运行态重新生成一套 smoke 数据，并将结果留档于 \texttt{paper\_outputs/full-e2e-smoke/run-20260316-092834/}。本轮请求级复跑覆盖了认证全链路（注册、登录、改密、刷新、退出、找回密码、禁用用户令牌失效与恢复）、社团创建审批与成员管理、招新申请与评审、活动创建/报名/签到/导出/删除、系统公告与社团公告、站内通知读取、文件上传、资源申请审批、财务审批、审计日志、AI 聊天、社团解散/恢复/强制解散以及用户退社等关键业务闭环。
+
+这轮复跑表明，当前版本在单机容器环境下已经具备主要功能的可复现端到端运行能力；同时也暴露出若干需要在论文中如实表述的实现语义，例如管理员“删除社团”当前属于状态迁移到 \texttt{DISSOLVED} 的软删除语义，成员移除与退社则通过 \texttt{LEFT} 状态保留历史关系。因此，本节证据更适合支撑“当前原型系统可运行、可复跑、主要业务链路可闭环”的工程结论，而不应外推为长期稳定性、生产级可靠性或完整用户验收结论。
+
+\subsection{前端运行展示（非测试主证据）}
+
+前端行为层面的主要测试证据来自 Playwright 自动化登录流程；本小节截图仅用于说明系统页面能够在本机环境中正常运行，不单独作为“功能已充分验证”的依据。基于本机运行中的前端服务 \texttt{http://localhost:5173/}，本文对首页、登录页与注册页进行了页面访问与截图留档，以展示系统的可运行状态。
+
+\begin{figure}[H]
 \centering
-\caption{安全测试结果}
-\begin{tabular}{lll}
-\toprule
-测试项目 & 测试方法 & 测试结果 \\
-\midrule
-未授权访问     & 不携带Token访问受保护接口 & 返回401，拦截成功 \\
-越权访问       & 普通用户访问管理员接口 & 返回403，拦截成功 \\
-登录限流       & 连续失败登录6次 & 第6次返回429，锁定15分钟 \\
-Token失效      & 登出后使用原Token访问 & 返回401，黑名单生效 \\
-SQL注入        & 在参数中注入SQL语句 & 参数化查询，注入无效 \\
-XSS攻击        & 提交含\texttt{<script>}的内容 & 内容转义，脚本不执行 \\
-\bottomrule
-\end{tabular}
-\end{table}
+\includegraphics[width=0.95\textwidth]{chapters/figures/home.png}
+\caption{系统首页运行截图}
+\label{fig:test-home}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{minipage}[t]{0.48\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{chapters/figures/login.png}
+  \\[4pt]
+  \small (a) 登录页
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.48\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{chapters/figures/register.png}
+  \\[4pt]
+  \small (b) 注册页
+\end{minipage}
+\caption{认证相关页面运行截图}
+\label{fig:test-auth-pages}
+\end{figure}
+
+为进一步验证系统在多角色场景下的前端权限呈现效果，本文使用学生、社团管理员与系统管理员三类测试账号分别完成登录并进入对应页面。运行结果显示，学生账号可进入用户中心查看个人资料、社团申请与个人业务入口；社团管理员账号可进入社团运营总览与数据看板，对所属社团进行运营管理；系统管理员账号可进入管理后台，对社团管理、公告管理、资源审批与审计日志等模块进行统一维护。这表明系统能够依据角色身份加载差异化导航结构与功能面板，前端界面层面的角色隔离与权限分配基本符合预期。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{chapters/figures/student-role.png}
+\caption{学生角色页面运行截图}
+\label{fig:test-student-role}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{minipage}[t]{0.48\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{chapters/figures/club-admin-role.png}
+  \\[4pt]
+  \small (a) 社团管理员仪表盘
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.48\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{chapters/figures/admin-role.png}
+  \\[4pt]
+  \small (b) 系统管理员仪表盘
+\end{minipage}
+\caption{管理角色页面运行截图}
+\label{fig:test-management-roles}
+\end{figure}
+
+\subsection{业务幂等与并发验证}
+
+在活动报名、活动签到、招新终审、资源审批、财务审批等路径中，系统均引入了“唯一约束 + 业务状态校验 + 悲观锁”组合机制。本轮除 JMeter 写接口脚本外，还复跑了 \texttt{FinanceServiceImplConcurrencyTest}、\texttt{ResourceServiceImplConcurrencyTest} 与 \texttt{ActivityServiceImplConcurrencyTest}，三项并发测试均通过。结合 300 并发报名与签到脚本在本轮均保持 0\% 错误率，可以说明当前版本对核心写路径已具备一定并发保护能力，但更高并发、长稳运行与真实多用户竞争场景仍需继续补测。
 
 \section{性能测试}
 
-使用JMeter模拟并发用户对核心接口进行压力测试，测试结果如表~\ref{tab:perf}所示。
+\subsection{测试目标与工具}
+
+性能测试旨在结合既定业务脚本观察系统在并发访问下的响应时间、分位数指标、吞吐量与错误率，为当前版本建立可追踪的工程基线。测试采用 Apache JMeter 5.5 作为压测工具\cite{jmeter_docs}，原始汇总文件、日志与 JTL 报告作为工程补充材料留档，最新结果保存在 \texttt{paper\_outputs/jmeter/run-20260313-122447/}。其中，AI 评估相关代码入口、低强度链路结果与工件清单已在附录“AI 评估工件与复现入口说明”中统一挂载，正文仅整理关键结果。
+
+\subsection{测试场景设计}
+
+本轮 JMeter 补测围绕当前版本中最核心的五条业务链路展开，脚本参数如表~\ref{tab:perf-scenarios} 所示。为降低缓存污染与历史数据干扰，登录、报名和签到场景不做预热；社团列表与 AI 问答场景通过 \texttt{setUp Thread Group} 进行预热。
 
 \begin{table}[H]
 \centering
-\caption{性能测试结果}
-\label{tab:perf}
-\begin{tabular}{lcccc}
+\caption{JMeter 测试场景与脚本参数}
+\label{tab:perf-scenarios}
+\begin{tabular}{p{3cm}p{2.2cm}p{1.8cm}p{2.4cm}p{5.2cm}}
 \toprule
-接口 & 并发数 & 平均响应时间 & 95\%响应时间 & 错误率 \\
+场景 & 并发配置 & Ramp-up & 请求规模 & 说明 \\
 \midrule
-GET /api/clubs（无缓存）   & 100 & 185ms & 320ms & 0\% \\
-GET /api/clubs（有缓存）   & 100 & 12ms  & 25ms  & 0\% \\
-POST /api/auth/login       & 50  & 95ms  & 180ms & 0\% \\
-POST /api/activities/checkin & 100 & 78ms & 150ms & 0\% \\
+用户登录 & 500 线程 & 60s & 2 次循环，共 1000 次请求 & 批量调用登录接口，不设置预热 \\
+社团列表热缓存查询 & 500 线程 & 60s & 10 次循环，共 5000 次请求 & 预热 200 次后访问社团列表，只反映热缓存表现 \\
+活动报名 & 300 线程 & 30s & 共 300 次请求 & 每线程先登录，再对 benchmark activity 发起 1 次报名 \\
+活动签到 & 300 线程 & 30s & 共 300 次请求 & 每线程先登录，再对 benchmark activity 发起 1 次签到 \\
+AI 问答接口 & 20 线程 & 10s & 3 次循环，共 60 次请求 & 预热 5 次后调用 AI 问答链路 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Redis缓存对社团列表查询的性能提升效果显著，响应时间从185ms降至12ms，提升约93\%，验证了缓存策略的有效性。
+\subsection{测试数据规模}
 
-\section{测试结果分析}
+为保证写接口压测具备可重复性，本文对压测数据规模进行固定。补测开始前，系统内共有 485 个用户、22 个社团、164 个活动和 2835 条报名记录；活动报名与签到场景统一使用活动 ID 为 164 的 benchmark activity，压测账号数为 300，签到码为 \texttt{BENCH2026}。其中，写接口样本由脚本在执行前完成准备，以避免与历史报名或签到数据冲突。
 
-经过全面测试，系统各项功能运行稳定，主要结论如下：
+\subsection{测试结果}
+
+在相同脚本条件下，各场景的关键结果如表~\ref{tab:perf-concurrent} 所示。
+
+\begin{table}[H]
+\centering
+\caption{JMeter 补测关键结果}
+\label{tab:perf-concurrent}
+\begin{tabular}{lccccccc}
+\toprule
+场景 & 并发 & 请求数 & 平均(ms) & P95(ms) & P99(ms) & QPS & 错误率 \\
+\midrule
+用户登录 & 500 & 1000 & 84.08 & 98 & 117 & 16.84 & 0\% \\
+社团列表（热缓存） & 500 & 5000 & 6.24 & 10 & 13 & 83.43 & 0\% \\
+活动报名 & 300 & 300 & 33.35 & 43 & 109 & 10.20 & 0\% \\
+活动签到 & 300 & 300 & 31.90 & 46 & 60 & 10.18 & 0\% \\
+AI 问答 & 20 & 60 & 68170.18 & 90016 & 90017 & 0.22 & 65\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+结合表~\ref{tab:perf-concurrent} 可得到以下观察：
+\begin{enumerate}
+  \item 在当前脚本下，登录、社团列表热缓存查询、活动报名与活动签到四类核心业务接口均未出现错误，说明非 AI 业务链路在本轮单节点补测中表现稳定；
+  \item 社团列表查询的 6.24ms 平均响应时间仅对应热缓存场景，不能直接外推为冷缓存、缓存失效或数据规模进一步扩张后的表现；
+  \item 活动报名与签到属于写接口，但在 300 并发脚本下平均响应时间仍分别控制在 33.35ms 和 31.90ms，表明当前版本的唯一约束与并发控制机制未在本轮样本中引发明显性能退化；
+  \item AI 问答场景共发起 60 次请求，其中 21 次返回 200，另外 39 次表现为 \texttt{SocketTimeoutException} 超时；其平均响应时间约为 68.17s，P95 接近 90s，说明当前 AI 问答链路仍是系统最突出的性能瓶颈。
+\end{enumerate}
+
+\subsubsection{覆盖边界与未覆盖项}
+
+需要说明的是，本轮补测主要覆盖短时并发脚本，并未执行持续 30 分钟的长稳压测，也未对 CPU、内存、连接池等资源指标进行系统化时间序列记录。因此，本文不再报告“30 分钟持续压测资源使用情况”等定量结论；相关内容需在后续结合 Prometheus 指标与更长时间的 soak test 单独补做。
+
+\subsection{性能现象与优化启示}
+
+本轮补测未设计“关闭缓存”或“取消索引/锁策略”的 A/B 对照脚本，因此本文不再给出“优化前/优化后提升百分比”的定量表述。结合接口实现与压测现象，可归纳出以下工程启示：
 
 \begin{enumerate}
-  \item 所有核心功能接口测试通过率100\%，异常场景均能正确处理并返回规范错误信息；
-  \item 安全防护机制有效，登录限流、Token黑名单、权限控制均按预期工作；
-  \item 在100并发用户场景下，核心接口响应时间满足200ms以内的设计要求；
-  \item Redis缓存策略显著提升了高频查询接口的性能表现。
+  \item 社团列表在热缓存场景下平均响应时间仅为 6.24ms，说明 Redis 缓存在重复读取场景中对降低查询时延具有明显作用；
+  \item 报名与签到写接口虽然涉及数据库写入、状态校验与并发控制，但在当前 300 并发脚本下仍保持了较低延迟和 0\% 错误率，说明现有业务锁与唯一约束策略具备一定工程可行性；
+  \item AI 问答链路的高延迟与高超时率已成为整体体验短板，后续优化重点应放在外部模型调用、超时配置、流式返回与降级兜底策略上，而非继续夸大其当前吞吐表现。
+\end{enumerate}
+
+\section{对比分析与补充评估}
+
+\subsection{研究问题与需求-验证对应}
+
+为避免将“已实现”直接等同于“已充分验证”，本文将绪论中的研究问题与第三章关键需求按当前证据口径归纳如表~\ref{tab:rq-requirement-evidence} 所示。这里区分“已有直接测试证据”“已有实现与局部观察”“仍需后续专项验证”三类情况，以便明确本文结论的适用边界。
+
+\begin{table}[H]
+\centering
+\small
+\caption{研究问题与关键需求的当前证据边界}
+\label{tab:rq-requirement-evidence}
+\begin{tabular}{p{2.8cm}p{3.2cm}p{3.8cm}p{3.6cm}}
+\toprule
+研究问题/需求 & 验证方式 & 当前证据 & 结论边界 \\
+\midrule
+模块化单体支撑全生命周期业务 & 需求覆盖检查、模块实现说明、关键路径自动化复跑 & 八大模块已实现，关键认证与业务路径可复跑 & 仅能说明当前原型在既定场景下可运行，尚未验证多实例与长期运行能力 \\
+认证控制与角色隔离 & 接口烟测、认证异常路径单元测试 & 受保护接口与监控端点的角色隔离生效，登录限频/密码校验已有回归保护 & 当前证据仅覆盖权限边界与异常路径，不等同于完整安全测评，尚缺 CSRF 专项测试、漏洞扫描与渗透测试 \\
+实时签到广播 & 实现说明、前端运行截图、活动链路压测 & WebSocket 广播链路已接入活动签到流程，签到接口在既定脚本下稳定 & 尚未单独量化端到端推送时延、弱网场景与连接抖动恢复能力 \\
+异步通知可用性 & 架构实现说明、功能流程验证 & RabbitMQ + 落库 + 前端轮询链路已实现，满足非关键通知异步送达设计 & 尚未补充端到端通知时延、积压恢复与失败注入测试 \\
+AI 问答的上下文与降级可用性 & 功能实现、样例观察、问答题集聚合统计、低强度链路补测 & 已实现会话式问答入口，并观察到其在当前知识库范围内具有一定原型可用性 & 200 题结果目前仅有聚合统计，尚未提供逐题判定表与题集原文，不具备独立复算条件，不能外推为成熟能力 \\
+推荐冷启动兜底 & 同批用户模式对比、返回稳定性统计 & cf/cb/hybrid 在 300 名用户上均实现非空返回，说明兜底策略保证了结果可返回 & 只能说明 returnability 与排序差异，不能证明相关性质量更优 \\
+可观测性 & 监控端点烟测、实现说明 & \texttt{/actuator/prometheus} 权限控制与指标暴露链路已验证可用 & 尚未进行告警演练、长期时序分析与运维响应验证 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{AI 功能阶段性评估}
+
+在解释 AI 模块结果前，需要说明：本节评估主要服务于工程可用性验证，题集、基线与样例场景均来源于当前项目环境，文中暂未给出公开 benchmark、多评审者一致性标注或在线 A/B 试验流程。因此，以下结果仅反映当前版本在既定知识库和样例数据下的阶段性表现，不宜直接外推为具有普适性的学术结论，也不构成可替代标准评测流程的独立证据。
+
+其中，可直接复现的在线链路与性能工件已在附录中统一挂载；200 题人工核验目前仍仅保留聚合统计，仓库内尚未包含逐题判定表与题集原文。相较之下，2026 年 3 月 13 日补充完成的推荐模式对比已经保留 \texttt{compare\_summary}、\texttt{summary\_records}、\texttt{ranking\_records} 与统一口径的 \texttt{ranking\_records\_top5} 等机器可读记录，可用于复现本节推荐部分的同批用户横向比较。即便如此，由于当前仍缺少相关性人工标注、点击/转化日志与在线 A/B 试验，本节结果仍应被理解为阶段性工程观察，而非可直接外推的算法优越性结论。
+
+\subsubsection{问答系统内部聚合观察}
+
+本文基于项目内部自建题集开展了 200 个问题的阶段性核验，问题涵盖社团信息查询、活动咨询、规章制度等场景。问答正确性采用人工核验方式统计：若回答覆盖问题核心事实且不存在关键性错误，则记为正确；关键词搜索基线使用同一知识库的关键词检索结果进行人工对照。由于当前版本尚未报告多评审者一致性、更细粒度误差分类以及逐题判定留档，本节结果更适合作为内部人工核验的聚合观察，用于说明系统在既定知识库范围内的阶段性可用性，而非标准准确率评测。
+
+\begin{table}[H]
+\centering
+\caption{AI 问答系统内部人工核验聚合结果}
+\label{tab:ai-qa-accuracy}
+\begin{tabular}{lccc}
+\toprule
+问题类型 & 问题数量 & 正确回答数 & 准确率 \\
+\midrule
+社团基本信息 & 50 & 47 & 94.0\% \\
+活动时间地点 & 50 & 45 & 90.0\% \\
+招新流程规则 & 50 & 42 & 84.0\% \\
+财务资源政策 & 50 & 41 & 82.0\% \\
+\midrule
+\textbf{总计} & \textbf{200} & \textbf{175} & \textbf{87.5\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+从本轮人工核验结果看，在当前知识库与题集范围内，RAG 问答系统在社团基本信息查询上表现最好（94\%），在政策类问题上相对较弱（82\%）。按当前聚合统计口径计算，总体观察值为 87.5\%，高于本文设置的关键词检索基线（约 62\%）；但该结果目前仅有聚合统计支撑，仓库尚未提供逐题判定表与题集原文，因此更适合作为内部阶段性观察，而非可独立复算的 benchmark 结论。这说明该问答链路在当前项目场景下具备一定辅助问答能力，但其泛化能力、误差边界与可复现性仍需通过更标准化的评估流程进一步验证。
+
+除题集人工核验外，本文还参考了 2026 年 3 月 13 日的低强度在线链路脚本结果：在 5 并发、10 次请求条件下，AI 问答仍出现 1 次超时，错误率为 10\%，平均响应时间为 39.58s。该结果说明 AI 链路的时延问题并非仅在高并发场景下出现，更适合作为“阶段性可用但仍不稳定”的工程观察，而非成熟能力证明。
+
+\subsubsection{推荐策略阶段性观察}
+
+为修正前文仅基于样例观察的写法，本文补充采用同一批 \texttt{users.csv} 中的 300 个测试用户，于 2026 年 3 月 13 日分别运行协同过滤（cf）、内容推荐（cb）与混合推荐（hybrid）三种模式。汇总结果来自 \texttt{compare\_summary.csv/json}；排序对比统一使用三个模式各自的 \texttt{ranking\_records\_top5.csv/json}。需要说明的是，\texttt{hybrid} 原始返回中有 6 个用户拿到了 10 条结果，因此其原始 \texttt{ranking\_records} 共 1530 行；为保证同口径比较，以下排序分析均以统一裁剪后的 Top-5 文件为准。当前这组对比能够支撑的主要是服务可用性、返回稳定性与排序结构差异，尚不能据此证明推荐相关性优于其他模式，因为仓库中仍缺少显式相关性标签与真实点击/转化日志。
+
+\begin{table}[H]
+\centering
+\caption{同批 300 个测试用户下的推荐模式对比结果}
+\label{tab:recommendation-comparison}
+\begin{tabular}{lccccc}
+\toprule
+模式 & 测试用户数 & 成功用户数 & 非空结果用户数 & 平均耗时(ms) & 同口径 Top-5 记录数 \\
+\midrule
+cf & 300 & 300 & 300 & 273.02 & 1500 \\
+cb & 300 & 300 & 300 & 276.88 & 1500 \\
+hybrid & 300 & 300 & 300 & 280.46 & 1500 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+进一步统计标准化 Top-5 输出可见，三种模式均在 300 名用户上形成 1500 条同口径排序记录，且都涉及 22 个社团，说明当前样本下三种策略都能够稳定覆盖现有候选集合。若以每个用户 Top-5 中不同社团类别数作为粗粒度多样性代理指标，则纯协同过滤的人均不同类别数为 3.52，高于纯内容推荐的 2.58；混合推荐为 2.79，位于两者之间。就模式间重合度而言，hybrid 与 cb 在 300 名用户中有 60 名用户的 Top-5 完全一致，Top-5 集合平均重合率为 87.20\%；hybrid 与 cf 的对应数值分别为 23 和 75.73\%，说明当前融合结果整体更接近内容侧排序，但并非对 cb 的简单复制。
+
+从当前版本的同批用户对比结果看：
+\begin{enumerate}
+  \item 在相同 300 个测试用户上，cf、cb 与 hybrid 三种模式均实现了 300/300 成功和 300/300 非空返回，平均耗时仅在 273.02ms 到 280.46ms 之间波动，说明混合策略在当前实现下未带来明显的服务可用性损失；
+  \item 统一为 Top-5 后，hybrid 的排序结构位于 cf 与 cb 之间，且与 cb 的重合度更高，说明当前加权融合结果已经对输出排序产生实质影响，而不是简单退化为纯协同过滤或纯内容推荐；
+  \item 由于当前仍缺少显式相关性标签、点击日志与在线转化数据，本轮对比只能支持“可返回、可比较、结构有差异”的工程结论，尚不能据此宣称 hybrid 在推荐质量上优于 cf 或 cb。
+\end{enumerate}
+
+\section{测试结论与改进建议}
+
+\subsection{当前测试结论}
+
+\begin{enumerate}
+  \item 本轮自动化复跑中，6 个后端测试类共 14 个用例与 1 条前端 Playwright 登录流程均已通过，说明关键回归路径在当前版本中具备基本可复现性；
+  \item 鉴权烟测显示，未登录访问受保护接口返回 403，普通用户访问管理员监控端点返回 403，而管理员访问同一端点返回 200，说明所选代表性权限边界在当前版本下有效；但该结论仅覆盖权限边界烟测，不等同于完整安全测评；
+  \item 并发测试与 300 并发写接口脚本均未发现重复写入导致的接口错误，表明当前版本对核心写路径具备一定并发保护能力；
+  \item JMeter 补测为当前单节点环境建立了新的阶段性性能基线，但该基线仅对应既定脚本与当前数据规模，尚不能替代长期运行验证与多实例场景评估；
+  \item AI 模块在内部问答核验与同批 300 用户的推荐模式对比中均表现出一定原型可用性；其中 cf、cb 与 hybrid 三种推荐模式均实现 300/300 成功和非空返回，平均耗时分别为 273.02ms、276.88ms 与 280.46ms；但 AI 问答链路仍存在明显时延与超时问题，且 200 题结果目前仅有聚合统计，推荐模块也仍缺少带标签的相关性验证与在线行为证据，因此该部分结论应限定为阶段性工程观察。
+\end{enumerate}
+
+\subsection{改进建议}
+
+\begin{enumerate}
+  \item 统一维护测试基线，业务逻辑变更时同步更新测试桩；
+  \item 将当前关键用例纳入 CI 流水线，防止回归问题长期累积；
+  \item 增补集成测试（含 MySQL/Redis/RabbitMQ）以验证真实依赖交互；
+  \item 增加性能压测脚本与基线数据，形成可追踪的性能演进记录；
+  \item 为 AI 模块补充标准化评估协议，包括题集构建规范、人工标注一致性要求以及推荐实验脚本。
 \end{enumerate}

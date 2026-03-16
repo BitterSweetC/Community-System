@@ -104,7 +104,6 @@ onMounted(() => {
   loadMyClubs()
 })
 </script>
-
 <style scoped>
 .admin-layout {
   height: 100vh;
@@ -477,3 +476,5 @@ onMounted(() => {
   }
 }
 </style>
+
+

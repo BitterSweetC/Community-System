@@ -4,6 +4,7 @@ import com.cloud.community.club.service.FinanceService;
 import com.cloud.community.core.entity.Club;
 import com.cloud.community.core.entity.ClubFinance;
 import com.cloud.community.core.exception.BusinessException;
+import com.cloud.community.core.metrics.BusinessMetricsService;
 import com.cloud.community.core.repository.ClubFinanceRepository;
 import com.cloud.community.core.repository.ClubRepository;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,7 @@ public class FinanceServiceImpl implements FinanceService {
 
     private final ClubFinanceRepository financeRepository;
     private final ClubRepository clubRepository;
+    private final BusinessMetricsService metricsService;
 
     @Override
     public boolean hasPendingTransactions(Long clubId) {
@@ -56,6 +58,7 @@ public class FinanceServiceImpl implements FinanceService {
         transaction.setStatus("APPROVED");
         transaction.setApproverId(approverId);
         financeRepository.save(transaction);
+        metricsService.recordApprovalHandled("finance", "approved", transaction.getCreatedAt());
 
         // Lock club to safely update balance
         Club club = clubRepository.findByIdForUpdate(transaction.getClubId())
@@ -86,6 +89,7 @@ public class FinanceServiceImpl implements FinanceService {
         transaction.setStatus("REJECTED");
         transaction.setApproverId(approverId);
         financeRepository.save(transaction);
+        metricsService.recordApprovalHandled("finance", "rejected", transaction.getCreatedAt());
     }
 
     @Override

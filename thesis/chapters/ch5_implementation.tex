@@ -3,321 +3,1338 @@
 % ============================================================
 \chapter{系统实现}
 
-\section{开发环境与工具}
+\section{实现说明边界与项目结构}
+
+本章仅保留与研究问题直接相关的实现机制说明，用于解释系统为何能够形成可运行原型以及第六章测试环境的来源。IDE 使用偏好、完整部署手册与逐项操作指南并非本文的论证重点，因此只保留与复现直接相关的最小信息。
+
+\subsection{开发环境配置}
+
+为说明代码运行边界，表中列出当前原型实现所依赖的核心环境。这里给出的重点是与复现直接相关的版本约束，而不是完整的安装教程或工具推荐。
 
 \begin{table}[H]
 \centering
-\caption{开发环境配置}
+\caption{实现相关环境概览}
 \begin{tabular}{ll}
 \toprule
 环境/工具 & 版本/说明 \\
 \midrule
-操作系统     & Windows 11 / Linux (部署) \\
-JDK          & OpenJDK 17 \\
-Maven        & 3.9.x \\
-Node.js      & 20.x LTS \\
-Python       & 3.11 \\
-IDE          & IntelliJ IDEA 2024 \\
-数据库       & MySQL 8.0 \\
-缓存         & Redis 7.x \\
-消息队列     & RabbitMQ 3.12 \\
+操作系统 & Windows 11（开发）/ Linux 容器（部署） \\
+JDK & 17（构建镜像阶段使用 JDK 21） \\
+Maven & 3.9.x（Maven Wrapper） \\
+Node.js & 20.x LTS \\
+Python & 3.11 \\
+数据库 & MySQL 8.0 \\
+缓存 & Redis 7.x \\
+消息队列 & RabbitMQ 3.12 \\
+IDE & IntelliJ IDEA 2024 / VS Code \\
+版本控制 & Git 2.40+ \\
+容器化 & Docker 24.x / Docker Compose 2.x \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-项目目录结构如下：
+从实现角度看，JDK 17/Spring Boot 3.x 负责业务主链路，Node.js 20 与 Vite 支撑前端构建，Python 3.11 承载 AI 服务，MySQL/Redis/RabbitMQ 组成主要依赖，Docker Compose 用于统一复现单节点运行环境。保留这些信息的目的，是说明后续测试结果所依赖的运行边界，而不是比较不同开发工具或版本选择的优劣。
+
+\subsection{项目目录结构}
+
+项目采用 Maven 多模块组织 Java 侧代码，并将前端、AI 服务与运行支撑独立分层。下述目录树仅作为结构示意，本文更关注模块职责分工及其与研究问题的对应关系，而非逐级文件树说明。
 
 \begin{lstlisting}[caption=项目目录结构]
 Community/
-├── community-core/        # 共享库：实体、Repository、JWT、邮件
-├── community-gateway/     # 入口：Controller、Security配置
-├── community-club/        # 社团业务模块
-├── community-user/        # 用户业务模块
-├── community-activity/    # 活动业务模块
-├── community-recruit/     # 招募业务模块
-├── community-notice/      # 通知业务模块
-├── community-admin/       # 管理员业务模块
-├── frontend/              # Vue 3 前端
-├── agent/                 # Python AI服务
-├── monitoring/            # Prometheus/Grafana配置
-└── docker-compose.yml
+├── community-core/        # 核心模块：实体类、仓储接口、通用工具
+├── community-gateway/     # 网关模块：应用启动入口、认证过滤器、统一配置
+├── community-user/        # 用户模块：用户管理、权限服务
+├── community-club/        # 社团模块：社团CRUD、成员管理、资源财务、AI聊天
+├── community-activity/    # 活动模块：活动管理、报名、签到
+├── community-recruit/     # 招新模块：招新批次、表单字段、申请审核
+├── community-notice/      # 通知模块：公告发布、站内通知、消息消费
+├── community-admin/       # 管理模块：系统管理、审计日志
+├── frontend/              # 前端项目：Vue 3 单页应用
+│   ├── src/
+│   │   ├── components/    # 可复用组件
+│   │   ├── views/         # 页面组件
+│   │   ├── stores/        # Pinia 状态管理
+│   │   ├── router/        # 路由配置
+│   │   └── api/           # API 接口封装
+│   └── package.json
+├── agent/                 # AI 服务：FastAPI + RAG + 推荐算法
+│   ├── main.py            # FastAPI 应用入口
+│   ├── rag.py             # RAG 问答服务
+│   ├── recommendation.py  # 推荐算法实现
+│   └── requirements.txt   # Python 依赖
+├── docs/                  # 项目文档
+├── scripts/               # 脚本文件（数据库初始化、数据生成等）
+├── monitoring/            # 监控配置（Prometheus 配置文件）
+├── docker-compose.yml     # Docker Compose 编排文件
+└── pom.xml                # Maven 父 POM
 \end{lstlisting}
 
-\section{后端核心功能实现}
+\subsection{模块职责划分}
 
-\subsection{JWT 认证模块实现}
+各模块的职责划分遵循单一职责原则和领域驱动设计思想：
 
-JWT工具类负责Token的生成与解析，核心实现如下：
+\begin{enumerate}
+  \item \textbf{community-core}：核心模块，定义了所有的 JPA 实体类（User、Club、Activity 等）、Repository 接口、统一返回结构（Result、PageResult）、JWT 工具类、OSS 文件上传服务、邮件发送服务等通用能力。该模块被所有业务模块依赖，确保数据模型和基础能力的一致性。
 
-\begin{lstlisting}[language=Java, caption=JwtUtils核心方法]
-@Component
-public class JwtUtils {
-    @Value("${jwt.secret}")
-    private String secret;
+  \item \textbf{community-gateway}：网关模块，作为整个应用的启动入口，包含 Spring Boot 主类、Spring Security 配置、JWT 过滤器、全局异常处理器、CORS 配置、WebSocket 配置等。该模块聚合了所有业务模块，最终打包为可执行的 JAR 文件。
 
-    @Value("${jwt.access-token-expiry:7200}")
-    private long accessTokenExpiry;  // 2小时
+  \item \textbf{community-user}：用户模块，负责用户注册、登录、个人信息管理、密码修改等功能。该模块还包含权限服务（PermissionService），用于校验用户在社团内的权限。
 
-    public String generateAccessToken(Long userId, String role) {
-        return Jwts.builder()
-            .subject(String.valueOf(userId))
-            .claim("role", role)
-            .issuedAt(new Date())
-            .expiration(new Date(System.currentTimeMillis()
-                + accessTokenExpiry * 1000))
-            .signWith(getSignKey())
-            .compact();
-    }
+  \item \textbf{community-club}：社团模块，是系统的核心业务模块之一，负责社团的创建、审批、查询、推荐、成员管理、解散流程等。该模块还包含资源申请、财务管理、AI 聊天入口等功能。
 
-    public Claims parseToken(String token) {
-        return Jwts.parser()
-            .verifyWith(getSignKey())
-            .build()
-            .parseSignedClaims(token)
-            .getPayload();
-    }
+  \item \textbf{community-activity}：活动模块，负责活动的创建、查询、报名、签到、签到记录导出等功能。该模块通过 WebSocket 实现签到人数的实时广播。
+
+  \item \textbf{community-recruit}：招新模块，负责招新批次管理、动态表单字段配置、报名申请、初审终审流程等。该模块实现了复杂的并发控制逻辑，确保名额不超发。
+
+  \item \textbf{community-notice}：通知模块，负责公告的发布与查询、站内通知的生成与推送。该模块作为 RabbitMQ 消息的消费者，异步接收其他模块发送的通知消息并落库。
+
+  \item \textbf{community-admin}：管理模块，负责系统管理员的审批功能（社团审批、解散审批）、审计日志查询、统计数据接口等。
+
+  \item \textbf{frontend}：前端项目，基于 Vue 3 + Vite 构建的单页应用，包含学生端和管理端的所有页面。前端通过 Axios 调用后端 RESTful API，通过 Pinia 管理全局状态，通过 Vue Router 实现路由和权限控制。
+
+  \item \textbf{agent}：AI 服务，独立于 Java 主应用的 Python 服务，使用 FastAPI 框架提供 RESTful 接口。该服务实现了基于 RAG 的知识问答和基于协同过滤的社团推荐功能。
+\end{enumerate}
+
+这种模块化设计使得各业务领域的代码职责清晰，降低了模块间的耦合度，便于团队协作开发和后续维护。
+
+\section{认证与权限实现}
+
+\subsection{认证机制设计与实现}
+
+系统的认证机制是保障用户身份安全的核心组件。本系统采用 JWT（JSON Web Token）结合 HttpOnly Cookie 和 Redis 会话管理的混合认证方案，既保留了 JWT 的无状态优势，又实现了服务端主动失效的能力。
+
+\subsubsection{JWT 令牌生成流程}
+
+用户登录成功后，系统生成两个 JWT 令牌：Access Token（有效期 1 小时）和 Refresh Token（有效期 24 小时）。令牌生成过程包括以下步骤：
+
+\begin{enumerate}
+  \item 用户提交用户名和密码到登录接口 \texttt{/api/auth/login}；
+  \item 后端使用 Spring Security 的 AuthenticationManager 验证用户凭据；
+  \item 验证通过后，使用 HMAC SHA256 算法生成 JWT 令牌，载荷中包含用户名、角色等信息；
+  \item 将 Access Token 和 Refresh Token 分别写入 HttpOnly Cookie，防止 JavaScript 访问；
+  \item 同时将 Access Token 写入 Redis，键名为 \texttt{auth:token:\{jwt\}}，过期时间与令牌一致；
+  \item 返回用户基本信息给前端，前端保存到 Pinia 状态管理。
+\end{enumerate}
+
+HttpOnly Cookie 的使用有效防止了 XSS 攻击窃取令牌，而 Redis 会话管理则使得系统可以主动使令牌失效（如用户登出、管理员强制下线等场景）。
+
+\subsubsection{JWT 过滤器实现}
+
+系统通过自定义的 JwtAuthenticationFilter 拦截所有 HTTP 请求，执行令牌验证和用户身份注入。过滤器继承自 OncePerRequestFilter，确保每个请求只执行一次过滤逻辑。验证流程如下：
+
+\begin{enumerate}
+  \item 从请求的 Cookie 中提取 \texttt{access\_token}，如果不存在则尝试从 Authorization 请求头中提取（兼容非浏览器客户端）；
+  \item 检查 Redis 中是否存在对应的会话键，如果不存在说明令牌已被服务端主动失效；
+  \item 进行 JWT 签名验证和过期时间验证；
+  \item 验证通过后，从令牌中提取用户名，加载用户详情和权限信息；
+  \item 将用户身份信息注入到 Spring Security 的 SecurityContext 中；
+  \item 放行请求，后续的业务逻辑可以通过 SecurityContextHolder 获取当前用户信息。
+\end{enumerate}
+
+\begin{lstlisting}[language=Java, caption=JWT 过滤器关键逻辑（节选）]
+String jwt = extractToken(request); // 优先 access_token Cookie
+if (jwt == null) {
+    filterChain.doFilter(request, response);
+    return;
+}
+
+if (Boolean.FALSE.equals(redisTemplate.hasKey("auth:token:" + jwt))) {
+    filterChain.doFilter(request, response);
+    return;
+}
+
+String username = jwtUtils.extractUsername(jwt);
+UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+if (jwtUtils.isTokenValid(jwt, userDetails)) {
+    UsernamePasswordAuthenticationToken authToken =
+        new UsernamePasswordAuthenticationToken(
+            userDetails, null, userDetails.getAuthorities());
+    SecurityContextHolder.getContext().setAuthentication(authToken);
 }
 \end{lstlisting}
 
-JWT过滤器在每次请求时从\texttt{Authorization}头提取Token并验证：
+\subsubsection{令牌刷新机制}
 
-\begin{lstlisting}[language=Java, caption=JwtAuthenticationFilter核心逻辑]
-@Override
-protected void doFilterInternal(HttpServletRequest request,
-        HttpServletResponse response, FilterChain chain)
-        throws ServletException, IOException {
-    String token = extractToken(request);
-    if (token != null && !tokenBlacklist.isBlacklisted(token)) {
-        Claims claims = jwtUtils.parseToken(token);
-        Long userId = Long.valueOf(claims.getSubject());
-        String role = claims.get("role", String.class);
-        UsernamePasswordAuthenticationToken auth =
-            new UsernamePasswordAuthenticationToken(
-                userId, null,
-                List.of(new SimpleGrantedAuthority("ROLE_" + role)));
-        SecurityContextHolder.getContext().setAuthentication(auth);
+当 Access Token 过期后，前端无需让用户重新登录，而是通过 Refresh Token 自动刷新 Access Token。刷新流程如下：
+
+\begin{enumerate}
+  \item 前端检测到 API 返回 401 错误（令牌过期）；
+  \item 自动调用 \texttt{/api/auth/refresh} 接口，浏览器自动携带 Refresh Token Cookie；
+  \item 后端验证 Refresh Token 的有效性；
+  \item 生成新的 Access Token，写入 Cookie 和 Redis；
+  \item 前端使用新令牌重试之前失败的请求。
+\end{enumerate}
+
+这种机制在保证安全性的同时，提升了用户体验，避免了频繁登录的困扰。
+
+\subsubsection{登出实现}
+
+用户登出时，系统需要清理所有认证相关的状态：
+
+\begin{enumerate}
+  \item 前端调用 \texttt{/api/auth/logout} 接口；
+  \item 后端从 Cookie 中提取 Access Token 和 Refresh Token；
+  \item 删除 Redis 中对应的会话键 \texttt{auth:token:\{jwt\}}；
+  \item 清除 Cookie（设置 MaxAge 为 0）；
+  \item 前端清除 Pinia 中的用户状态，重定向到登录页。
+\end{enumerate}
+
+通过删除 Redis 会话键，即使令牌尚未过期，也无法通过 JWT 过滤器的验证，实现了即时下线的效果。
+
+\subsection{登录失败限流实现}
+
+为了防止暴力破解攻击，系统对登录接口实现了基于 Redis 的失败计数限流机制。限流策略为：15 分钟窗口内，同一用户名或同一 IP 地址超过 10 次登录失败，将被限制登录 15 分钟。
+
+实现逻辑如下：
+
+\begin{lstlisting}[language=Java, caption=登录失败限流逻辑（节选）]
+private static final int MAX_ATTEMPTS = 10;
+private static final Duration LOCKOUT_DURATION = Duration.ofMinutes(15);
+
+public void checkLoginAttempts(String username, String ip) {
+    String userKey = "login:fail:" + username;
+    String ipKey = "login:fail:ip:" + ip;
+
+    Long userAttempts = redisTemplate.opsForValue().get(userKey);
+    Long ipAttempts = redisTemplate.opsForValue().get(ipKey);
+
+    if ((userAttempts != null && userAttempts >= MAX_ATTEMPTS) ||
+        (ipAttempts != null && ipAttempts >= MAX_ATTEMPTS)) {
+        throw new BusinessException(429, "登录失败次数过多，请15分钟后再试");
     }
-    chain.doFilter(request, response);
+}
+
+public void recordLoginFailure(String username, String ip) {
+    String userKey = "login:fail:" + username;
+    String ipKey = "login:fail:ip:" + ip;
+
+    redisTemplate.opsForValue().increment(userKey);
+    redisTemplate.expire(userKey, LOCKOUT_DURATION);
+
+    redisTemplate.opsForValue().increment(ipKey);
+    redisTemplate.expire(ipKey, LOCKOUT_DURATION);
+}
+
+public void clearLoginAttempts(String username, String ip) {
+    redisTemplate.delete("login:fail:" + username);
+    redisTemplate.delete("login:fail:ip:" + ip);
 }
 \end{lstlisting}
 
-\subsection{社团管理模块实现}
+这种限流机制有效降低了暴力破解的风险，同时通过 Redis 的过期机制自动解除限制，无需额外的定时任务清理。
 
-社团生命周期通过状态机模式管理，状态转换如图~\ref{fig:club-state}所示。
+\subsection{业务权限服务实现}
+
+系统除了使用 Spring Security 的方法级注解（如 \texttt{@PreAuthorize}）外，还实现了 \texttt{PermissionService} 统一校验业务权限。该服务主要用于校验用户在特定社团内的操作权限。
+
+\subsubsection{权限校验规则}
+
+系统的权限分为两个层级：
+
+\begin{enumerate}
+  \item \textbf{全局权限}：由用户的全局角色决定，如 \texttt{ADMIN}（系统管理员）、\texttt{CLUB\_ADMIN}（社团管理员）等。全局管理员可以绕过社团级权限限制，执行任何操作。
+
+  \item \textbf{社团级权限}：由用户在特定社团内的成员角色决定，包括 \texttt{PRESIDENT}（社长）、\texttt{MANAGER}（管理员）、\texttt{MEMBER}（普通成员）。只有社长和管理员可以执行社团管理操作（如修改社团信息、审批招新申请、管理成员等）。
+\end{enumerate}
+
+权限校验的核心规则包括：
+
+\begin{itemize}
+  \item 系统管理员（\texttt{ADMIN}）可以绕过所有社团级权限限制；
+  \item 社团管理操作需要用户是该社团的成员，且角色为 \texttt{PRESIDENT} 或 \texttt{MANAGER}；
+  \item 写操作（修改、删除）前需要校验社团状态必须为 \texttt{ACTIVE}（活跃状态）；
+  \item 社团解散流程中（\texttt{DISSOLVING} 状态），禁止大部分写操作。
+\end{itemize}
+
+\subsubsection{PermissionService 实现}
+
+\texttt{PermissionService} 提供了多个权限校验方法，供业务层调用：
+
+\begin{lstlisting}[language=Java, caption=PermissionService 关键逻辑（节选）]
+boolean isGlobalAdmin = user.getRoles().stream()
+    .anyMatch(r -> "ADMIN".equals(r.getCode()));
+if (isGlobalAdmin) return;
+
+Member member = memberRepository.findByClubIdAndUserId(clubId, userId)
+    .orElseThrow(() -> new AccessDeniedException("You are not a member"));
+
+if (!"PRESIDENT".equals(member.getRoleCode())
+    && !"MANAGER".equals(member.getRoleCode())) {
+    throw new AccessDeniedException("Insufficient permissions");
+}
+\end{lstlisting}
+
+\section{业务模块实现}
+
+\subsection{社团生命周期管理实现}
+
+社团生命周期管理是系统的核心业务之一，涉及社团的创建、审批、运营、解散等多个阶段。系统通过状态机模式管理社团的生命周期，确保状态流转的正确性和可追溯性。
+
+\subsubsection{社团状态定义}
+
+社团在系统中存在以下五种状态：
+
+\begin{enumerate}
+  \item \textbf{PENDING（待审批）}：社团创建后的初始状态，等待系统管理员审批；
+  \item \textbf{ACTIVE（活跃）}：审批通过后的正常运营状态，可以进行招新、活动等操作；
+  \item \textbf{DISSOLVING（解散中）}：社长申请解散后的过渡状态，进入冷静期或等待管理员审批；
+  \item \textbf{DISSOLVED（已解散）}：解散流程完成，社团不再活跃；
+  \item \textbf{REJECTED（已驳回）}：创建申请被管理员驳回。
+\end{enumerate}
+
+\subsubsection{社团创建与审批流程}
+
+社团创建流程包括以下步骤：
+
+\begin{enumerate}
+  \item 用户填写社团基本信息（名称、简称、类别、简介等）并提交创建申请；
+  \item 系统校验社团名称和简称的唯一性，防止重复创建；
+  \item 创建社团记录，状态设置为 \texttt{PENDING}，创建者自动成为社长（\texttt{PRESIDENT}）；
+  \item 系统管理员在管理后台查看待审批社团列表；
+  \item 管理员审批通过后，社团状态变更为 \texttt{ACTIVE}，创建者获得 \texttt{CLUB\_ADMIN} 全局角色；
+  \item 如果驳回，社团状态变更为 \texttt{REJECTED}，记录驳回原因。
+\end{enumerate}
+
+\begin{lstlisting}[language=Java, caption=社团审批实现（节选）]
+@Transactional
+public void approveClub(Long clubId) {
+    Club club = clubRepository.findById(clubId)
+        .orElseThrow(() -> new RuntimeException(“社团不存在”));
+
+    if (!”PENDING”.equals(club.getStatus())) {
+        throw new BusinessException(40901, “社团状态不是待审批”);
+    }
+
+    club.setStatus(“ACTIVE”);
+    clubRepository.save(club);
+
+    // 为社长添加 CLUB_ADMIN 全局角色
+    Member president = memberRepository.findByClubIdAndRoleCode(
+        clubId, “PRESIDENT”).stream().findFirst()
+        .orElseThrow(() -> new RuntimeException(“未找到社长”));
+
+    User user = president.getUser();
+    Role clubAdminRole = roleRepository.findByCode(“CLUB_ADMIN”)
+        .orElseThrow(() -> new RuntimeException(“角色不存在”));
+
+    if (!user.getRoles().contains(clubAdminRole)) {
+        user.getRoles().add(clubAdminRole);
+        userRepository.save(user);
+    }
+
+    // 发送通知
+    notificationPublisher.publishNotification(
+        user.getId(),
+        “社团审批通过”,
+        “您创建的社团《” + club.getName() + “》已通过审批”,
+        “CLUB_APPROVED”);
+}
+\end{lstlisting}
+
+\subsubsection{社团解散流程实现}
+
+社团解散是一个需要谨慎处理的流程，系统设计了”申请-冷静期-审批”的三阶段机制：
+
+\begin{enumerate}
+  \item \textbf{申请阶段}：社长提交解散申请，填写解散原因，社团状态变更为 \texttt{DISSOLVING}；
+  \item \textbf{冷静期}：系统设置 7 天冷静期，期间社长可以撤回解散申请；
+  \item \textbf{审批阶段}：冷静期结束后或社长确认解散，提交给系统管理员审批；
+  \item \textbf{完成阶段}：管理员审批通过后，社团状态变更为 \texttt{DISSOLVED}，所有成员的 \texttt{CLUB\_ADMIN} 角色被移除。
+\end{enumerate}
+
+需要说明的是，当前实现中的“管理员删除社团”接口复用了强制解散逻辑，因此删除后的社团记录仍可被查询，但状态会变为 \texttt{DISSOLVED}；同样，成员移除与用户退社采用软删除策略，通过将 \texttt{t\_member.status} 标记为 \texttt{LEFT} 保留历史成员关系，便于审计追踪与统计分析。
 
 \begin{figure}[H]
 \centering
 \begin{tikzpicture}[
-  state/.style={draw, rectangle, rounded corners, minimum width=2cm,
-                minimum height=0.7cm, align=center, font=\small},
+  state/.style={draw, rectangle, rounded corners, minimum width=2.2cm, minimum height=0.8cm, align=center, font=\small},
   arr/.style={-Stealth, thick}
 ]
-\node[state, fill=yellow!20] (pending)   at (0,0)   {PENDING\\申请中};
-\node[state, fill=green!20]  (active)    at (3.5,0)  {ACTIVE\\活跃};
-\node[state, fill=orange!20] (frozen)    at (7,0)    {FROZEN\\冻结};
-\node[state, fill=red!20]    (dissolved) at (5,-2)   {DISSOLVED\\解散};
+\node[state, fill=yellow!20] (pending) at (0,0) {PENDING};
+\node[state, fill=green!20] (active) at (3.2,0) {ACTIVE};
+\node[state, fill=orange!20] (dissolving) at (6.4,0) {DISSOLVING};
+\node[state, fill=red!20] (dissolved) at (9.6,0) {DISSOLVED};
 
 \draw[arr] (pending) -- node[above,font=\tiny]{管理员审批通过} (active);
-\draw[arr] (active)  -- node[above,font=\tiny]{管理员冻结} (frozen);
-\draw[arr] (frozen)  -- node[below,font=\tiny]{管理员解冻} (active);
-\draw[arr] (active)  -- node[left,font=\tiny]{解散} (dissolved);
-\draw[arr] (frozen)  -- node[right,font=\tiny]{解散} (dissolved);
-\draw[arr] (pending) -- node[left,font=\tiny]{拒绝} (dissolved);
+\draw[arr] (active) -- node[above,font=\tiny]{申请解散} (dissolving);
+\draw[arr] (dissolving) -- node[above,font=\tiny]{通过解散审批/冷静期结束} (dissolved);
+\draw[arr] (dissolving) to[bend left=28] node[below,font=\tiny]{撤回/驳回} (active);
+\draw[arr] (dissolved) to[bend left=30] node[below,font=\tiny]{恢复社团} (active);
 \end{tikzpicture}
-\caption{社团生命周期状态机}
+\caption{社团状态流转实现}
 \label{fig:club-state}
 \end{figure}
 
-\subsection{活动签到模块实现}
+\subsection{招新模块实现}
 
-签到码生成采用6位随机字母数字组合，存储于活动记录中，签到时验证码有效性与活动状态：
+招新模块是社团管理的核心功能之一，涉及招新批次管理、动态表单配置、报名申请、多级审核等复杂业务逻辑。该模块的实现重点在于并发控制和状态机管理。
 
-\begin{lstlisting}[language=Java, caption=签到码生成与验证]
-// 生成签到码
-public String generateCheckinCode() {
-    String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    return IntStream.range(0, 6)
-        .mapToObj(i -> String.valueOf(
-            chars.charAt(ThreadLocalRandom.current().nextInt(chars.length()))))
-        .collect(Collectors.joining());
-}
+\subsubsection{招新批次与动态表单}
 
-// 签到验证
+招新批次（RecruitBatch）定义了一次招新活动的基本信息，包括标题、描述、开始时间、结束时间、招新名额等。每个批次可以配置多个自定义表单字段（RecruitFormField），实现灵活的报名信息收集。
+
+动态表单字段支持以下类型：
+
+\begin{itemize}
+  \item \textbf{TEXT}：单行文本输入；
+  \item \textbf{TEXTAREA}：多行文本输入；
+  \item \textbf{SELECT}：单选下拉框；
+  \item \textbf{RADIO}：单选按钮组；
+  \item \textbf{CHECKBOX}：多选框组；
+  \item \textbf{DATE}：日期选择器。
+\end{itemize}
+
+每个字段可以设置是否必填、选项列表（针对选择类字段）、排序顺序等属性。前端根据字段配置动态渲染表单，后端将用户填写的数据以 JSON 格式存储在 \texttt{form\_data} 字段中。
+
+\begin{lstlisting}[language=Java, caption=创建招新批次与表单字段（节选）]
 @Transactional
-public void checkin(Long userId, String code) {
-    Activity activity = activityRepository
-        .findByCheckinCode(code)
-        .orElseThrow(() -> new BusinessException("签到码无效"));
+public RecruitBatch createRecruitBatch(RecruitBatchRequest request) {
+    Club club = clubRepository.findById(request.getClubId())
+        .orElseThrow(() -> new RuntimeException(“社团不存在”));
 
-    if (activity.getStatus() != ActivityStatus.IN_PROGRESS) {
-        throw new BusinessException("活动未在进行中");
+    // 校验权限和社团状态
+    permissionService.requireClubManager(club.getId());
+    if (!”ACTIVE”.equals(club.getStatus())) {
+        throw new BusinessException(40902, “社团状态不是活跃状态”);
     }
-    if (attendanceRepository.existsByUserIdAndActivityId(userId, activity.getId())) {
-        throw new BusinessException("请勿重复签到");
+
+    RecruitBatch batch = new RecruitBatch();
+    batch.setClub(club);
+    batch.setTitle(request.getTitle());
+    batch.setDescription(request.getDescription());
+    batch.setStartTime(request.getStartTime());
+    batch.setEndTime(request.getEndTime());
+    batch.setQuota(request.getQuota());
+    batch.setStatus(“OPEN”);
+
+    RecruitBatch savedBatch = recruitBatchRepository.save(batch);
+
+    // 创建表单字段
+    if (request.getFormFields() != null) {
+        for (FormFieldRequest fieldReq : request.getFormFields()) {
+            RecruitFormField field = new RecruitFormField();
+            field.setBatch(savedBatch);
+            field.setFieldName(fieldReq.getFieldName());
+            field.setFieldLabel(fieldReq.getFieldLabel());
+            field.setFieldType(fieldReq.getFieldType());
+            field.setRequired(fieldReq.getRequired());
+            field.setOptions(fieldReq.getOptions());
+            field.setSortOrder(fieldReq.getSortOrder());
+            formFieldRepository.save(field);
+        }
     }
-    attendanceRepository.save(new ActivityAttendance(userId, activity.getId()));
-    // WebSocket广播签到人数
-    messagingTemplate.convertAndSend(
-        "/topic/activity/" + activity.getId() + "/checkin",
-        Map.of("count", attendanceRepository.countByActivityId(activity.getId())));
+
+    return savedBatch;
 }
 \end{lstlisting}
 
-\subsection{审计日志 AOP 实现}
+\subsubsection{招新申请提交}
 
-通过自定义注解与AspectJ切面实现无侵入式审计日志记录：
+学生提交招新申请时，系统需要进行多项校验：
 
-\begin{lstlisting}[language=Java, caption=审计日志AOP实现]
-@Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.METHOD)
-public @interface AuditLog {
-    String action();
-    String module();
+\begin{enumerate}
+  \item 校验招新批次是否在有效期内（当前时间在开始时间和结束时间之间）；
+  \item 校验用户是否已经是该社团的成员（防止重复报名）；
+  \item 校验用户是否已经提交过该批次的申请（防止重复提交）；
+  \item 校验表单数据的完整性和格式正确性。
+\end{enumerate}
+
+申请提交后，初始状态为 \texttt{PENDING}，等待初审。
+
+\subsubsection{招新终审并发控制实现}
+
+招新终审是整个招新流程中最关键的环节，需要同时保证"状态机正确性"和"名额不超发"两个核心约束。在高并发场景下，如果多个管理员同时审批多个申请，可能导致录取人数超过招新名额。
+
+系统采用悲观锁（Pessimistic Locking）机制解决并发问题，具体实现策略如下：
+
+\begin{enumerate}
+  \item \textbf{双重加锁}：同时对申请记录和批次记录加悲观写锁（\texttt{PESSIMISTIC\_WRITE}），确保同一时刻只有一个事务可以处理该申请和修改该批次的录取人数；
+
+  \item \textbf{状态机校验}：严格校验申请的当前状态，只有初审通过（\texttt{FIRST\_REVIEW\_STATUS = PASSED}）且终审状态为待处理（\texttt{FINAL\_REVIEW\_STATUS = PENDING}）的申请才能进入终审流程；
+
+  \item \textbf{名额校验}：在加锁状态下查询当前批次已录取人数，与招新名额对比，如果已满则拒绝审批；
+
+  \item \textbf{原子更新}：在同一事务中完成状态更新、成员添加、角色授予等操作，保证数据一致性。
+\end{enumerate}
+
+\begin{lstlisting}[language=Java, caption=招新终审关键逻辑（节选）]
+@Transactional
+public void finalReview(Long applicationId, boolean pass, String comment) {
+    // 1. 对申请记录加悲观写锁
+    RecruitApplication app = applicationRepository
+        .findByIdForUpdate(applicationId)
+        .orElseThrow(() -> new RuntimeException("申请不存在"));
+
+    // 2. 状态机校验
+    if (!"PASSED".equals(app.getFirstReviewStatus())) {
+        throw new BusinessException(40913, "初审未通过，无法终审");
+    }
+    if (!"PENDING".equals(app.getFinalReviewStatus())) {
+        throw new BusinessException(40914, "终审已处理，请勿重复操作");
+    }
+
+    // 3. 对批次记录加悲观写锁
+    RecruitBatch batch = batchRepository
+        .findByIdForUpdate(app.getBatch().getId())
+        .orElseThrow(() -> new RuntimeException("批次不存在"));
+
+    if (pass) {
+        // 4. 名额校验（在锁保护下）
+        long approvedCount = applicationRepository
+            .countByBatchIdAndFinalReviewStatus(batch.getId(), "PASSED");
+
+        if (approvedCount >= batch.getQuota()) {
+            throw new BusinessException(40915, "招新名额已满");
+        }
+
+        // 5. 更新申请状态
+        app.setFinalReviewStatus("PASSED");
+        app.setFinalReviewComment(comment);
+        app.setFinalReviewTime(LocalDateTime.now());
+
+        // 6. 添加为社团成员
+        Member member = new Member();
+        member.setClub(batch.getClub());
+        member.setUser(app.getUser());
+        member.setRoleCode("MEMBER");
+        member.setStatus("ACTIVE");
+        member.setJoinAt(LocalDateTime.now());
+        memberRepository.save(member);
+
+        // 7. 发送通知
+        notificationPublisher.publishNotification(
+            app.getUser().getId(),
+            "招新审批通过",
+            "恭喜！您已成功加入《" + batch.getClub().getName() + "》",
+            "RECRUIT_APPROVED");
+    } else {
+        app.setFinalReviewStatus("REJECTED");
+        app.setFinalReviewComment(comment);
+        app.setFinalReviewTime(LocalDateTime.now());
+    }
+
+    applicationRepository.save(app);
 }
+\end{lstlisting}
 
+这种实现方式通过数据库层面的悲观锁机制，确保了在高并发场景下招新名额的准确性，避免了超额录取的问题。同时，通过明确的业务异常码（40913、40914、40915），前端可以准确识别失败原因并给出友好的提示。
+
+\subsection{活动模块实现}
+
+活动模块实现了社团活动的全生命周期管理，包括活动创建、报名、签到、数据导出等功能。该模块的核心特点是实现了幂等性保证和实时数据推送。
+
+\subsubsection{活动报名幂等性实现}
+
+活动报名需要防止用户重复报名，系统通过数据库唯一约束和业务逻辑双重保障实现幂等性：
+
+\begin{enumerate}
+  \item \textbf{数据库层面}：在 \texttt{t\_activity\_signup} 表上建立 \texttt{(activity\_id, user\_id)} 的唯一索引，从数据库层面防止重复记录；
+
+  \item \textbf{业务层面}：在插入前先查询是否存在报名记录，如果存在则直接返回成功（幂等）；
+
+  \item \textbf{权限校验}：校验用户是否是该社团的成员（部分活动仅限社团成员参加）；
+
+  \item \textbf{名额校验}：如果活动设置了最大参与人数，需要校验当前报名人数是否已满。
+\end{enumerate}
+
+\begin{lstlisting}[language=Java, caption=活动报名实现（节选）]
+@Transactional
+public ActivitySignup signupActivity(Long activityId, Long userId) {
+    Activity activity = activityRepository.findById(activityId)
+        .orElseThrow(() -> new RuntimeException(“活动不存在”));
+
+    // 1. 幂等性检查
+    Optional<ActivitySignup> existing = signupRepository
+        .findByActivityIdAndUserId(activityId, userId);
+    if (existing.isPresent()) {
+        return existing.get(); // 已报名，直接返回
+    }
+
+    // 2. 权限校验（如果活动仅限社团成员）
+    if (activity.getMembersOnly()) {
+        boolean isMember = memberRepository
+            .existsByClubIdAndUserId(activity.getClub().getId(), userId);
+        if (!isMember) {
+            throw new BusinessException(40921, “该活动仅限社团成员参加”);
+        }
+    }
+
+    // 3. 名额校验
+    if (activity.getMaxParticipants() != null) {
+        long currentCount = signupRepository.countByActivityId(activityId);
+        if (currentCount >= activity.getMaxParticipants()) {
+            throw new BusinessException(40922, “活动报名人数已满”);
+        }
+    }
+
+    // 4. 创建报名记录
+    ActivitySignup signup = new ActivitySignup();
+    signup.setActivity(activity);
+    signup.setUser(userRepository.findById(userId)
+        .orElseThrow(() -> new RuntimeException(“用户不存在”)));
+    signup.setStatus(“SIGNED_UP”);
+    signup.setSignupTime(LocalDateTime.now());
+
+    return signupRepository.save(signup);
+}
+\end{lstlisting}
+
+\subsubsection{活动签到与实时广播}
+
+活动签到功能实现了”签到码验证 + 时间窗口校验 + 实时人数广播”的完整流程：
+
+\begin{enumerate}
+  \item \textbf{签到码验证}：活动创建时生成唯一的签到码，用户签到时需要输入正确的签到码；
+
+  \item \textbf{时间窗口校验}：只有在活动开始时间到结束时间之间才能签到；
+
+  \item \textbf{幂等性保证}：已签到的用户再次签到时直接返回成功，不重复创建签到记录；
+
+  \item \textbf{实时广播}：签到成功后，通过 WebSocket 向所有订阅该活动的客户端推送最新签到人数。
+\end{enumerate}
+
+\begin{lstlisting}[language=Java, caption=活动签到后实时广播（节选）]
+signup.setStatus("SIGNED_IN");
+signupRepository.save(signup);
+
+ActivityAttendance attendance = new ActivityAttendance();
+attendance.setActivity(signup.getActivity());
+attendance.setUser(signup.getUser());
+attendance.setSignTime(LocalDateTime.now());
+attendance.setSource("WEB");
+attendanceRepository.save(attendance);
+
+long checkinCount = attendanceRepository.countByActivityId(activityId);
+Map<String, Object> payload = Map.of(
+    "activityId", activityId, "checkinCount", checkinCount);
+messagingTemplate.convertAndSend(“/topic/activity/” + activityId + “/checkin”, payload);
+\end{lstlisting}
+
+WebSocket 实时广播的实现基于 STOMP 协议，前端通过订阅特定主题（\texttt{/topic/activity/\{id\}/checkin}）接收服务器推送的消息。这种实时通信机制使得活动管理员可以实时看到签到人数的变化，无需手动刷新页面。
+
+\subsection{资源与财务审批实现}
+
+资源管理和财务管理是社团运营的重要支撑功能，系统实现了完整的申请-审批流程，并通过并发控制确保资源分配和财务操作的准确性。
+
+\subsubsection{资源申请与冲突检测}
+
+系统支持两类资源：场地资源（\texttt{VENUE}）和物资资源（\texttt{MATERIAL}）。不同类型的资源有不同的冲突检测逻辑：
+
+\begin{enumerate}
+  \item \textbf{场地资源}：同一场地在同一时间段只能被一个活动使用，需要检测时间段冲突；
+
+  \item \textbf{物资资源}：物资有总数量限制，需要检测在指定时间段内已批准的申请数量总和是否超过库存。
+\end{enumerate}
+
+\begin{lstlisting}[language=Java, caption=资源可用性校验（节选）]
+if ("MATERIAL".equals(resource.getType())) {
+    int approved = resourceRepository.sumApprovedQuantityInPeriod(
+        resource.getId(), startTime, endTime);
+    if (approved + requested > resource.getTotalQuantity()) {
+        throw new BusinessException(40943, "库存不足");
+    }
+} else {
+    List<ResourceApplication> conflicts =
+        resourceRepository.findConflictingApplications(
+            resource.getId(), startTime, endTime);
+    if (!conflicts.isEmpty()) {
+        throw new BusinessException(40944, "场地已被预约");
+    }
+}
+\end{lstlisting}
+
+这种冲突检测机制确保了资源的合理分配，避免了资源超额预约或时间冲突的问题。
+
+\subsubsection{财务审批与余额管理}
+
+财务管理模块实现了社团资金的收入、支出记录和审批流程。系统通过悲观锁机制确保余额更新的原子性，防止并发审批导致的余额计算错误。
+
+财务流水包括两种类型：
+
+\begin{enumerate}
+  \item \textbf{INCOME（收入）}：社团获得的资金，如赞助、拨款等，审批通过后增加社团余额；
+
+  \item \textbf{EXPENSE（支出）}：社团的开支，如活动经费、物资采购等，审批通过后减少社团余额。
+\end{enumerate}
+
+\begin{lstlisting}[language=Java, caption=财务审批实现（节选）]
+@Transactional
+public void approveFinance(Long financeId) {
+    // 1. 对财务记录加悲观写锁
+    ClubFinance finance = financeRepository.findByIdForUpdate(financeId)
+        .orElseThrow(() -> new RuntimeException("财务记录不存在"));
+
+    // 2. 状态幂等校验
+    if (!"PENDING".equals(finance.getStatus())) {
+        throw new BusinessException(40951, "财务记录已处理，请勿重复操作");
+    }
+
+    // 3. 对社团记录加悲观写锁
+    Club club = clubRepository.findByIdForUpdate(finance.getClub().getId())
+        .orElseThrow(() -> new RuntimeException("社团不存在"));
+
+    // 4. 更新社团余额
+    BigDecimal currentBalance = club.getBalance();
+    BigDecimal amount = finance.getAmount();
+
+    if ("INCOME".equals(finance.getType())) {
+        club.setBalance(currentBalance.add(amount));
+    } else if ("EXPENSE".equals(finance.getType())) {
+        if (currentBalance.compareTo(amount) < 0) {
+            throw new BusinessException(40952, "社团余额不足");
+        }
+        club.setBalance(currentBalance.subtract(amount));
+    }
+
+    // 5. 更新财务记录状态
+    finance.setStatus("APPROVED");
+    finance.setApprover(getCurrentUser());
+    finance.setApproveTime(LocalDateTime.now());
+
+    clubRepository.save(club);
+    financeRepository.save(finance);
+
+    // 6. 发送通知
+    notificationPublisher.publishNotification(
+        finance.getApplicant().getId(),
+        "财务审批通过",
+        "您提交的财务申请已通过审批",
+        "FINANCE_APPROVED");
+}
+\end{lstlisting}
+
+通过对社团记录加锁，系统确保了在高并发场景下余额计算的准确性，避免了"丢失更新"问题。
+
+\section{消息与审计实现}
+
+\subsection{RabbitMQ 异步通知分发}
+
+系统采用消息队列实现站内通知的异步分发，将通知发送从核心业务流程中解耦，提升系统响应性能和可扩展性。
+
+\subsubsection{消息队列架构设计}
+
+系统使用 RabbitMQ 的 Topic Exchange 模式实现消息路由，架构设计如下：
+
+\begin{enumerate}
+  \item \textbf{Exchange}：创建名为 \texttt{notification.topic} 的 Topic Exchange；
+
+  \item \textbf{Routing Key}：使用点分隔的路由键，格式为 \texttt{notification.\{type\}}，如 \texttt{notification.club.approved}、\texttt{notification.recruit.approved} 等；
+
+  \item \textbf{Queue}：创建通知队列 \texttt{notification.queue}，绑定到 Exchange，使用通配符 \texttt{notification.*} 接收所有通知消息；
+
+  \item \textbf{Producer}：各业务模块在关键操作完成后发布消息到 Exchange；
+
+  \item \textbf{Consumer}：通知模块监听队列，接收消息后落库并分发给目标用户。
+\end{enumerate}
+
+\begin{lstlisting}[language=Java, caption=RabbitMQ 配置（节选）]
+@Configuration
+public class RabbitMQConfig {
+    public static final String NOTIFICATION_EXCHANGE = "notification.topic";
+    public static final String NOTIFICATION_QUEUE = "notification.queue";
+    public static final String NOTIFICATION_ROUTING_KEY = "notification.*";
+
+    @Bean
+    public TopicExchange notificationExchange() {
+        return new TopicExchange(NOTIFICATION_EXCHANGE);
+    }
+
+    @Bean
+    public Queue notificationQueue() {
+        return new Queue(NOTIFICATION_QUEUE, true);
+    }
+
+    @Bean
+    public Binding notificationBinding() {
+        return BindingBuilder.bind(notificationQueue())
+            .to(notificationExchange())
+            .with(NOTIFICATION_ROUTING_KEY);
+    }
+}
+\end{lstlisting}
+
+\subsubsection{消息发布与消费}
+
+业务模块通过 \texttt{NotificationPublisher} 发布通知消息：
+
+\begin{lstlisting}[language=Java, caption=消息发布实现（节选）]
+@Service
+public class NotificationPublisher {
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
+
+    public void publishNotification(Long userId, String title,
+                                     String content, String type) {
+        NotificationMessage message = new NotificationMessage();
+        message.setUserId(userId);
+        message.setTitle(title);
+        message.setContent(content);
+        message.setType(type);
+        message.setTimestamp(LocalDateTime.now());
+
+        rabbitTemplate.convertAndSend(
+            RabbitMQConfig.NOTIFICATION_EXCHANGE,
+            "notification." + type.toLowerCase(),
+            message);
+    }
+}
+\end{lstlisting}
+
+通知模块作为消费者监听队列并处理消息：
+
+\begin{lstlisting}[language=Java, caption=消息消费实现（节选）]
+@Service
+public class NotificationConsumer {
+    @Autowired
+    private NotificationRepository notificationRepository;
+
+    @RabbitListener(queues = RabbitMQConfig.NOTIFICATION_QUEUE)
+    public void handleNotification(NotificationMessage message) {
+        Notification notification = new Notification();
+        notification.setUser(userRepository.findById(message.getUserId())
+            .orElseThrow(() -> new RuntimeException("用户不存在")));
+        notification.setTitle(message.getTitle());
+        notification.setContent(message.getContent());
+        notification.setType(message.getType());
+        notification.setReadFlag(false);
+        notification.setCreateTime(LocalDateTime.now());
+
+        notificationRepository.save(notification);
+    }
+}
+\end{lstlisting}
+
+这种异步消息机制使得业务操作和通知发送互不阻塞，即使通知服务暂时不可用，也不会影响核心业务流程。
+
+\subsection{AOP 审计日志实现}
+
+审计日志是系统安全和合规性的重要保障，记录了用户的关键操作行为。系统通过 Spring AOP（面向切面编程）实现审计日志的自动记录，避免在每个业务方法中重复编写日志代码。
+
+\subsubsection{自定义审计注解}
+
+系统定义了 \texttt{@AuditLog} 注解，用于标记需要记录审计日志的方法：
+
+\begin{lstlisting}[language=Java, caption=审计日志注解定义]
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+public @interface AuditLog {
+    String action();              // 操作类型，如"创建社团"、"审批招新"
+    String resourceType();        // 资源类型，如"CLUB"、"RECRUIT"
+    String resourceIdExpression() default ""; // SpEL表达式，用于提取资源ID
+}
+\end{lstlisting}
+
+\subsubsection{审计日志切面实现}
+
+通过 AOP 切面拦截带有 \texttt{@AuditLog} 注解的方法，在方法执行后记录审计日志：
+
+\begin{lstlisting}[language=Java, caption=审计日志切面实现（节选）]
 @Aspect
 @Component
 public class AuditLogAspect {
-    @Around("@annotation(auditLog)")
-    public Object around(ProceedingJoinPoint pjp, AuditLog auditLog)
-            throws Throwable {
-        Long userId = SecurityUtils.getCurrentUserId();
-        String ip = RequestUtils.getClientIp();
-        Object result = pjp.proceed();
-        auditLogRepository.save(AuditLogEntry.builder()
-            .userId(userId).action(auditLog.action())
-            .module(auditLog.module()).ip(ip)
-            .createdAt(LocalDateTime.now()).build());
-        return result;
+    @Autowired
+    private AuditLogRepository auditLogRepository;
+
+    @Autowired
+    private SpelExpressionParser parser;
+
+    @AfterReturning(pointcut = "@annotation(auditLog)", returning = "result")
+    public void logAudit(JoinPoint joinPoint, AuditLog auditLog, Object result) {
+        try {
+            // 1. 获取当前用户
+            Authentication auth = SecurityContextHolder.getContext()
+                .getAuthentication();
+            if (auth == null || !auth.isAuthenticated()) {
+                return;
+            }
+            User user = (User) auth.getPrincipal();
+
+            // 2. 提取资源ID（使用SpEL表达式）
+            String resourceId = null;
+            if (!auditLog.resourceIdExpression().isEmpty()) {
+                StandardEvaluationContext context =
+                    new StandardEvaluationContext();
+                context.setVariable("result", result);
+                context.setVariable("args", joinPoint.getArgs());
+
+                Expression expression = parser.parseExpression(
+                    auditLog.resourceIdExpression());
+                Object value = expression.getValue(context);
+                resourceId = value != null ? value.toString() : null;
+            }
+
+            // 3. 获取请求IP
+            ServletRequestAttributes attributes =
+                (ServletRequestAttributes) RequestContextHolder
+                    .getRequestAttributes();
+            String ip = null;
+            if (attributes != null) {
+                HttpServletRequest request = attributes.getRequest();
+                ip = getClientIp(request);
+            }
+
+            // 4. 创建审计日志记录
+            AuditLog log = new AuditLog();
+            log.setUser(user);
+            log.setAction(auditLog.action());
+            log.setResourceType(auditLog.resourceType());
+            log.setResourceId(resourceId);
+            log.setIp(ip);
+            log.setDetail(buildDetail(joinPoint, result));
+            log.setCreateTime(LocalDateTime.now());
+
+            auditLogRepository.save(log);
+        } catch (Exception e) {
+            // 审计日志记录失败不应影响业务流程
+            log.error("Failed to record audit log", e);
+        }
+    }
+
+    private String getClientIp(HttpServletRequest request) {
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isEmpty()) {
+            ip = request.getRemoteAddr();
+        }
+        return ip;
     }
 }
 \end{lstlisting}
 
-\section{前端核心功能实现}
+\subsubsection{审计日志使用示例}
 
-\subsection{Axios 拦截器与 Token 自动刷新}
+在业务方法上添加 \texttt{@AuditLog} 注解即可自动记录审计日志：
 
-\begin{lstlisting}[language=JavaScript, caption=Axios响应拦截器]
-axios.interceptors.response.use(
-  response => response,
-  async error => {
-    const original = error.config
-    if (error.response?.status === 401 && !original._retry) {
-      original._retry = true
-      try {
-        const { data } = await axios.post('/api/auth/refresh')
-        userStore.setToken(data.data.accessToken)
-        original.headers['Authorization'] = `Bearer ${data.data.accessToken}`
-        return axios(original)
-      } catch {
-        userStore.logout()
-        router.push('/login')
-      }
-    }
-    return Promise.reject(error)
-  }
+\begin{lstlisting}[language=Java, caption=审计日志使用示例]
+@AuditLog(
+    action = "审批社团",
+    resourceType = "CLUB",
+    resourceIdExpression = "#args[0]"
 )
-\end{lstlisting}
-
-\subsection{数据可视化实现}
-
-实时签到趋势图基于ECharts折线图实现，通过WebSocket接收实时数据更新：
-
-\begin{lstlisting}[language=JavaScript, caption=ECharts实时签到趋势]
-const initChart = () => {
-  chart = echarts.init(chartRef.value)
-  chart.setOption({
-    title: { text: '今日签到趋势' },
-    xAxis: { type: 'time' },
-    yAxis: { type: 'value', name: '签到人数' },
-    series: [{ type: 'line', smooth: true, data: checkinData.value }]
-  })
+public void approveClub(Long clubId) {
+    // 业务逻辑
 }
 
-// WebSocket订阅实时数据
-stompClient.subscribe('/topic/dashboard/checkin', (msg) => {
-  const point = JSON.parse(msg.body)
-  checkinData.value.push([point.time, point.count])
-  chart.setOption({ series: [{ data: checkinData.value }] })
+@AuditLog(
+    action = "终审招新申请",
+    resourceType = "RECRUIT_APPLICATION",
+    resourceIdExpression = "#result.id"
+)
+public RecruitApplication finalReview(Long applicationId, boolean pass) {
+    // 业务逻辑
+    return application;
+}
+\end{lstlisting}
+
+这种基于 AOP 的实现方式具有以下优势：
+
+\begin{enumerate}
+  \item \textbf{代码解耦}：审计逻辑与业务逻辑分离，业务代码更简洁；
+  \item \textbf{统一管理}：所有审计日志的记录逻辑集中在切面中，便于维护；
+  \item \textbf{灵活配置}：通过 SpEL 表达式灵活提取资源 ID，适应不同的业务场景；
+  \item \textbf{容错性强}：审计日志记录失败不会影响业务流程的正常执行。
+\end{enumerate}
+
+\section{前端与 AI 服务实现}
+
+\subsection{前端认证状态管理}
+
+前端使用 Pinia 进行全局状态管理，认证状态的管理遵循”最小化本地存储”原则，避免在浏览器中直接存储敏感的 JWT 令牌。
+
+\subsubsection{认证 Store 设计}
+
+认证 Store（\texttt{auth.js}）维护以下状态：
+
+\begin{enumerate}
+  \item \textbf{token}：认证标记，仅存储字符串 “authenticated”，不存储真实 JWT；
+  \item \textbf{user}：当前用户对象，包含用户 ID、用户名、角色等基本信息；
+  \item \textbf{isAuthenticated}：计算属性，根据 token 是否存在判断用户是否已登录。
+\end{enumerate}
+
+\begin{lstlisting}[language=JavaScript, caption=前端认证状态管理（节选）]
+const token = ref(localStorage.getItem('token') || '')
+function setToken(nextToken) {
+  token.value = nextToken ? 'authenticated' : ''
+  if (token.value) localStorage.setItem('token', token.value)
+  else localStorage.removeItem('token')
+}
+\end{lstlisting}
+
+真实的 JWT 令牌存储在 HttpOnly Cookie 中，JavaScript 代码无法访问，有效防止了 XSS 攻击窃取令牌。当后端返回 401（未认证）或 403（无权限）错误时，Axios 响应拦截器会自动清除本地认证状态并重定向到登录页。
+
+\subsubsection{路由权限守卫实现}
+
+前端使用 Vue Router 的全局前置守卫（beforeEach）实现路由级别的权限控制：
+
+\begin{lstlisting}[language=JavaScript, caption=路由守卫实现（节选）]
+router.beforeEach(async (to, from, next) => {
+  const authStore = useAuthStore()
+
+  // 1. 需要认证的路由
+  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+    next({ name: 'Login', query: { redirect: to.fullPath } })
+    return
+  }
+
+  // 2. 需要特定角色的路由
+  if (to.meta.roles && to.meta.roles.length > 0) {
+    try {
+      // 刷新用户信息，确保角色最新
+      await authStore.fetchUserInfo()
+
+      const hasRole = to.meta.roles.some(role =>
+        authStore.user.roles.some(r => r.code === role)
+      )
+
+      if (!hasRole) {
+        next({ name: 'Forbidden' })
+        return
+      }
+    } catch (error) {
+      next({ name: 'Login' })
+      return
+    }
+  }
+
+  next()
 })
 \end{lstlisting}
 
-\section{AI 服务实现}
+路由配置中通过 \texttt{meta} 字段定义权限要求：
 
-\subsection{RAG 问答服务实现}
+\begin{lstlisting}[language=JavaScript, caption=路由配置示例]
+{
+  path: '/admin',
+  component: AdminLayout,
+  meta: { requiresAuth: true, roles: ['ADMIN'] },
+  children: [
+    {
+      path: 'clubs',
+      component: ClubManagement,
+      meta: { requiresAuth: true, roles: ['ADMIN'] }
+    }
+  ]
+}
+\end{lstlisting}
 
-\begin{lstlisting}[language=Python, caption=RAG问答核心实现]
+\subsection{AI 聊天接口实现}
+
+AI 聊天功能为用户提供社团知识问答服务，后端通过限流机制保护 AI 服务不被滥用。
+
+\subsubsection{聊天接口限流实现}
+
+系统在控制器层实现了基于 Redis 的滑动窗口限流算法，限制每个用户每分钟最多发送 30 次聊天请求：
+
+\begin{lstlisting}[language=Java, caption=聊天接口限流逻辑（节选）]
+private static final int MAX_REQUESTS_PER_MINUTE = 30;
+if (isRateLimited(limiterKey)) {
+    return Result.error(429, "请求过于频繁，请稍后再试");
+}
+String response = chatService.chat(message, sessionId);
+\end{lstlisting}
+
+\begin{lstlisting}[language=Java, caption=聊天接口限流逻辑（节选）]
+private static final int MAX_REQUESTS_PER_MINUTE = 30;
+private static final Duration RATE_LIMIT_WINDOW = Duration.ofMinutes(1);
+
+@PostMapping("/chat")
+public Result<String> chat(@RequestBody ChatRequest request) {
+    String userId = getCurrentUserId();
+    String limiterKey = "chat:limit:" + userId;
+
+    // 1. 检查限流
+    if (isRateLimited(limiterKey)) {
+        return Result.error(429, "请求过于频繁，请稍后再试");
+    }
+
+    // 2. 记录请求次数
+    recordRequest(limiterKey);
+
+    // 3. 调用AI服务
+    String response = chatService.chat(request.getMessage(),
+        request.getSessionId());
+
+    return Result.success(response);
+}
+
+private boolean isRateLimited(String key) {
+    Long count = redisTemplate.opsForValue().get(key);
+    return count != null && count >= MAX_REQUESTS_PER_MINUTE;
+}
+
+private void recordRequest(String key) {
+    Long count = redisTemplate.opsForValue().increment(key);
+    if (count == 1) {
+        redisTemplate.expire(key, RATE_LIMIT_WINDOW);
+    }
+}
+\end{lstlisting}
+
+\subsection{AI 服务核心实现}
+
+AI 服务使用 Python FastAPI 框架实现，提供知识问答和社团推荐两大核心功能。
+
+\subsubsection{RAG 知识问答实现}
+
+RAG（检索增强生成）问答服务的实现流程如下：
+
+\begin{enumerate}
+  \item \textbf{知识库初始化}：启动时从 \texttt{agent/data/} 目录读取 Markdown 知识文件并构建向量索引；
+  \item \textbf{文档切分}：使用 \texttt{RecursiveCharacterTextSplitter} 对文本进行切分，当前参数为 \texttt{chunk\_size=1000}、\texttt{chunk\_overlap=200}；
+  \item \textbf{向量化与持久化}：通过本地封装的嵌入创建函数生成向量，写入 Chroma 持久目录；
+  \item \textbf{问题路由}：对公告、活动、招新、资源、财务等问题优先匹配业务工具，直接查询实时数据；
+  \item \textbf{Agent 调用}：若问题无法由规则路由直接回答，则调用 LangChain Agent 结合历史上下文与工具链处理；
+  \item \textbf{降级回答}：当 Agent 执行失败时，回退到检索问答链；若知识库也不可用，则返回带边界说明的谨慎回答。
+\end{enumerate}
+
+\begin{lstlisting}[language=Python, caption=RAG 问答核心代码（节选）]
 from langchain_community.vectorstores import Chroma
-from langchain.chains import RetrievalQA
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_openai import ChatOpenAI
+from langchain.agents import create_agent
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-def build_rag_chain():
-    embeddings = OpenAIEmbeddings(
-        base_url="https://api.deepseek.com/v1",
-        api_key=os.getenv("DEEPSEEK_API_KEY"),
-        model="deepseek-embedding"
-    )
-    vectorstore = Chroma(
-        persist_directory="./chroma_db",
-        embedding_function=embeddings
-    )
-    llm = ChatOpenAI(
-        base_url="https://api.deepseek.com/v1",
-        api_key=os.getenv("DEEPSEEK_API_KEY"),
-        model="deepseek-chat"
-    )
-    return RetrievalQA.from_chain_type(
-        llm=llm,
-        retriever=vectorstore.as_retriever(search_kwargs={"k": 4})
-    )
+class RAGService:
+    def __init__(self):
+        self.vectorstore = None
+        self.retriever = None
+        self.llm = ChatOpenAI(
+            openai_api_key=os.getenv("DEEPSEEK_API_KEY"),
+            openai_api_base=os.getenv("DEEPSEEK_API_URL", "https://api.deepseek.com"),
+            model="deepseek-chat"
+        )
+        self._build_agent()
+
+    def initialize_knowledge_base(self):
+        loader = DirectoryLoader(DATA_DIR, glob="*.md", loader_cls=TextLoader)
+        documents = loader.load()
+        splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+        chunks = splitter.split_documents(documents)
+        embeddings, _ = create_embeddings("all-MiniLM-L6-v2")
+        self.vectorstore = Chroma.from_documents(
+            chunks, embeddings, persist_directory=PERSIST_DIRECTORY
+        )
+        self.retriever = self.vectorstore.as_retriever(search_kwargs={"k": 3})
+
+    def query(self, question: str, session_id: str = "default"):
+        routed = self._route_intent(question)
+        if routed:
+            return routed
+        try:
+            result = self._agent_executor.invoke({"messages": [HumanMessage(content=question)]})
+            return self._extract_agent_answer(result)
+        except Exception:
+            return self._rag_fallback(question)
 \end{lstlisting}
 
-\subsection{社团推荐服务实现}
+\subsubsection{混合推荐算法实现}
 
-SVD协同过滤基于\texttt{surprise}库实现：
+推荐服务结合协同过滤和语义内容特征两种算法，并加入归一化与冷启动回退逻辑：
 
-\begin{lstlisting}[language=Python, caption=SVD协同过滤实现]
-from surprise import SVD, Dataset, Reader
-import pandas as pd
+\begin{lstlisting}[language=Python, caption=混合推荐算法实现（节选）]
+from sklearn.decomposition import TruncatedSVD
+from sklearn.preprocessing import MinMaxScaler
 
-def train_svd(interactions: list[dict]) -> SVD:
-    df = pd.DataFrame(interactions)  # user_id, club_id, rating
-    reader = Reader(rating_scale=(1, 5))
-    data = Dataset.load_from_df(df[['user_id','club_id','rating']], reader)
-    algo = SVD(n_factors=50, n_epochs=20)
-    trainset = data.build_full_trainset()
-    algo.fit(trainset)
-    return algo
+class RecommendationService:
+    def _cf_scores(self, user_id: int, df, candidates):
+        matrix = df.pivot(index="user_id", columns="club_id", values="score").fillna(0)
+        svd = TruncatedSVD(n_components=min(20, min(matrix.shape) - 1), random_state=42)
+        reduced = svd.fit_transform(matrix)
+        reconstructed = pd.DataFrame(
+            svd.inverse_transform(reduced), index=matrix.index, columns=matrix.columns
+        )
+        user_row = reconstructed.loc[user_id]
+        return {cid: float(user_row[cid]) for cid in candidates if cid in user_row.index}
 
-def hybrid_recommend(user_id: int, algo: SVD,
-                     clubs: list, alpha: float = 0.6) -> list:
-    cf_scores = {c['id']: algo.predict(user_id, c['id']).est for c in clubs}
-    cb_scores = semantic_similarity(user_id, clubs)
-    return sorted(clubs,
-        key=lambda c: alpha * cf_scores[c['id']]
-                    + (1-alpha) * cb_scores[c['id']],
-        reverse=True)[:10]
+    def _normalise(self, scores):
+        vals = np.array(list(scores.values())).reshape(-1, 1)
+        scaled = MinMaxScaler().fit_transform(vals).flatten()
+        return dict(zip(scores.keys(), scaled))
+
+    def get_recommendations(self, user_id: int, top_k: int = 5):
+        if not has_history(user_id):
+            return self._cold_start(df_clubs, top_k)
+        cf_norm = self._normalise(self._cf_scores(user_id, df_interactions, candidates))
+        cb_norm = self._normalise(self._cb_scores(user_id, df_interactions, candidates))
+        ranked = []
+        for cid in candidates:
+            score = 0.6 * cf_norm.get(cid, 0.0) + 0.4 * cb_norm.get(cid, 0.0)
+            ranked.append((cid, score))
+        ranked.sort(key=lambda x: x[1], reverse=True)
+        return [cid for cid, _ in ranked[:top_k]]
 \end{lstlisting}
 
-\section{系统集成与部署}
+这种混合推荐策略结合了协同过滤的群体智慧与语义内容特征，并通过分数归一化减轻不同评分尺度带来的偏差；对于缺乏历史行为的新用户，系统直接按社团热度回退，以保证结果可返回。
 
-Docker Compose编排配置如下（节选）：
+\section{系统集成与运行支撑}
 
-\begin{lstlisting}[language=bash, caption=docker-compose.yml节选]
+本节仅保留“原型如何形成可运行系统”所必需的实现说明，用于解释第六章测试环境的来源。完整的部署手册、参数模板与逐步启动流程属于工程附属材料，不作为本文的核心论证对象。
+
+\subsection{Docker 容器化部署}
+
+当前原型通过 Docker Compose 编排 Spring Boot 应用、前端、AI 服务及 MySQL、Redis、RabbitMQ、监控组件，以降低复现实验环境的搭建成本。
+
+\subsubsection{Docker Compose 配置}
+
+Docker Compose 配置节选主要用于说明系统的服务边界与集成关系：
+
+\begin{lstlisting}[language=bash, caption=Docker Compose 核心服务（节选）]
 services:
-  redis:
-    image: redis:7-alpine
-    ports: ["6379:6379"]
+  app:
+    build: .
+    ports: ["8080:8080"]
+    depends_on: [mysql, redis, rabbitmq, rag-service]
 
-  rabbitmq:
-    image: rabbitmq:3.12-management
-    ports: ["5672:5672", "15672:15672"]
+  frontend:
+    build: ./frontend
+    ports: ["5173:80"]
 
-  agent:
+  rag-service:
     build: ./agent
-    ports: ["8000:8000"]
     environment:
-      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
-      - DB_URL=${DB_URL}
-    depends_on: [redis, rabbitmq]
+      - DB_URL=mysql+pymysql://root:***@mysql:3306/community_db
+
+  prometheus:
+    image: prom/prometheus:latest
+  grafana:
+    image: grafana/grafana:latest
 \end{lstlisting}
+
+\subsubsection{服务依赖与启动顺序}
+
+从运行支撑角度看，容器依赖关系可概括为“基础设施先就绪，后端与 AI 服务再启动，前端与监控随后接入”。本文关注的重点不在于逐项启动步骤，而在于这些组件共同构成了可复现的单节点集成环境，为后续功能验证与性能基线提供统一运行底座。
+
+\subsubsection{数据持久化}
+
+系统使用 Docker Volume 实现数据持久化，确保容器重启后数据不丢失：
+
+\begin{itemize}
+  \item \textbf{MySQL 数据}：挂载到 \texttt{./data/mysql}；
+  \item \textbf{Redis 数据}：挂载到 \texttt{./data/redis}；
+  \item \textbf{RabbitMQ 数据}：挂载到 \texttt{./data/rabbitmq}；
+  \item \textbf{Chroma 向量库}：挂载到 \texttt{./agent/chroma\_db}；
+  \item \textbf{Prometheus 数据}：挂载到 \texttt{./monitoring/prometheus/data}；
+  \item \textbf{Grafana 配置}：挂载到 \texttt{./monitoring/grafana/data}。
+\end{itemize}
+
+\subsection{应用构建与打包}
+
+\subsubsection{后端多阶段构建}
+
+后端使用 Docker 多阶段构建优化镜像大小：
+
+\begin{lstlisting}[language=bash, caption=后端 Dockerfile（节选）]
+# 第一阶段：构建
+FROM maven:3.9-eclipse-temurin-17 AS builder
+WORKDIR /app
+COPY pom.xml .
+COPY community-*/pom.xml ./
+RUN mvn dependency:go-offline
+COPY . .
+RUN mvn clean package -DskipTests -pl community-gateway -am
+
+# 第二阶段：运行
+FROM eclipse-temurin:17-jre-alpine
+WORKDIR /app
+COPY --from=builder /app/community-gateway/target/*.jar app.jar
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "app.jar"]
+\end{lstlisting}
+
+多阶段构建的优势：
+
+\begin{enumerate}
+  \item 第一阶段使用完整的 Maven 镜像进行编译，包含所有构建工具；
+  \item 第二阶段仅使用 JRE 运行时镜像，不包含编译工具，大幅减小镜像体积；
+  \item 最终镜像大小约 200MB，相比单阶段构建减少约 60\%。
+\end{enumerate}
+
+\subsubsection{前端构建与 Nginx 部署}
+
+前端使用 Vite 构建生产版本，并通过 Nginx 提供静态文件服务：
+
+\begin{lstlisting}[language=bash, caption=前端 Dockerfile（节选）]
+# 构建阶段
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+# 运行阶段
+FROM nginx:alpine
+COPY --from=builder /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80
+\end{lstlisting}
+
+Nginx 配置实现了前端路由的 History 模式支持和 API 反向代理：
+
+\begin{lstlisting}[caption=Nginx 配置（节选）]
+server {
+    listen 80;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # 前端路由支持
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # API 反向代理
+    location /api/ {
+        proxy_pass http://app:8080/api/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+\end{lstlisting}
+
+\subsection{部署工件与复现边界}
+
+系统通过环境变量实现配置解耦，仓库保留相应模板用于单节点原型复现；这些配置主要服务于运行支撑，而不是本文的论证重点。
+
+\begin{lstlisting}[caption=环境变量配置示例]
+# 数据库配置
+DB_HOST=mysql
+DB_NAME=community_db
+DB_USERNAME=root
+DB_PASSWORD=your_password
+
+# Redis 配置
+REDIS_HOST=redis
+REDIS_PASSWORD=your_redis_password
+
+# JWT 配置
+JWT_SECRET=your_jwt_secret_key
+
+# AI 服务配置
+DEEPSEEK_API_KEY=your_deepseek_api_key
+RAG_SERVICE_URL=http://rag-service:8000
+
+# OSS 配置
+OSS_ENDPOINT=oss-cn-hangzhou.aliyuncs.com
+OSS_BUCKET_NAME=your_bucket_name
+OSS_ACCESS_KEY=your_access_key
+OSS_SECRET_KEY=your_secret_key
+\end{lstlisting}
+
+这些模板说明系统具备跨环境迁移的基本工程基础，但尚不足以推出生产级部署结论。
+
+\subsection{复现入口概述}
+
+仓库中保留了对应的复现入口，以下步骤仅用于说明原型如何被统一拉起，而非提供逐项运维手册：
+
+\begin{enumerate}
+  \item 配置环境变量文件 \texttt{.env}；
+  \item 执行 \texttt{docker-compose up -d --build} 启动所有服务；
+  \item 等待所有容器启动完成（约 2-3 分钟）；
+  \item 访问 \texttt{http://localhost:5173} 验证前端页面；
+  \item 访问 \texttt{http://localhost:8080/actuator/health} 验证后端健康状态；
+  \item 访问 \texttt{http://localhost:8000/health} 验证 AI 服务状态；
+  \item 访问 \texttt{http://localhost:3000} 查看 Grafana 监控面板。
+\end{enumerate}
+
+基于上述编排，当前版本能够完成单节点环境下的集成运行，为第六章的功能验证与性能基线提供统一运行基础。
+
+本章重点说明了与研究问题直接相关的实现机制：认证与权限、核心业务规则、消息协同、AI 接入以及基本集成支撑。是否达到更高等级的高可用、长稳运行与生产环境适配，仍需在后续测试和工程迭代中进一步验证。

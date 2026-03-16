@@ -13,11 +13,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.util.StringUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
-import java.util.List;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/api/notices")
@@ -53,39 +55,23 @@ public class NoticeController {
             @RequestParam(defaultValue = "20") int size) {
 
         PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "publishedAt"));
+        String normalizedTitle = StringUtils.hasText(title) ? title.trim() : null;
 
-        Page<Notice> noticePage;
-        if (clubId != null) {
-            noticePage = noticeRepository.findByClubIdAndStatus(clubId, "PUBLISHED", pageRequest);
-        } else {
-            noticePage = noticeRepository.findByStatus("PUBLISHED", pageRequest);
+        LocalDateTime startTime = null;
+        LocalDateTime endTime = null;
+        if (StringUtils.hasText(startDate)) {
+            startTime = LocalDate.parse(startDate).atStartOfDay();
+        }
+        if (StringUtils.hasText(endDate)) {
+            endTime = LocalDate.parse(endDate).plusDays(1).atStartOfDay().minusNanos(1);
+        }
+        if (startTime != null && endTime != null && endTime.isBefore(startTime)) {
+            throw new IllegalArgumentException("endDate must be greater than or equal to startDate");
         }
 
-        // 前端过滤
-        List<Notice> filtered = noticePage.getContent();
-        if (title != null && !title.isEmpty()) {
-            filtered = filtered.stream()
-                .filter(n -> n.getTitle().contains(title))
-                .toList();
-        }
-        if (startDate != null && endDate != null) {
-            java.time.LocalDate start = java.time.LocalDate.parse(startDate);
-            java.time.LocalDate end = java.time.LocalDate.parse(endDate);
-            filtered = filtered.stream()
-                .filter(n -> {
-                    java.time.LocalDate publishDate = n.getPublishedAt().toLocalDate();
-                    return !publishDate.isBefore(start) && !publishDate.isAfter(end);
-                })
-                .toList();
-        }
-
-        PageResult<Notice> result = new PageResult<>();
-        result.setList(filtered);
-        result.setTotal(filtered.size());
-        result.setPage(page + 1);
-        result.setSize(size);
-        result.setTotalPages((int) Math.ceil((double) filtered.size() / size));
-        return Result.success(result);
+        Page<Notice> noticePage = noticeRepository.searchPublished(
+                clubId, "PUBLISHED", normalizedTitle, startTime, endTime, pageRequest);
+        return Result.success(PageResult.of(noticePage));
     }
 
     @PostMapping

@@ -8,6 +8,7 @@ import com.cloud.community.core.entity.User;
 import com.cloud.community.core.repository.MemberRepository;
 import com.cloud.community.core.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,10 +35,10 @@ public class PermissionServiceImpl implements PermissionService {
 
         // 2. Club Admin check
         Member member = memberRepository.findByClubIdAndUserId(clubId, userId)
-                .orElseThrow(() -> new RuntimeException("You are not a member of this club"));
+                .orElseThrow(() -> new AccessDeniedException("You are not a member of this club"));
 
         if (!"PRESIDENT".equals(member.getRoleCode()) && !"MANAGER".equals(member.getRoleCode())) {
-            throw new RuntimeException("Insufficient permissions: You must be a PRESIDENT or MANAGER of this club.");
+            throw new AccessDeniedException("Insufficient permissions: You must be a PRESIDENT or MANAGER of this club.");
         }
     }
 
@@ -50,7 +51,7 @@ public class PermissionServiceImpl implements PermissionService {
         boolean isGlobalAdmin = user.getRoles().stream()
                 .anyMatch(r -> "ADMIN".equals(r.getCode()));
         if (!isGlobalAdmin) {
-            throw new RuntimeException("Insufficient permissions: System Admin required.");
+            throw new AccessDeniedException("Insufficient permissions: System Admin required.");
         }
     }
 

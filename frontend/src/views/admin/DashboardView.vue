@@ -4,7 +4,6 @@
     <p class="welcome-text">欢迎回来，{{ authStore.user?.username }}</p>
 
     <div class="dashboard-grid">
-      <!-- Quick Actions -->
       <div class="quick-actions">
         <el-card v-if="isAdmin" class="dashboard-card" @click="$router.push('/admin/clubs')">
           <template #header>
@@ -29,11 +28,9 @@
         </el-card>
       </div>
 
-      <!-- System Stats (Admin Only) -->
       <div v-if="isAdmin && systemStats" class="stats-section">
         <h3>系统数据看板</h3>
-        
-        <!-- Stats Cards -->
+
         <el-row :gutter="20" class="stats-cards">
           <el-col :span="6">
             <el-card shadow="hover">
@@ -61,7 +58,6 @@
           </el-col>
         </el-row>
 
-        <!-- Charts -->
         <el-row :gutter="20" class="charts-row">
           <el-col :span="12">
             <el-card>
@@ -78,7 +74,6 @@
         </el-row>
       </div>
 
-      <!-- If user is a Club Admin, show their clubs -->
       <div v-if="myClubs.length > 0" class="my-clubs-section">
         <h3>我管理的社团</h3>
         <el-row :gutter="20">
@@ -104,7 +99,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import axios from '@/api/axios'
 import * as echarts from 'echarts'
@@ -119,8 +114,8 @@ let userGrowthChart = null
 let clubStatusChart = null
 
 const isAdmin = computed(() => {
-    const roles = authStore.user?.roles || []
-    return roles.some(r => (typeof r === 'string' ? r : r.code) === 'ADMIN')
+  const roles = authStore.user?.roles || []
+  return roles.some((r) => (typeof r === 'string' ? r : r.code) === 'ADMIN')
 })
 
 const loadSystemStats = async () => {
@@ -137,14 +132,13 @@ const loadSystemStats = async () => {
 const initCharts = () => {
   if (!systemStats.value) return
 
-  // User Growth Chart
   if (userGrowthChartRef.value) {
     if (userGrowthChart) userGrowthChart.dispose()
     userGrowthChart = echarts.init(userGrowthChartRef.value)
-    
+
     const dates = Object.keys(systemStats.value.userGrowth || {})
     const counts = Object.values(systemStats.value.userGrowth || {})
-    
+
     userGrowthChart.setOption({
       tooltip: {
         trigger: 'axis'
@@ -176,16 +170,15 @@ const initCharts = () => {
     })
   }
 
-  // Club Status Chart
   if (clubStatusChartRef.value) {
     if (clubStatusChart) clubStatusChart.dispose()
     clubStatusChart = echarts.init(clubStatusChartRef.value)
-    
+
     const statusData = Object.entries(systemStats.value.clubStatusDistribution || {}).map(([key, value]) => ({
       name: getStatusText(key),
-      value: value
+      value
     }))
-    
+
     clubStatusChart.setOption({
       tooltip: {
         trigger: 'item'
@@ -262,8 +255,13 @@ onMounted(async () => {
     window.addEventListener('resize', handleResize)
   }
 })
-</script>
 
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
+  userGrowthChart?.dispose()
+  clubStatusChart?.dispose()
+})
+</script>
 <style scoped>
 .admin-dashboard {
   padding: 24px;
@@ -431,3 +429,5 @@ onMounted(async () => {
   font-weight: 600;
 }
 </style>
+
+

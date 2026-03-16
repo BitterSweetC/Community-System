@@ -1,319 +1,374 @@
 # 校园社团管理与招新系统 - API 接口文档
 
 ## 1. 概述
-本接口文档描述校园社团管理与招新系统后端 RESTful API。所有响应统一使用 JSON，编码 UTF-8；认证使用 JWT Bearer Token；时间采用 ISO 8601（含时区或使用 `YYYY-MM-DDTHH:mm:ss` 默认东八区说明）。
+本文档以当前仓库中的控制器实现为准，描述系统已存在的 REST API。
 
-Base URL: `https://api.university-club.com` （示例）
+- Base URL：`/api`
+- 响应格式：统一包装为 `Result<T>`
+- 认证方式：`JWT + HttpOnly Cookie`
+- 兼容方式：后端过滤器也支持从 `Authorization: Bearer <token>` 中读取 token，主要用于测试或非浏览器客户端
 
-版本：v1
+统一响应结构：
 
----
-
-## 2. 认证与通用规范
-Header: `Authorization: Bearer <access_token>`
-响应统一结构：
 ```json
 {
-  "code": "SUCCESS",
-  "message": "操作成功",
+  "code": 200,
+  "message": "Success",
   "data": {}
 }
 ```
-错误示例：
+
+分页结构（实际为 `PageResult<T>`）：
+
 ```json
 {
-  "code": "VALIDATION_ERROR",
-  "message": "招新批次不存在",
-  "data": null
+  "list": [],
+  "total": 0,
+  "page": 1,
+  "size": 10,
+  "totalPages": 0
 }
 ```
 
-分页参数：`page`（从1开始），`size`；返回含 `page`,`size`,`total`,`records`。
+说明：文档不再保留仓库中不存在的接口，例如 `/api/members`、`/api/users/password/reset`、`/api/clubs/{id}/freeze` 等。
 
 ---
 
-## 3. 认证服务 `/api/auth`
+## 2. 认证接口 `/api/auth`
 
-### 3.1 登录
-- Method: POST
-- URL: `/api/auth/login`
-- Body:
-```json
-{ "username": "202501234", "password": "secret" }
-```
-- Success:
+### 2.1 注册
+- `POST /api/auth/register`
+- Body：`User` 基本信息
+
+### 2.2 登录
+- `POST /api/auth/login`
+- Body：
+
 ```json
 {
-  "code": "SUCCESS",
-  "data": {
-    "accessToken": "eyJ...",
-    "refreshToken": "eyR...",
-    "expiresIn": 3600,
-    "user": { "id": 12, "realName": "张三", "roles": ["STUDENT"] }
-  }
+  "username": "202501234",
+  "password": "secret"
 }
 ```
 
-### 3.2 刷新令牌
-POST `/api/auth/refresh`  Body `{ "refreshToken": "eyR..." }`
+- 返回：`Result<LoginResponse>`
+- `LoginResponse` 当前只包含 `user`
+- access token / refresh token 主要通过 Cookie 下发
 
-### 3.3 登出
-POST `/api/auth/logout`  Header 携带 AccessToken，服务端列入黑名单（可选）。
+### 2.3 刷新令牌
+- `POST /api/auth/refresh`
+- refresh token 从 Cookie 中读取，不要求前端显式传 JSON Body
 
----
+### 2.4 登出
+- `POST /api/auth/logout`
+- 后端清理 refresh token 并清除 Cookie
 
-## 4. 用户与角色 `/api/users`
+### 2.5 忘记密码
+- `POST /api/auth/forgot-password`
+- Body：
 
-### 4.1 获取当前用户
-GET `/api/users/me`
-返回：`id, username, realName, roles, lastLoginAt`。
-
-### 4.2 修改个人资料
-PUT `/api/users/me`
-Body: `{ "email": "a@b.com", "mobile": "13800001111" }`
-
-### 4.3 重置密码（忘记密码）
-POST `/api/users/password/reset` Body: `{ "username": "202501234", "email": "a@b.com" }` → 发邮件链接。
-
----
-
-## 5. 社团管理 `/api/clubs`
-
-### 5.1 创建社团（管理员/负责人）
-POST `/api/clubs`
 ```json
 {
-  "name": "科技创新协会",
-  "shortName": "科创",
-  "category": "科技",
-  "description": "科技实践与创新项目社团"
-}
-```
-返回创建的社团对象。状态默认 `PENDING`。
-
-### 5.2 审核社团（管理员）
-POST `/api/clubs/{id}/approve` Body: `{ "decision": "PASS", "remark": "资料齐全" }`
-
-### 5.3 查询社团列表（公开）
-GET `/api/clubs?keyword=科技&category=科技&page=1&size=10`
-返回活跃度指标：`memberCount, activityCount`。
-
-### 5.4 更新社团信息（负责人）
-PUT `/api/clubs/{id}` Body: `{ "logoUrl": "https://...", "description": "更新简介" }`
-
-### 5.5 冻结社团（管理员）
-POST `/api/clubs/{id}/freeze` Body: `{ "reason": "违规内容" }`
-
----
-
-## 6. 招新批次 `/api/recruit/batches`
-
-### 6.1 创建招新批次（干部）
-POST `/api/recruit/batches`
-```json
-{
-  "clubId": 10,
-  "title": "2025春季招新",
-  "description": "欢迎加入",
-  "startTime": "2025-03-01T08:00:00",
-  "endTime": "2025-03-10T23:59:59",
-  "quota": 50
+  "email": "user@example.com"
 }
 ```
 
-### 6.2 定义表单字段
-POST `/api/recruit/batches/{batchId}/fields`
-```json
-[
-  { "fieldKey": "strength", "label": "个人特长", "type": "TEXT", "required": true },
-  { "fieldKey": "intent", "label": "加入动机", "type": "TEXT", "required": true },
-  { "fieldKey": "department", "label": "期望部门", "type": "SELECT", "options": ["技术部", "宣传部"], "required": true }
-]
-```
+### 2.6 重置密码
+- `POST /api/auth/reset-password`
+- Body：
 
-### 6.3 学生提交报名
-POST `/api/recruit/applications`
 ```json
 {
-  "batchId": 18,
-  "applyData": {
-    "strength": "熟悉Java与前端",
-    "intent": "希望提升实践能力",
-    "department": "技术部"
-  }
-}
-```
-响应：状态 `PENDING`。
-
-### 6.4 初审
-POST `/api/recruit/applications/{id}/first-review`
-```json
-{ "decision": "PASS", "comment": "表现不错" }
-```
-
-### 6.5 复审
-POST `/api/recruit/applications/{id}/final-review`
-```json
-{ "decision": "PASS", "comment": "录取" }
-```
-成功后触发成员创建。
-
-### 6.6 查询报名列表（干部）
-GET `/api/recruit/batches/{batchId}/applications?status=FIRST_PASS&page=1&size=20`
-
-### 6.7 导出报名（干部）
-GET `/api/recruit/batches/{batchId}/export` → 返回文件下载链接。
-
----
-
-## 7. 成员管理 `/api/members`
-
-### 7.1 查询社团成员
-GET `/api/members?clubId=10&role=OFFICER&page=1&size=20`
-
-### 7.2 调整成员角色（负责人）
-POST `/api/members/{id}/role` Body: `{ "roleCode": "OFFICER" }`
-
-### 7.3 更新成员状态
-POST `/api/members/{id}/status` Body: `{ "status": "TRIAL" }`
-
----
-
-## 8. 活动管理 `/api/activities`
-
-### 8.1 创建活动
-POST `/api/activities`
-```json
-{
-  "clubId": 10,
-  "title": "技术分享会",
-  "type": "讲座",
-  "location": "教学楼A101",
-  "maxParticipants": 100,
-  "signupStart": "2025-04-01T08:00:00",
-  "signupEnd": "2025-04-03T23:59:59",
-  "startTime": "2025-04-05T19:00:00",
-  "endTime": "2025-04-05T21:00:00",
-  "needAttendance": true
+  "email": "user@example.com",
+  "code": "123456",
+  "newPassword": "newPassword123"
 }
 ```
 
-### 8.2 报名活动
-POST `/api/activities/{id}/signup`
-
-### 8.3 取消报名
-DELETE `/api/activities/{id}/signup`
-
-### 8.4 签到（二维码调用）
-POST `/api/activities/{id}/attendance`
-```json
-{ "userId": 12, "token": "qr_signature" }
-```
-
-### 8.5 获取活动详情
-GET `/api/activities/{id}` 返回报名人数、签到人数、状态。
-
-### 8.6 活动归档
-POST `/api/activities/{id}/archive` Body: `{ "summary": "活动顺利进行" }`
-
 ---
 
-## 9. 公告与消息 `/api/notices`
+## 3. 用户接口 `/api/users` 与 `/api/files`
 
-### 9.1 发布公告
-POST `/api/notices`
+### 3.1 获取当前用户
+- `GET /api/users/me`
+
+### 3.2 更新当前用户资料
+- `PUT /api/users/me`
+- 可更新字段：`realName`、`avatarUrl`、`mobile`、`email`、`interests`
+
+### 3.3 修改当前用户密码
+- `POST /api/users/me/password`
+- Body：
+
 ```json
 {
-  "clubId": 10,
-  "title": "本周例会通知",
-  "content": "周五晚七点召开例会",
-  "scope": "CLUB"
+  "oldPassword": "old",
+  "newPassword": "new"
 }
 ```
 
-### 9.2 全局公告（管理员）
-POST `/api/notices` Body `{"scope": "GLOBAL", "title": "校团委通知", ...}`
+### 3.4 获取我的活动
+- `GET /api/users/me/activities`
 
-### 9.3 公告列表
-GET `/api/notices?clubId=10&page=1&size=10`
-
-### 9.4 标记已读
-POST `/api/notices/{id}/read`
+### 3.5 文件上传
+- `POST /api/files/upload`
+- 表单字段：`file`
 
 ---
 
-## 10. 附件上传 `/api/files`
-POST `/api/files/upload` (Multipart)
-响应：`{ "url": "https://oss/...", "fileName": "xxx.png" }`
-限制：大小 ≤ 10MB，类型白名单（image/*, application/pdf）。
+## 4. 社团接口 `/api/clubs`
+
+### 4.1 创建社团
+- `POST /api/clubs`
+
+### 4.2 查询社团列表
+- `GET /api/clubs?keyword=&category=&page=0&size=10`
+- 当前控制器参数默认 `page=0`
+- 返回 `PageResult<ClubVO>`，响应中的 `page` 会被包装为从 1 开始
+
+### 4.3 推荐社团
+- `GET /api/clubs/recommended`
+
+### 4.4 获取我的社团
+- `GET /api/clubs/my`
+
+### 4.5 获取社团详情
+- `GET /api/clubs/{id}`
+
+### 4.6 更新社团
+- `PUT /api/clubs/{id}`
+
+### 4.7 审核社团
+- `POST /api/clubs/{id}/approve`
+
+### 4.8 添加成员
+- `POST /api/clubs/{id}/members?userId={userId}&role={role}`
+
+### 4.9 查询社团成员
+- `GET /api/clubs/{id}/members`
+
+### 4.10 导出社团成员
+- `GET /api/clubs/{id}/members/export`
+
+### 4.11 更新成员角色
+- `PUT /api/clubs/{id}/members/{userId}/role?role={role}`
+
+### 4.12 退出社团
+- `DELETE /api/clubs/{id}/members/me`
+
+### 4.13 移除成员
+- `DELETE /api/clubs/{id}/members/{userId}`
+
+### 4.14 申请解散社团
+- `POST /api/clubs/{id}/dissolve`
+
+### 4.15 撤回解散申请
+- `POST /api/clubs/{id}/dissolve/withdraw`
+
+### 4.16 强制删除社团
+- `DELETE /api/clubs/{id}/force`
+
+### 4.17 恢复社团
+- `POST /api/clubs/{id}/recover`
 
 ---
 
-## 11. 统计报表 `/api/stats`
+## 5. 招新接口 `/api/recruit`
 
-### 11.1 全局统计（管理员）
-GET `/api/stats/global` 返回：`clubCount, activeClubCount, totalMembers, recruitConversionRate`。
+### 5.1 创建招新批次
+- `POST /api/recruit/batches`
 
-### 11.2 社团内部统计
-GET `/api/stats/clubs/{clubId}` 返回：`applications, accepted, activities, averageAttendanceRate, memberGrowth`。
+### 5.2 查询某社团的招新批次
+- `GET /api/recruit/batches?clubId={clubId}`
 
----
+### 5.3 查询单个批次
+- `GET /api/recruit/batches/{id}`
 
-## 12. 审计日志 `/api/audit`
-GET `/api/audit?userId=12&action=LOGIN&page=1&size=20`
+### 5.4 新增表单字段
+- `POST /api/recruit/fields`
 
----
+### 5.5 查询表单字段
+- `GET /api/recruit/fields?batchId={batchId}`
 
-## 13. 通用错误码
-| code | message | 说明 |
-|------|---------|------|
-| SUCCESS | 操作成功 | 正常 |
-| AUTH_INVALID | 认证失败 | Token 无效 |
-| PERMISSION_DENIED | 权限不足 | 无访问权限 |
-| VALIDATION_ERROR | 参数校验失败 | 字段不符合要求 |
-| RESOURCE_NOT_FOUND | 资源不存在 | ID错误 |
-| CONFLICT_LIMIT | 名额已满 | 报名达到上限 |
-| SYSTEM_ERROR | 系统错误 | 未捕获异常 |
+### 5.6 提交报名
+- `POST /api/recruit/applications`
 
----
+### 5.7 查询报名
+- `GET /api/recruit/applications`
+- `GET /api/recruit/applications?batchId={batchId}`
 
-## 14. 安全与速率限制
-- 登录接口：IP + 用户名组合 5 次失败锁 10 分钟。
-- 报名接口：单用户每分钟最多 10 次尝试。
-- 返回头：`X-Rate-Limit-Remaining`。
+### 5.8 初审
+- `POST /api/recruit/applications/{id}/first-review?pass=true&comment=...`
 
----
+### 5.9 终审
+- `POST /api/recruit/applications/{id}/final-review?pass=true&comment=...`
 
-## 15. 版本规划
-- v1：核心招新/活动/公告
-- v1.1：资源申请、消息推送
-- v1.2：统计分析细化、机器学习推荐（活动推荐）
+### 5.10 查询当前处于招新状态的社团
+- `GET /api/recruit/active-clubs`
+
+### 5.11 导出报名结果
+- `GET /api/recruit/batches/{batchId}/applications/export`
 
 ---
 
-## 16. 示例：报名完整请求与响应
-请求：
+## 6. 活动接口 `/api/activities`
+
+### 6.1 创建活动
+- `POST /api/activities`
+
+### 6.2 分页查询活动
+- `GET /api/activities`
+- 支持按 `clubId` 等条件查询
+
+### 6.3 查询社团活动
+- `GET /api/activities/club/{clubId}`
+
+### 6.4 查询活动详情
+- `GET /api/activities/{id}`
+
+### 6.5 报名活动
+- `POST /api/activities/{id}/signup`
+
+### 6.6 活动签到
+- `POST /api/activities/{id}/signin`
+
+### 6.7 查询报名记录
+- `GET /api/activities/{id}/signups`
+
+### 6.8 导出签到记录
+- `GET /api/activities/{id}/checkins/export`
+
+### 6.9 查询我的报名
+- `GET /api/activities/my-signups`
+
+### 6.10 更新活动
+- `PUT /api/activities/{id}`
+
+### 6.11 删除活动
+- `DELETE /api/activities/{id}`
+
+---
+
+## 7. 公告与通知
+
+### 7.1 公告接口 `/api/notices`
+- `GET /api/notices/{id}`
+- `GET /api/notices`
+- `POST /api/notices`
+- `DELETE /api/notices/{id}`
+
+### 7.2 通知接口 `/api/notifications`
+- `GET /api/notifications`
+- `GET /api/notifications/unread-count`
+- `PUT /api/notifications/{id}/read`
+- `PUT /api/notifications/read-all`
+
+---
+
+## 8. 资源接口 `/api/resources`
+
+### 8.1 查询资源定义
+- `GET /api/resources/list`
+
+### 8.2 管理端查询资源定义
+- `GET /api/resources/admin/list`
+
+### 8.3 新增资源定义
+- `POST /api/resources/admin`
+
+### 8.4 更新资源定义
+- `PUT /api/resources/admin`
+
+### 8.5 删除资源定义
+- `DELETE /api/resources/admin/{id}`
+
+### 8.6 提交资源申请
+- `POST /api/resources/applications`
+
+### 8.7 查询某社团的资源申请
+- `GET /api/resources/clubs/{clubId}/applications`
+
+### 8.8 查询待审批申请
+- `GET /api/resources/applications/pending`
+
+### 8.9 审批通过
+- `POST /api/resources/applications/{id}/approve`
+
+### 8.10 审批驳回
+- `POST /api/resources/applications/{id}/reject`
+
+---
+
+## 9. 财务接口 `/api/finance`
+
+### 9.1 创建流水
+- `POST /api/finance/transactions`
+
+### 9.2 查询社团流水
+- `GET /api/finance/clubs/{clubId}/transactions`
+
+### 9.3 查询社团余额
+- `GET /api/finance/clubs/{clubId}/balance`
+
+### 9.4 审批流水
+- `POST /api/finance/transactions/{id}/approve`
+
+### 9.5 驳回流水
+- `POST /api/finance/transactions/{id}/reject`
+
+---
+
+## 10. 管理与统计接口
+
+### 10.1 系统管理 `/api/admin`
+- `GET /api/admin/clubs/pending`
+- `GET /api/admin/clubs/dissolving`
+- `POST /api/admin/clubs/{id}/approve`
+- `POST /api/admin/clubs/{id}/approve-dissolution`
+- `POST /api/admin/clubs/{id}/reject-dissolution`
+- `DELETE /api/admin/clubs/{id}`
+- `POST /api/admin/users/{id}/status?status=...`
+- `POST /api/admin/roles/cleanup`
+
+### 10.2 审计日志 `/api/admin/audit-logs`
+- `GET /api/admin/audit-logs`
+
+### 10.3 Dashboard `/api/dashboard`
+- `GET /api/dashboard/stats`
+
+### 10.4 统计 `/api/stats`
+- `GET /api/stats/system`
+- `GET /api/stats/club/{clubId}`
+
+---
+
+## 11. AI 接口
+
+### 11.1 社团问答 `/api/club/chat`
+- `POST /api/club/chat`
+- Body：
+
 ```json
 {
-  "batchId": 33,
-  "applyData": {
-    "strength": "组织协调能力强",
-    "intent": "想提高自己并服务同学",
-    "department": "宣传部"
-  }
-}
-```
-响应：
-```json
-{
-  "code": "SUCCESS",
-  "data": {
-    "id": 9901,
-    "batchId": 33,
-    "status": "PENDING"
-  }
+  "message": "我想找技术类社团",
+  "sessionId": "optional-session-id"
 }
 ```
 
-（本 API 文档将在实现时与实际返回字段同步迭代）
+说明：
+- 已登录用户会自动使用用户身份作为会话标识
+- 匿名用户可传 `sessionId`
+- 控制器内置简单频率限制
 
+---
+
+## 12. 说明
+以下内容已从文档中移除，因为当前代码仓库中不存在或并未这样实现：
+- `/api/members` 独立成员模块接口
+- `/api/users/password/reset`
+- `/api/clubs/{id}/freeze`
+- 通过 JSON Body 传 refresh token 的固定约定
+- 统一 `Bearer Token` 作为浏览器主认证方式
+- 返回结构中的 `records` 字段
+
+（本文档按当前控制器实现修订，后续若控制器变更，应同步更新。）
