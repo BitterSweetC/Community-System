@@ -2,10 +2,12 @@ package com.cloud.community.notice.controller;
 
 import com.cloud.community.core.common.PageResult;
 import com.cloud.community.core.common.Result;
+import com.cloud.community.core.entity.Club;
 import com.cloud.community.core.entity.Notice;
+import com.cloud.community.core.entity.User;
+import com.cloud.community.core.repository.ClubRepository;
 import com.cloud.community.core.repository.NoticeRepository;
 import com.cloud.community.core.repository.UserRepository;
-import com.cloud.community.core.entity.User;
 import com.cloud.community.user.service.PermissionService;
 import com.cloud.community.core.model.dto.NotificationMessageDTO;
 import com.cloud.community.core.constant.RabbitConstants;
@@ -20,6 +22,13 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 @RestController
 @RequestMapping("/api/notices")
@@ -28,6 +37,7 @@ import java.time.LocalDateTime;
 public class NoticeController {
 
     private final NoticeRepository noticeRepository;
+    private final ClubRepository clubRepository;
     private final UserRepository userRepository;
     private final PermissionService permissionService;
     private final RabbitTemplate rabbitTemplate;
@@ -42,6 +52,7 @@ public class NoticeController {
     public Result<Notice> getNotice(@PathVariable Long id) {
         Notice notice = noticeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Notice not found"));
+        enrichNoticeDisplayFields(List.of(notice));
         return Result.success(notice);
     }
 
@@ -71,6 +82,7 @@ public class NoticeController {
 
         Page<Notice> noticePage = noticeRepository.searchPublished(
                 clubId, "PUBLISHED", normalizedTitle, startTime, endTime, pageRequest);
+        enrichNoticeDisplayFields(noticePage.getContent());
         return Result.success(PageResult.of(noticePage));
     }
 
@@ -105,6 +117,7 @@ public class NoticeController {
             e.printStackTrace();
         }
 
+        enrichNoticeDisplayFields(List.of(savedNotice));
         return Result.success(savedNotice);
     }
 
@@ -123,5 +136,62 @@ public class NoticeController {
         
         noticeRepository.deleteById(id);
         return Result.success();
+    }
+
+    private void enrichNoticeDisplayFields(List<Notice> notices) {
+        if (notices == null || notices.isEmpty()) {
+            return;
+        }
+
+        Map<Long, Club> clubMap = loadClubMap(notices);
+        Map<Long, User> publisherMap = loadPublisherMap(notices);
+
+        for (Notice notice : notices) {
+            Club club = notice.getClubId() == null ? null : clubMap.get(notice.getClubId());
+            if (club != null) {
+                notice.setClubName(club.getName());
+                notice.setPublisherName(club.getName());
+            }
+
+            if (!StringUtils.hasText(notice.getPublisherName())) {
+                User publisher = notice.getPublishedBy() == null ? null : publisherMap.get(notice.getPublishedBy());
+                if (publisher != null) {
+                    String displayName = StringUtils.hasText(publisher.getRealName())
+                            ? publisher.getRealName()
+                            : publisher.getUsername();
+                    notice.setPublisherName(displayName);
+                }
+            }
+
+            if (!StringUtils.hasText(notice.getPublisherName())) {
+                notice.setPublisherName("系统管理员");
+            }
+        }
+    }
+
+    private Map<Long, Club> loadClubMap(List<Notice> notices) {
+        List<Long> clubIds = notices.stream()
+                .map(Notice::getClubId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        if (clubIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return StreamSupport.stream(clubRepository.findAllById(clubIds).spliterator(), false)
+                .collect(Collectors.toMap(Club::getId, Function.identity()));
+    }
+
+    private Map<Long, User> loadPublisherMap(List<Notice> notices) {
+        List<Long> publisherIds = notices.stream()
+                .map(Notice::getPublishedBy)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        if (publisherIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return StreamSupport.stream(userRepository.findAllById(publisherIds).spliterator(), false)
+                .collect(Collectors.toMap(User::getId, Function.identity()));
     }
 }

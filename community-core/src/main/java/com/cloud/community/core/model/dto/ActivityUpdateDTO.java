@@ -2,6 +2,7 @@ package com.cloud.community.core.model.dto;
 
 import jakarta.validation.constraints.Size;
 import lombok.Data;
+
 import java.time.LocalDateTime;
 
 @Data
@@ -26,4 +27,6 @@ public class ActivityUpdateDTO {
     private LocalDateTime signupEndTime;
     private Integer maxParticipants;
     private Boolean needAttendance;
+    private String checkinCode;
+    private Integer rewardPoints;
 }

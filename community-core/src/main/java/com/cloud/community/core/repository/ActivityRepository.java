@@ -56,4 +56,6 @@ public interface ActivityRepository extends JpaRepository<Activity, Long> {
     @Modifying
     @Query("UPDATE Activity a SET a.status = 'ENDED' WHERE a.status = 'IN_PROGRESS' AND a.endTime <= :now")
     int markEnded(@Param("now") LocalDateTime now);
+
+    List<Activity> findByStatusAndSettlementStatus(String status, String settlementStatus);
 }

@@ -14,6 +14,7 @@
           class="admin-menu"
         >
           <el-menu-item index="/admin" v-if="isAdmin">仪表盘</el-menu-item>
+          <el-menu-item v-if="isAdmin" index="/admin/todos">统一待办</el-menu-item>
           <el-menu-item v-if="isAdmin" index="/admin/realtime">实时大屏</el-menu-item>
           <el-menu-item v-if="isAdmin" index="/admin/clubs">社团管理</el-menu-item>
           <el-menu-item v-if="isAdmin" index="/admin/notices">公告管理</el-menu-item>
@@ -22,6 +23,7 @@
           <el-menu-item v-if="isAdmin" index="/admin/audit">审计日志</el-menu-item>
 
           <el-menu-item index="/clubadmin" v-if="isClubAdmin">仪表盘</el-menu-item>
+          <el-menu-item index="/clubadmin/todos" v-if="isClubAdmin">统一待办</el-menu-item>
 
           <template v-if="isClubAdmin">
             <el-sub-menu v-for="club in myClubs" :key="club.id" :index="`club-${club.id}`">
@@ -38,8 +40,11 @@
             </el-sub-menu>
           </template>
 
-          <el-menu-item @click="logout">退出登录</el-menu-item>
         </el-menu>
+
+        <div style="padding: 8px;">
+          <el-button class="logout-button" style="width: 100%;" @click="logout">退出登录</el-button>
+        </div>
       </el-aside>
 
       <el-main class="admin-main">
@@ -219,6 +224,7 @@ onMounted(() => {
 .clubadmin-theme :deep(.resource-definition),
 .clubadmin-theme :deep(.audit-log-management),
 .clubadmin-theme :deep(.realtime-dashboard),
+.clubadmin-theme :deep(.todo-center),
 .clubadmin-theme :deep(.recruit-management),
 .clubadmin-theme :deep(.member-management),
 .clubadmin-theme :deep(.notice-management),
@@ -383,10 +389,36 @@ onMounted(() => {
   border-color: #b43f45 !important;
 }
 
+.logout-button {
+  border-color: rgba(15, 76, 129, 0.18);
+  color: #45627c;
+  background: rgba(255, 255, 255, 0.86);
+}
+
+.logout-button:hover,
+.logout-button:focus {
+  color: #1a67ad;
+  border-color: rgba(26, 103, 173, 0.32);
+  background: rgba(255, 255, 255, 0.96);
+}
+
 .clubadmin-theme :deep(.action-buttons) {
   display: flex;
   align-items: center;
   gap: 8px !important;
+}
+
+.clubadmin-theme :deep(.logout-button) {
+  color: rgba(231, 241, 255, 0.86);
+  border-color: rgba(231, 241, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.clubadmin-theme :deep(.logout-button:hover),
+.clubadmin-theme :deep(.logout-button:focus) {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.14);
 }
 
 .clubadmin-theme :deep(.el-tag--primary) {
@@ -476,5 +508,4 @@ onMounted(() => {
   }
 }
 </style>
-
 

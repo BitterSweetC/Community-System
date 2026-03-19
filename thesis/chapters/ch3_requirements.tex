@@ -7,24 +7,39 @@
 
 \subsection{用户与权限主体}
 
-系统中“账号角色”与“社团内岗位”是两层概念。账号角色用于全局访问控制，社团内岗位用于社团内部管理授权。角色划分如表~\ref{tab:user-roles} 所示。
+系统中“账号角色”与“社团内岗位”是两层概念。账号角色用于全局访问控制，决定用户在平台范围内的可访问资源；社团内岗位用于社团内部管理授权，决定成员在具体社团场景下的操作边界。未登录访客仅能浏览公开信息，不参与系统授权判断。为准确反映系统的双层权限结构，本文分别从系统角色与社团内部岗位两个层次进行说明，具体如表~\ref{tab:user-roles} 与表~\ref{tab:club-posts} 所示。
 
 \begin{table}[H]
 \centering
 \caption{系统角色与权限范围}
 \label{tab:user-roles}
-\begin{tabular}{lll}
+\begin{tabular}{p{2.8cm}p{3.2cm}p{7.6cm}}
 \toprule
-主体类型 & 代码/身份 & 权限范围 \\
+系统角色 & 角色代码 & 权限范围 \\
 \midrule
-访客 & 未登录用户 & 浏览公开社团、活动、公告、招新信息 \\
-普通用户 & USER & 个人资料维护、活动报名与签到、提交招新申请 \\
-社团管理员 & CLUB\_ADMIN & 管理所属社团的活动、成员、招新、公告、资源、财务申请 \\
-系统管理员 & ADMIN & 全局审批、系统审计、全局统计、用户状态管理 \\
-社团内岗位 & PRESIDENT / MANAGER / MEMBER & 社团内操作细分权限（由业务规则控制） \\
+普通用户 & USER & 个人资料维护、社团浏览、活动报名与签到、提交招新申请、查看个人相关信息 \\
+社团管理员 & CLUB\_ADMIN & 管理所属社团的活动、成员、招新、公告、资源申请、财务申请及相关社团信息维护 \\
+系统管理员 & ADMIN & 执行全局审批、系统审计、统计分析、用户状态管理及平台级运维控制 \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\begin{table}[H]
+\centering
+\caption{社团内部岗位与操作范围}
+\label{tab:club-posts}
+\begin{tabular}{p{2.8cm}p{3.2cm}p{7.6cm}}
+\toprule
+社团岗位 & 岗位代码 & 操作范围 \\
+\midrule
+社长 & PRESIDENT & 负责社团整体组织与运行，具备社团内部管理权限，可处理成员、活动、公告、资源、财务和招新等核心事务 \\
+管理员 & MANAGER & 协助社长完成社团日常事务管理，具备社团内部管理权限，可执行多数社团日常管理操作 \\
+普通成员 & MEMBER & 主要具备信息查看、活动参与、报名申请与个人记录查询等基础操作权限 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+从实现机制上看，系统并未采用独立权限点表对每一项社团操作进行按钮级授权，而是采用“岗位角色判断 + 业务规则校验”的方式实现社团内部权限控制。当前实现中，\texttt{PRESIDENT} 与 \texttt{MANAGER} 在大多数业务场景下共享社团管理权限，统一纳入社团管理员能力范围；\texttt{MEMBER} 主要承担参与、查看和申请类操作。与此同时，系统还会结合社团状态、成员身份和具体业务流程对操作进行进一步限制，从而保证社团管理过程的规范性与安全性。
 \subsection{系统边界}
 
 本系统覆盖“社团创建与审批、成员管理、活动管理、招新管理、公告与通知、资源申请、财务审批、审计与统计、AI 问答与推荐”等完整流程。系统暂不包含真实支付结算、统一身份平台（CAS/OAuth）对接、移动端原生 App。
@@ -123,39 +138,41 @@
   usecase/.style={draw, ellipse, minimum width=3cm, minimum height=0.8cm, align=center, font=\small},
   line/.style={-}
 ]
-\draw[thick] (0,0) rectangle (11,9);
-\node[above] at (5.5,9) {\textbf{校园社团管理系统}};
+\draw[thick] (0,0) rectangle (13.6,9.4);
+\node[above] at (6.8,9.4) {\textbf{校园社团管理系统}};
 
-\node[actor] (visitor) at (-1.8,7.4) {};
-\node[below] at (-1.8,7.0) {\small 访客};
-\node[actor] (user) at (-1.8,5.2) {};
-\node[below] at (-1.8,4.8) {\small USER};
-\node[actor] (clubadmin) at (-1.8,2.9) {};
-\node[below] at (-1.8,2.5) {\small CLUB\_ADMIN};
-\node[actor] (admin) at (12.6,4.9) {};
-\node[below] at (12.6,4.5) {\small ADMIN};
+\node[actor] (visitor) at (-1.8,7.8) {};
+\node[below] at (-1.8,7.4) {\small 访客};
+\node[actor] (user) at (-1.8,4.9) {};
+\node[below] at (-1.8,4.5) {\small USER};
+\node[actor] (clubadmin) at (15.2,4.9) {};
+\node[below] at (15.2,4.5) {\small CLUB\_ADMIN};
+\node[actor] (admin) at (15.2,7.6) {};
+\node[below] at (15.2,7.2) {\small ADMIN};
 
-\node[usecase] (browse) at (2.8,7.4) {浏览社团/活动/公告};
-\node[usecase] (auth) at (2.8,5.8) {登录/注册/找回密码};
-\node[usecase] (apply) at (2.8,4.2) {活动报名/签到\\提交招新申请};
-\node[usecase] (clubops) at (7.4,6.3) {社团管理\\成员与公告管理};
-\node[usecase] (activityops) at (7.4,4.7) {活动发布\\招新审核};
-\node[usecase] (resourceops) at (7.4,3.1) {资源与财务申请};
-\node[usecase] (sysops) at (9.2,5.0) {全局审批与审计\\统计看板};
-\node[usecase] (aiops) at (5.5,1.5) {AI 问答与推荐};
+\node[usecase] (browse) at (3.2,7.8) {浏览社团/活动/公告};
+\node[usecase] (auth) at (3.2,6.1) {登录/注册/找回密码};
+\node[usecase] (apply) at (3.2,4.3) {活动报名/签到\\提交招新申请};
+\node[usecase] (sysops) at (10.1,7.8) {全局审批与审计\\统计看板};
+\node[usecase] (clubops) at (10.1,6.1) {社团管理\\成员与公告管理};
+\node[usecase] (activityops) at (10.1,4.5) {活动发布\\招新审核};
+\node[usecase] (resourceops) at (10.1,2.9) {资源与财务申请};
+\node[usecase] (aiops) at (6.8,1.3) {AI 问答与推荐};
 
-\draw[line] (visitor) -- (browse);
-\draw[line] (visitor) -- (auth);
-\draw[line] (user) -- (auth);
-\draw[line] (user) -- (apply);
-\draw[line] (user) -- (aiops);
-\draw[line] (clubadmin) -- (clubops);
-\draw[line] (clubadmin) -- (activityops);
-\draw[line] (clubadmin) -- (resourceops);
-\draw[line] (clubadmin) -- (aiops);
-\draw[line] (admin) -- (sysops);
-\draw[line] (admin) -- (clubops);
-\draw[line] (admin) -- (resourceops);
+\draw[line] (visitor) -- (browse.west);
+\draw[line] (visitor) -- (auth.north west);
+\draw[line] (user) -- (auth.south west);
+\draw[line] (user) -- (apply.west);
+\draw[line] (user) -- ++(0.8,0) |- (aiops.west);
+
+\draw[line] (clubadmin) -- (activityops.east);
+\draw[line] (clubadmin) -- ++(-0.8,0) |- (clubops.east);
+\draw[line] (clubadmin) -- ++(-1.2,0) |- (resourceops.east);
+\draw[line] (clubadmin) -- ++(-1.6,0) |- (aiops.east);
+
+\draw[line] (admin) -- (sysops.east);
+\draw[line] (admin) -- ++(-4.0,0) |- (clubops.north east);
+\draw[line] (admin) -- ++(-4.4,0) |- (resourceops.north east);
 \end{tikzpicture}
 \caption{系统总用例图}
 \label{fig:usecase}
@@ -188,3 +205,37 @@
 \bottomrule
 \end{tabular}
 \end{table}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  node distance=0.9cm,
+  step/.style={draw, rectangle, rounded corners, minimum width=4.2cm, minimum height=0.78cm, align=center, font=\small},
+  decision/.style={draw, diamond, aspect=2.3, inner sep=1pt, align=center, font=\small},
+  line/.style={-Stealth, thick}
+]
+\node[step] (start) {用户提交签到请求};
+\node[decision, below=of start] (timecheck) {是否已报名且处于\\签到时间窗口?};
+\node[decision, below=of timecheck] (codecheck) {签到码是否正确\\或无需签到码?};
+\node[decision, below=of codecheck] (duplicate) {是否已经签到?};
+\node[step, below=of duplicate] (save) {写入签到记录并更新报名状态};
+\node[step, below=of save] (push) {广播最新签到人数并返回成功};
+
+\node[step, right=4.2cm of timecheck] (rejecttime) {拒绝签到\\返回未报名/时间不合法原因};
+\node[step, right=4.2cm of codecheck] (rejectcode) {拒绝签到\\返回签到码错误};
+\node[step, right=4.2cm of duplicate] (already) {返回已签到结果\\不重复写入数据};
+
+\draw[line] (start) -- (timecheck);
+\draw[line] (timecheck) -- node[left,font=\tiny]{是} (codecheck);
+\draw[line] (timecheck.east) -- ++(0.7,0) |- node[pos=0.25,above,font=\tiny]{否} (rejecttime.west);
+\draw[line] (codecheck) -- node[left,font=\tiny]{是} (duplicate);
+\draw[line] (codecheck.east) -- ++(0.7,0) |- node[pos=0.25,above,font=\tiny]{否} (rejectcode.west);
+\draw[line] (duplicate) -- node[left,font=\tiny]{否} (save);
+\draw[line] (duplicate.east) -- ++(0.7,0) |- node[pos=0.25,above,font=\tiny]{是} (already.west);
+\draw[line] (save) -- (push);
+\end{tikzpicture}
+\caption{活动签到业务流程图}
+\label{fig:activity-checkin-flow}
+\end{figure}
+
+图~\ref{fig:activity-checkin-flow} 对应了表格用例中的主成功场景与异常分支：系统先校验报名状态和时间窗口，再校验签到码，最后在防重条件下完成签到记录写入与 WebSocket 广播。这一流程图有助于将“业务规则约束”与后续设计章节中的接口时序、并发控制和实时推送设计对应起来。

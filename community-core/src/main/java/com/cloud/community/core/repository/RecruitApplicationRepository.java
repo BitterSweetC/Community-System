@@ -17,6 +17,16 @@ public interface RecruitApplicationRepository extends JpaRepository<RecruitAppli
     @Query("SELECT a FROM RecruitApplication a WHERE a.id = :id")
     Optional<RecruitApplication> findByIdForUpdate(@Param("id") Long id);
     List<RecruitApplication> findByUserId(Long userId);
+    List<RecruitApplication> findByBatchClubIdInAndFirstReviewStatusOrderByCreatedAtDesc(java.util.Collection<Long> clubIds,
+                                                                                         String firstReviewStatus);
+    List<RecruitApplication> findByBatchClubIdInAndFirstReviewStatusAndFinalReviewStatusOrderByCreatedAtDesc(
+            java.util.Collection<Long> clubIds,
+            String firstReviewStatus,
+            String finalReviewStatus);
+    long countByBatchClubIdInAndFirstReviewStatus(java.util.Collection<Long> clubIds, String firstReviewStatus);
+    long countByBatchClubIdInAndFirstReviewStatusAndFinalReviewStatus(java.util.Collection<Long> clubIds,
+                                                                      String firstReviewStatus,
+                                                                      String finalReviewStatus);
 
     long countByBatchIdAndFinalReviewStatus(Long batchId, String status);
 }

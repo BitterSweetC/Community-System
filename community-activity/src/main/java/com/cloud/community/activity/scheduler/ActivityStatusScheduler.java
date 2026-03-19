@@ -1,13 +1,18 @@
 package com.cloud.community.activity.scheduler;
 
+import com.cloud.community.core.entity.Activity;
 import com.cloud.community.core.repository.ActivityRepository;
+import com.cloud.community.core.service.MemberArchiveService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
+import java.util.function.Supplier;
 
 @Component
 @Slf4j
@@ -15,28 +20,39 @@ import java.time.LocalDateTime;
 public class ActivityStatusScheduler {
 
     private final ActivityRepository activityRepository;
+    private final MemberArchiveService memberArchiveService;
+    private final PlatformTransactionManager transactionManager;
 
-    /**
-     * 每分钟执行一次，将已到开始时间的 PUBLISHED 活动推进为 IN_PROGRESS
-     */
     @Scheduled(fixedDelay = 60_000)
-    @Transactional
     public void markInProgress() {
-        int count = activityRepository.markInProgress(LocalDateTime.now());
+        int count = executeInTransaction(() -> activityRepository.markInProgress(LocalDateTime.now()));
         if (count > 0) {
             log.info("活动状态推进：{} 个活动变为 IN_PROGRESS", count);
         }
     }
 
-    /**
-     * 每分钟执行一次，将已过结束时间的 IN_PROGRESS 活动推进为 ENDED
-     */
     @Scheduled(fixedDelay = 60_000)
-    @Transactional
     public void markEnded() {
-        int count = activityRepository.markEnded(LocalDateTime.now());
+        int count = executeInTransaction(() -> activityRepository.markEnded(LocalDateTime.now()));
         if (count > 0) {
             log.info("活动状态推进：{} 个活动变为 ENDED", count);
         }
+
+        for (Activity activity : activityRepository.findByStatusAndSettlementStatus("ENDED", "PENDING")) {
+            try {
+                TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+                transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+                transactionTemplate.executeWithoutResult(status ->
+                        memberArchiveService.settleActivityRewards(activity.getId(), null));
+            } catch (Exception e) {
+                log.warn("活动奖励结算失败，activityId={}", activity.getId(), e);
+            }
+        }
+    }
+
+    private int executeInTransaction(Supplier<Integer> action) {
+        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+        Integer result = transactionTemplate.execute(status -> action.get());
+        return result == null ? 0 : result;
     }
 }

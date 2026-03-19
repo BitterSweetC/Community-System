@@ -54,6 +54,15 @@ public class Activity extends BaseEntity {
     @Column(name = "checkin_code", length = 20)
     private String checkinCode;
 
+    @Column(name = "reward_points", nullable = false)
+    private Integer rewardPoints = 0;
+
+    @Column(name = "settlement_status", nullable = false, length = 20)
+    private String settlementStatus = "PENDING";
+
+    @Column(name = "settled_at")
+    private LocalDateTime settledAt;
+
     @Column(nullable = false, length = 20)
     private String status = "DRAFT";
 }

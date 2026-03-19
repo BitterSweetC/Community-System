@@ -3,6 +3,7 @@ package com.cloud.community.activity.service;
 import com.cloud.community.core.entity.Activity;
 import com.cloud.community.core.entity.ActivityAttendance;
 import com.cloud.community.core.entity.ActivitySignup;
+import com.cloud.community.core.model.vo.ActivityRewardSettlementVO;
 
 import java.util.List;
 
@@ -25,4 +26,5 @@ public interface ActivityService {
     List<ActivitySignup> getUserSignups(Long userId);
     void deleteActivity(Long id);
     Activity updateActivity(Long id, com.cloud.community.core.model.dto.ActivityUpdateDTO dto);
+    ActivityRewardSettlementVO settleRewards(Long activityId, Long operatorId);
 }

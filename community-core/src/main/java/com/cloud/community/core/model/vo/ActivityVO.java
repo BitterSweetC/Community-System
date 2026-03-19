@@ -23,6 +23,10 @@ public class ActivityVO {
     private LocalDateTime signupEndTime;
     private Integer maxParticipants;
     private Boolean needAttendance;
+    private String checkinCode;
+    private Integer rewardPoints;
+    private String settlementStatus;
+    private LocalDateTime settledAt;
     private String status;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;

@@ -7,7 +7,7 @@
       </div>
     </div>
 
-    <el-tabs v-model="activeTab" class="recruit-tabs">
+    <el-tabs v-model="activeTab" class="recruit-tabs" @tab-change="handleTabChange">
       <el-tab-pane label="批次管理" name="batches">
         <div class="pane-inner">
           <div class="actions">
@@ -53,7 +53,7 @@
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="260" align="center">
+            <el-table-column label="操作" min-width="260" align="center" class-name="action-column">
               <template #default="scope">
                 <div v-if="scope.row.firstReviewStatus === 'PENDING'" class="review-actions">
                   <el-button size="small" type="success" @click="openReview(scope.row.id, 'first', true)">通过</el-button>
@@ -121,11 +121,12 @@
 
 <script setup>
 import { onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import axios from '@/api/axios'
 import { ElMessage } from 'element-plus'
 
 const route = useRoute()
+const router = useRouter()
 const clubId = route.params.clubId
 const activeTab = ref('batches')
 const batches = ref([])
@@ -175,6 +176,18 @@ const getStatusLabel = (status) => {
   }
 }
 
+const syncRouteState = () => {
+  const batchId = route.query.batchId
+  const tab = route.query.tab
+
+  if (batchId) {
+    loadApplications(batchId, false)
+    return
+  }
+
+  activeTab.value = tab === 'applications' ? 'applications' : 'batches'
+}
+
 const loadBatches = async () => {
   try {
     batches.value = await axios.get(`/recruit/batches?clubId=${clubId}`)
@@ -199,11 +212,14 @@ const submitBatch = async () => {
   }
 }
 
-const loadApplications = async (batchId) => {
+const loadApplications = async (batchId, syncQuery = true) => {
   currentBatchId.value = batchId
   try {
     applications.value = await axios.get(`/recruit/applications?batchId=${batchId}`)
     activeTab.value = 'applications'
+    if (syncQuery) {
+      router.replace({ query: { tab: 'applications', batchId } })
+    }
   } catch {
     ElMessage.error('加载申请列表失败')
   }
@@ -234,6 +250,20 @@ const openReview = (id, stage, pass) => {
   reviewDialog.value = { visible: true, applicationId: id, stage, pass, comment: '' }
 }
 
+const handleTabChange = (tabName) => {
+  if (tabName === 'batches') {
+    router.replace({ query: {} })
+    return
+  }
+
+  if (currentBatchId.value) {
+    router.replace({ query: { tab: 'applications', batchId: currentBatchId.value } })
+    return
+  }
+
+  router.replace({ query: { tab: 'applications' } })
+}
+
 const submitReview = async () => {
   const { applicationId, stage, pass, comment } = reviewDialog.value
   if (!comment.trim()) {
@@ -256,7 +286,10 @@ const submitReview = async () => {
   }
 }
 
-onMounted(loadBatches)
+onMounted(async () => {
+  await loadBatches()
+  syncRouteState()
+})
 </script>
 
 <style scoped>
@@ -303,5 +336,18 @@ onMounted(loadBatches)
   display: flex;
   justify-content: center;
   gap: 8px;
+  flex-wrap: wrap;
+}
+
+.review-actions :deep(.el-button) {
+  margin-left: 0 !important;
+}
+
+:deep(.action-column .cell) {
+  white-space: normal !important;
+  overflow: visible;
+  line-height: 1.35;
+  padding-top: 6px;
+  padding-bottom: 6px;
 }
 </style>

@@ -18,8 +18,8 @@
 \toprule
 环境/工具 & 版本/说明 \\
 \midrule
-操作系统 & Windows 11（开发）/ Linux 容器（部署） \\
-JDK & 17（构建镜像阶段使用 JDK 21） \\
+操作系统 & Windows（开发）/ Linux 容器（部署） \\
+JDK & 21 \\
 Maven & 3.9.x（Maven Wrapper） \\
 Node.js & 20.x LTS \\
 Python & 3.11 \\
@@ -33,7 +33,7 @@ IDE & IntelliJ IDEA 2024 / VS Code \\
 \end{tabular}
 \end{table}
 
-从实现角度看，JDK 17/Spring Boot 3.x 负责业务主链路，Node.js 20 与 Vite 支撑前端构建，Python 3.11 承载 AI 服务，MySQL/Redis/RabbitMQ 组成主要依赖，Docker Compose 用于统一复现单节点运行环境。保留这些信息的目的，是说明后续测试结果所依赖的运行边界，而不是比较不同开发工具或版本选择的优劣。
+从实现角度看，JDK 21/Spring Boot 3.x 负责业务主链路，Node.js 20 与 Vite 支撑前端构建，Python 3.11 承载 AI 服务，MySQL/Redis/RabbitMQ 组成主要依赖，Docker Compose 用于统一复现单节点运行环境。保留这些信息的目的，是说明后续测试结果所依赖的运行边界，而不是比较不同开发工具或版本选择的优劣。
 
 \subsection{项目目录结构}
 
@@ -348,18 +348,19 @@ public void approveClub(Long clubId) {
 \centering
 \begin{tikzpicture}[
   state/.style={draw, rectangle, rounded corners, minimum width=2.2cm, minimum height=0.8cm, align=center, font=\small},
-  arr/.style={-Stealth, thick}
+  arr/.style={-Stealth, thick},
+  lab/.style={font=\tiny, fill=white, inner sep=1pt}
 ]
 \node[state, fill=yellow!20] (pending) at (0,0) {PENDING};
-\node[state, fill=green!20] (active) at (3.2,0) {ACTIVE};
-\node[state, fill=orange!20] (dissolving) at (6.4,0) {DISSOLVING};
-\node[state, fill=red!20] (dissolved) at (9.6,0) {DISSOLVED};
+\node[state, fill=green!20] (active) at (3.5,0) {ACTIVE};
+\node[state, fill=orange!20] (dissolving) at (7.0,0) {DISSOLVING};
+\node[state, fill=red!20] (dissolved) at (10.5,0) {DISSOLVED};
 
-\draw[arr] (pending) -- node[above,font=\tiny]{管理员审批通过} (active);
-\draw[arr] (active) -- node[above,font=\tiny]{申请解散} (dissolving);
-\draw[arr] (dissolving) -- node[above,font=\tiny]{通过解散审批/冷静期结束} (dissolved);
-\draw[arr] (dissolving) to[bend left=28] node[below,font=\tiny]{撤回/驳回} (active);
-\draw[arr] (dissolved) to[bend left=30] node[below,font=\tiny]{恢复社团} (active);
+\draw[arr] (pending) -- node[above,lab]{管理员审批通过} (active);
+\draw[arr] (active) -- node[above,lab]{申请解散} (dissolving);
+\draw[arr] (dissolving) -- node[above,lab]{通过解散审批 / 冷静期结束} (dissolved);
+\draw[arr] (dissolving.south) .. controls (7.0,-1.2) and (3.8,-1.2) .. node[below,lab]{撤回 / 驳回} (active.south);
+\draw[arr] (dissolved.south) .. controls (10.5,-2.0) and (4.2,-2.0) .. node[below,lab]{恢复社团} (active.south east);
 \end{tikzpicture}
 \caption{社团状态流转实现}
 \label{fig:club-state}
@@ -726,6 +727,33 @@ public void approveFinance(Long financeId) {
 
   \item \textbf{Consumer}：通知模块监听队列，接收消息后落库并分发给目标用户。
 \end{enumerate}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  box/.style={draw, rectangle, rounded corners, minimum width=2.6cm, minimum height=0.82cm, align=center, font=\small},
+  arr/.style={-Stealth, thick},
+  lab/.style={font=\tiny, fill=white, inner sep=1pt}
+]
+\node[box, fill=blue!15] (producer) at (0,2.2) {业务模块\\Club / Recruit / Finance};
+\node[box, fill=orange!20] (exchange) at (4.0,2.2) {Topic Exchange\\notification.topic};
+\node[box, fill=yellow!20] (queue) at (8.0,2.2) {Queue\\notification.queue};
+\node[box, fill=green!20] (consumer) at (12.0,2.2) {NotificationConsumer};
+\node[box, fill=purple!15] (db) at (12.0,0.2) {t\_notification\\站内通知表};
+\node[box, fill=gray!15] (ui) at (8.0,0.2) {前端消息中心\\轮询未读数/列表};
+
+\draw[arr] (producer) -- node[above,lab]{notification.club.approved 等} (exchange);
+\draw[arr] (exchange) -- node[above,lab]{Routing Key 匹配} (queue);
+\draw[arr] (queue) -- node[above,lab]{监听消费} (consumer);
+\draw[arr] (consumer) -- node[right,lab]{落库} (db);
+\draw[arr] (db.west) -- node[above,lab]{查询通知列表} (ui.east);
+\draw[arr] (ui.south east) to[bend right=24] node[below,lab]{读状态回写} (db.south west);
+\end{tikzpicture}
+\caption{RabbitMQ 异步通知分发链路图}
+\label{fig:notice-mq-flow}
+\end{figure}
+
+图~\ref{fig:notice-mq-flow} 对应了本节列举的 Exchange、Routing Key、Queue、Producer 与 Consumer 五个核心元素：各业务模块只负责发布标准化消息，通知模块异步消费后写入 \texttt{t\_notification}，前端再以统一入口读取通知列表和未读数。这样既降低了主业务链路与通知发送的耦合度，也便于后续扩展更多通知类型。
 
 \begin{lstlisting}[language=Java, caption=RabbitMQ 配置（节选）]
 @Configuration

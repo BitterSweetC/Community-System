@@ -27,7 +27,7 @@
 操作系统 & Windows 10 Home China 25H2（Build 26200，本地） \\
 CPU / 逻辑核数 & 11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz / 16 \\
 物理内存 & 15.65 GiB \\
-JDK（应用运行时） & 21 \\
+JDK & 21 \\
 Maven & Maven Wrapper（\texttt{mvnw.cmd}） \\
 数据库 & MySQL 8（Docker） \\
 缓存/消息队列 & Redis 7 / RabbitMQ 3.12（Docker） \\
@@ -40,23 +40,21 @@ Maven & Maven Wrapper（\texttt{mvnw.cmd}） \\
 
 \subsection{执行命令}
 
-本轮复跑命令如下：
+本轮围绕当前代码状态实际执行的自动化复跑命令如下：
 \begin{lstlisting}[language=bash, caption=测试执行命令]
-.\mvnw.cmd test -DfailIfNoTests=false
+.\mvnw.cmd test
 
 cd frontend
-$env:E2E_BASE_URL='http://127.0.0.1:5173'
+npm run build
+$env:E2E_BASE_URL='http://127.0.0.1:4173'
 npm run test:e2e:ci
-
-cd ..
-powershell -ExecutionPolicy Bypass -File scripts\jmeter\run-paper-benchmarks.ps1
 \end{lstlisting}
 
 \subsection{结果汇总}
 
 \begin{table}[H]
 \centering
-\caption{单元测试结果汇总}
+\caption{自动化测试与构建结果汇总}
 \label{tab:unit-result}
 \begin{tabular}{llll}
 \toprule
@@ -68,7 +66,8 @@ powershell -ExecutionPolicy Bypass -File scripts\jmeter\run-paper-benchmarks.ps1
 后端并发测试 & FinanceServiceImplConcurrencyTest & 通过（1/1） & 财务审批并发控制正常 \\
 后端并发测试 & ResourceServiceImplConcurrencyTest & 通过（1/1） & 资源审批并发控制正常 \\
 后端并发测试 & ActivityServiceImplConcurrencyTest & 通过（1/1） & 活动报名并发保护正常 \\
-前端流程测试 & login-flow.spec.js & 通过（1/1） & 登录点击流程能够跳转至 \texttt{/home} \\
+前端构建验证 & Vite production build & 通过 & 构建完成，仅有 chunk 警告，不影响当前运行 \\
+前端流程测试 & login-flow.spec.js & 通过（1/1） & 浏览器级登录流程能够跳转至 \texttt{/home} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -76,16 +75,16 @@ powershell -ExecutionPolicy Bypass -File scripts\jmeter\run-paper-benchmarks.ps1
 \subsection{结果解释与边界}
 
 \begin{enumerate}
-  \item 截至 2026 年 3 月 16 日，2026 年 3 月 13 日复跑的全量 Maven 测试结果与后续定向回归结果保持一致，说明此前文稿中“网关与社团模块存在未通过单元测试”的描述已不再代表当前代码状态；
-  \item 当前自动化回归总计覆盖 6 个 Java 测试类、15 个后端用例与 1 条前端 Playwright 登录流程，主要集中在认证、角色变更与并发约束等关键路径；在此基础上，2026 年 3 月 16 日又补充完成了 1 轮请求级端到端 smoke 复跑，用于验证主要业务闭环；
-  \item 因此，本节可以支撑“当前版本已具备基本可复现的关键路径验证，且主要业务链路能够在本机容器环境下跑通”这一结论，但仍不足以推出“系统已经验证充分”或“质量风险已经完全消除”的更强结论。
+  \item 截至 2026 年 3 月 17 日，本轮已完成 6 个 Java 测试类、15 个后端用例、1 次前端构建验证与 1 条 Playwright 浏览器级登录冒烟，说明当前代码状态在认证、角色切换、并发保护和基本前端运行方面仍保持可回归；
+  \item 除自动化外，本轮还结合 Docker Compose 在线环境执行了请求级 smoke 与运行时集成验证，实测覆盖多角色核心接口、活动创建/报名/签到/删除、AI 聊天、OSS 上传、RabbitMQ 通知、WebSocket 广播与忘记密码发信动作，因此“关键路径可复现”的结论并不只来自单元测试；
+  \item 同时需要说明边界：更完整的浏览器级 UI E2E、Excel 导出内容校验、长稳压测、故障注入复跑以及 \texttt{reset-password} 最后一跳，本轮尚未补齐，因此当前证据更适合支撑课堂/答辩演示与原型可运行性，不宜直接外推为生产级长期稳定性证明。
 \end{enumerate}
 
 \section{接口与安全验证}
 
 \subsection{认证与权限行为验证}
 
-本节以可直接复跑的 HTTP 请求为主，辅以 \texttt{AuthControllerTest} 中的异常路径单元测试，对认证与权限链路进行工程层面的行为确认；相关结果仅用于说明当前实现是否符合设计预期，不等同于专门渗透测试、漏洞扫描或系统化安全评估。表~\ref{tab:security-smoke} 给出了本轮请求级验证的结果。
+本节以可直接复跑的 HTTP 请求为主，辅以 \texttt{AuthControllerTest} 中的异常路径单元测试，对认证与权限链路进行工程层面的行为确认；相关结果仅用于说明当前实现是否符合设计预期，不等同于专门渗透测试、漏洞扫描或系统化安全评估。表~\ref{tab:security-smoke} 给出了本轮请求级验证的代表性结果。
 
 \begin{table}[H]
 \centering
@@ -93,93 +92,246 @@ powershell -ExecutionPolicy Bypass -File scripts\jmeter\run-paper-benchmarks.ps1
 \label{tab:security-smoke}
 \begin{tabular}{p{6.2cm}ccp{4.5cm}}
 \toprule
-验证项 & 未登录/普通用户 & 管理员 & 结果说明 \\
+验证项 & 匿名/无权角色 & 合法登录态 & 结果说明 \\
 \midrule
-\texttt{GET /api/dashboard/stats} & 403 & 200 & 受保护业务接口对未登录请求生效拦截 \\
-\texttt{GET /actuator/prometheus} & 403 & 200 & 监控端点的管理员角色隔离生效 \\
+\texttt{GET /api/dashboard/stats} & 403 & 200（管理员） & 管理端仪表盘接口对未登录请求生效拦截 \\
+\texttt{GET /api/admin/audit-logs} & 403 & 200（管理员） & 管理后台审计接口权限控制正常 \\
+\texttt{GET /api/users/me} & 403 & 200（学生） & 学生个人资料接口需在登录后访问 \\
+\texttt{GET /api/recruit/active-clubs} & 403（匿名） & 200（学生） & 当前实现要求登录后访问招新数据 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-此外，\texttt{AuthControllerTest} 已覆盖登录限频、密码强度校验、重置密码验证码异常路径以及“禁用用户 refresh 被拒绝”的回归场景；2026 年 3 月 16 日的请求级 smoke 还验证了管理员禁用用户后，既有 \texttt{access\_token} 请求返回 403、禁用状态下重新登录返回 401、恢复后可以再次正常登录。需要强调的是，本轮仅完成鉴权边界与关键异常分支验证，尚未系统覆盖 CSRF 专项测试、依赖漏洞扫描与渗透测试场景。
+此外，本轮还验证了管理员登录后可访问管理接口、登出后再次访问受保护接口返回 403，说明会话失效后的权限收敛符合预期。对于 \texttt{POST /api/auth/refresh}，本轮在 \texttt{curl} cookie jar 场景下返回 200，但在 PowerShell \texttt{WebSession} 场景曾出现“未找到 \texttt{refresh\_token}”的表现，当前更接近测试客户端对 path-scoped HttpOnly Cookie 的处理差异，而非后端刷新逻辑整体不可用。对于 \texttt{/api/recruit/active-clubs}，本轮实测匿名访问返回 403、学生登录态访问返回 200；考虑到当前产品路径中学生主页在登录后进入，这更适合作为权限策略现状记录，而不构成当前演示阻塞。需要强调的是，本轮仅完成鉴权边界与关键异常分支验证，尚未系统覆盖 CSRF 专项测试、依赖漏洞扫描与渗透测试场景。
 
 \subsection{端到端业务链路复跑}
 
-2026 年 3 月 16 日，本文在 Docker Compose 在线运行态重新生成一套 smoke 数据，并将结果留档于 \texttt{paper\_outputs/full-e2e-smoke/run-20260316-092834/}。本轮请求级复跑覆盖了认证全链路（注册、登录、改密、刷新、退出、找回密码、禁用用户令牌失效与恢复）、社团创建审批与成员管理、招新申请与评审、活动创建/报名/签到/导出/删除、系统公告与社团公告、站内通知读取、文件上传、资源申请审批、财务审批、审计日志、AI 聊天、社团解散/恢复/强制解散以及用户退社等关键业务闭环。
+2026 年 3 月 17 日，本文在 Docker Compose 在线运行态对当前版本执行了 1 轮请求级 smoke 与运行时链路复跑。与旧稿中“全量 full-e2e-smoke 已覆盖所有模块闭环”的表述不同，本轮不再将尚未验证的链路写成“已经完成全量端到端验收”，而仅保留当前确有直接证据的结果。就请求级 smoke 而言，本轮实际确认了匿名社团列表与 AI 聊天可用，管理员可查看仪表盘统计与审计日志，社团管理员可查看我的社团、待办事项与招新批次，学生可访问个人资料、未读通知、招新申请与活动报名列表。
 
-这轮复跑表明，当前版本在单机容器环境下已经具备主要功能的可复现端到端运行能力；同时也暴露出若干需要在论文中如实表述的实现语义，例如管理员“删除社团”当前属于状态迁移到 \texttt{DISSOLVED} 的软删除语义，成员移除与退社则通过 \texttt{LEFT} 状态保留历史关系。因此，本节证据更适合支撑“当前原型系统可运行、可复跑、主要业务链路可闭环”的工程结论，而不应外推为长期稳定性、生产级可靠性或完整用户验收结论。
+在业务主链路方面，本轮使用社团管理员创建临时活动，随后由学生完成报名和签到，再由社团管理员查看报名列表并删除测试活动，形成了“创建—报名—签到—回看—清理”的最小闭环。同时，认证后的上传请求已成功写入 OSS 并返回真实 URL；活动报名与签到触发后，学生未读通知数由 0 增长到 3，后端日志可见 RabbitMQ 消费记录；WebSocket 订阅端能够收到 \texttt{/topic/checkin/feed} 的签到广播；\texttt{POST /api/club/chat} 返回 200，说明 AI 问答链路也能在当前环境中工作。
 
-\subsection{前端运行展示（非测试主证据）}
+对于找回密码功能，本轮仅验证到“临时账号发起 \texttt{forgot-password} 请求并在后端日志中看到 \texttt{Email sent to ...}”这一步，未继续完成人工查收邮箱与 \texttt{reset-password} 最后一跳。因此，本节证据更适合说明当前原型在单机容器环境下已经具备课堂/答辩演示所需的关键路径可运行性，而不应直接写成“所有业务均已完成全量端到端闭环”或“长期稳定、生产级可靠”。
 
-前端行为层面的主要测试证据来自 Playwright 自动化登录流程；本小节截图仅用于说明系统页面能够在本机环境中正常运行，不单独作为“功能已充分验证”的依据。基于本机运行中的前端服务 \texttt{http://localhost:5173/}，本文对首页、登录页与注册页进行了页面访问与截图留档，以展示系统的可运行状态。
+\subsection{全链路运行证据图}
 
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.95\textwidth]{chapters/figures/home.png}
-\caption{系统首页运行截图}
-\label{fig:test-home}
-\end{figure}
+为避免旧稿仅展示首页、登录页等通用界面而难以对应具体业务环节，本文在 2026 年 3 月 18 日基于 Docker Compose 在线运行环境，重新生成了一组与核心业务流程直接对应的前端截图。该组截图覆盖“学生入口—社团创建—管理员审批—招新申请—活动报名与签到—公告发布—资源审批—财务审批—审计日志—AI 助手交互界面”等关键节点，作为前文请求级 smoke、运行时链路复跑与日志观察的可视化补充证据。
+
+需要说明的是，这些截图主要用于证明当前版本在答辩演示环境下的关键页面、角色权限与状态流转能够被真实渲染，并与后台数据状态保持一致；它们不能替代自动化测试、接口返回、日志记录与并发补测，也不应被直接表述为“所有业务均已完成生产级长期稳定验证”的唯一依据。
+
+对于首页、登录、注册、找回密码、个人资料、消息通知、成员管理、资源定义、实时大屏等补充功能页，本文已进一步按“每页一图一说明”的方式整理到附录“前端功能页面与关键状态截图索引”中，以便答辩或归档时逐页核对。
 
 \begin{figure}[H]
 \centering
 \begin{minipage}[t]{0.48\textwidth}
   \centering
-  \includegraphics[width=\linewidth]{chapters/figures/login.png}
+  \includegraphics[width=\linewidth]{chapters/figures/full-chain/01-student-home.png}
   \\[4pt]
-  \small (a) 登录页
+  \small (a) 学生首页与业务入口
 \end{minipage}
 \hfill
 \begin{minipage}[t]{0.48\textwidth}
   \centering
-  \includegraphics[width=\linewidth]{chapters/figures/register.png}
+  \includegraphics[width=\linewidth]{chapters/figures/full-chain/02-student-create-club-form.png}
   \\[4pt]
-  \small (b) 注册页
+  \small (b) 学生创建社团申请表
 \end{minipage}
-\caption{认证相关页面运行截图}
-\label{fig:test-auth-pages}
-\end{figure}
-
-为进一步验证系统在多角色场景下的前端权限呈现效果，本文使用学生、社团管理员与系统管理员三类测试账号分别完成登录并进入对应页面。运行结果显示，学生账号可进入用户中心查看个人资料、社团申请与个人业务入口；社团管理员账号可进入社团运营总览与数据看板，对所属社团进行运营管理；系统管理员账号可进入管理后台，对社团管理、公告管理、资源审批与审计日志等模块进行统一维护。这表明系统能够依据角色身份加载差异化导航结构与功能面板，前端界面层面的角色隔离与权限分配基本符合预期。
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.95\textwidth]{chapters/figures/student-role.png}
-\caption{学生角色页面运行截图}
-\label{fig:test-student-role}
+\caption{学生侧入口与社团创建起点}
+\label{fig:test-chain-entry-createclub}
 \end{figure}
 
 \begin{figure}[H]
 \centering
 \begin{minipage}[t]{0.48\textwidth}
   \centering
-  \includegraphics[width=\linewidth]{chapters/figures/club-admin-role.png}
+  \includegraphics[width=\linewidth]{chapters/figures/full-chain/03-admin-club-pending.png}
   \\[4pt]
-  \small (a) 社团管理员仪表盘
+  \small (a) 管理员查看待审核社团
 \end{minipage}
 \hfill
 \begin{minipage}[t]{0.48\textwidth}
   \centering
-  \includegraphics[width=\linewidth]{chapters/figures/admin-role.png}
+  \includegraphics[width=\linewidth]{chapters/figures/full-chain/04-student-club-approved.png}
   \\[4pt]
-  \small (b) 系统管理员仪表盘
+  \small (b) 申请人查看审批通过结果
 \end{minipage}
-\caption{管理角色页面运行截图}
-\label{fig:test-management-roles}
+\caption{社团创建申请审批链路运行截图}
+\label{fig:test-chain-club-approval}
 \end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{minipage}[t]{0.48\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{chapters/figures/full-chain/05-clubadmin-recruit-batches.png}
+  \\[4pt]
+  \small (a) 社团管理员发布招新批次
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.48\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{chapters/figures/full-chain/06-student-recruit-application-pending.png}
+  \\[4pt]
+  \small (b) 学生提交申请后的待审核状态
+\end{minipage}
+
+\\[6pt]
+
+\begin{minipage}[t]{0.48\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{chapters/figures/full-chain/07-clubadmin-recruit-review.png}
+  \\[4pt]
+  \small (c) 社团管理员审核招新申请
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.48\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{chapters/figures/full-chain/08-student-recruit-approved.png}
+  \\[4pt]
+  \small (d) 学生端查看审核通过结果
+\end{minipage}
+\caption{招新申请全链路运行截图}
+\label{fig:test-chain-recruit}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{minipage}[t]{0.48\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{chapters/figures/full-chain/09-clubadmin-activity-management.png}
+  \\[4pt]
+  \small (a) 社团管理员活动管理页面
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.48\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{chapters/figures/full-chain/10-student-activity-signed.png}
+  \\[4pt]
+  \small (b) 学生完成报名后的活动状态
+\end{minipage}
+
+\\[6pt]
+
+\begin{minipage}[t]{0.62\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{chapters/figures/full-chain/11-student-activity-signedin.png}
+  \\[4pt]
+  \small (c) 学生完成签到后的活动状态
+\end{minipage}
+\caption{活动创建、报名与签到链路运行截图}
+\label{fig:test-chain-activity}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{minipage}[t]{0.48\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{chapters/figures/full-chain/12-clubadmin-notice-management.png}
+  \\[4pt]
+  \small (a) 社团管理员发布公告
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.48\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{chapters/figures/full-chain/13-student-notice-list.png}
+  \\[4pt]
+  \small (b) 学生端查看公告通知
+\end{minipage}
+\caption{公告发布与学生查看链路运行截图}
+\label{fig:test-chain-notice}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{minipage}[t]{0.48\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{chapters/figures/full-chain/14-clubadmin-resource-pending.png}
+  \\[4pt]
+  \small (a) 社团管理员查看待审批资源申请
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.48\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{chapters/figures/full-chain/15-admin-resource-approval.png}
+  \\[4pt]
+  \small (b) 管理员审批资源申请
+\end{minipage}
+
+\\[6pt]
+
+\begin{minipage}[t]{0.62\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{chapters/figures/full-chain/16-clubadmin-resource-approved.png}
+  \\[4pt]
+  \small (c) 社团管理员查看审批通过结果
+\end{minipage}
+\caption{资源申请审批链路运行截图}
+\label{fig:test-chain-resource}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{minipage}[t]{0.48\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{chapters/figures/full-chain/17-clubadmin-finance-pending.png}
+  \\[4pt]
+  \small (a) 社团管理员提交财务申请
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.48\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{chapters/figures/full-chain/18-admin-finance-approval.png}
+  \\[4pt]
+  \small (b) 管理员审批财务申请
+\end{minipage}
+
+\\[6pt]
+
+\begin{minipage}[t]{0.62\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{chapters/figures/full-chain/19-clubadmin-finance-approved.png}
+  \\[4pt]
+  \small (c) 社团管理员查看审批通过结果
+\end{minipage}
+\caption{财务申请审批链路运行截图}
+\label{fig:test-chain-finance}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{minipage}[t]{0.48\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{chapters/figures/full-chain/20-admin-audit-logs.png}
+  \\[4pt]
+  \small (a) 系统管理员查看审计日志
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.48\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{chapters/figures/full-chain/21-student-ai-chat.png}
+  \\[4pt]
+  \small (b) 学生端 AI 助手交互界面
+\end{minipage}
+\caption{审计日志与 AI 助手界面运行截图}
+\label{fig:test-chain-audit-ai}
+\end{figure}
+
+其中，图~\ref{fig:test-chain-audit-ai}(b) 的证据意义主要在于说明 AI 助手入口与对话界面已经真实挂接到学生端业务页面，且在当前环境中能够完成提问动作；由于该截图保留的是交互界面而非完整回答结果，因此其表述应限定为“链路可达与界面可用”，不宜进一步扩展为“回答质量已充分验证”。
 
 \subsection{业务幂等与并发验证}
 
-在活动报名、活动签到、招新终审、资源审批、财务审批等路径中，系统均引入了“唯一约束 + 业务状态校验 + 悲观锁”组合机制。本轮除 JMeter 写接口脚本外，还复跑了 \texttt{FinanceServiceImplConcurrencyTest}、\texttt{ResourceServiceImplConcurrencyTest} 与 \texttt{ActivityServiceImplConcurrencyTest}，三项并发测试均通过。结合 300 并发报名与签到脚本在本轮均保持 0\% 错误率，可以说明当前版本对核心写路径已具备一定并发保护能力，但更高并发、长稳运行与真实多用户竞争场景仍需继续补测。
+在活动报名、活动签到、资源审批与财务审批等写路径中，当前代码仍保留了“唯一约束 + 业务状态校验 + 并发控制”组合机制。本轮自动化复跑中，\texttt{FinanceServiceImplConcurrencyTest}、\texttt{ResourceServiceImplConcurrencyTest} 与 \texttt{ActivityServiceImplConcurrencyTest} 均通过；同时，请求级补测又验证了重复报名返回 \texttt{40901}、错误签到码返回 \texttt{400}、重复签到返回 \texttt{40902}、活动未开始时签到返回 \texttt{400} 等异常流。
+
+因此，可以认为当前版本对核心活动与审批写路径仍具有基本幂等保护和状态校验能力。不过，本轮并未重新执行 300 并发 JMeter 报名/签到脚本，也未进行更高强度或更长时长的压力复跑，所以不宜将历史性能脚本结果直接写成本轮“已再次验证”的结论。
 
 \section{性能测试}
 
 \subsection{测试目标与工具}
 
-性能测试旨在结合既定业务脚本观察系统在并发访问下的响应时间、分位数指标、吞吐量与错误率，为当前版本建立可追踪的工程基线。测试采用 Apache JMeter 5.5 作为压测工具\cite{jmeter_docs}，原始汇总文件、日志与 JTL 报告作为工程补充材料留档，最新结果保存在 \texttt{paper\_outputs/jmeter/run-20260313-122447/}。其中，AI 评估相关代码入口、低强度链路结果与工件清单已在附录“AI 评估工件与复现入口说明”中统一挂载，正文仅整理关键结果。
+需要特别说明的是：本节性能数据来自 2026 年 3 月 13 日的专项 JMeter 补测；2026 年 3 月 17 日这一轮更新主要针对功能复跑、请求级 smoke 与运行时集成链路，并未重新执行 JMeter 脚本。因此，以下数据应作为阶段性的历史性能基线，与本轮“当前已测试通过”的功能性结论分开理解。性能测试旨在结合既定业务脚本观察系统在并发访问下的响应时间、分位数指标、吞吐量与错误率，为当前版本建立可追踪的工程基线。测试采用 Apache JMeter 5.5 作为压测工具\cite{jmeter_docs}，原始汇总文件、日志与 JTL 报告作为工程补充材料留档，本章引用的专项结果保存在 \texttt{paper\_outputs/jmeter/run-20260313-122447/}。其中，AI 评估相关代码入口、低强度链路结果与工件清单已在附录“AI 评估工件与复现入口说明”中统一挂载，正文仅整理关键结果。
 
 \subsection{测试场景设计}
 
-本轮 JMeter 补测围绕当前版本中最核心的五条业务链路展开，脚本参数如表~\ref{tab:perf-scenarios} 所示。为降低缓存污染与历史数据干扰，登录、报名和签到场景不做预热；社团列表与 AI 问答场景通过 \texttt{setUp Thread Group} 进行预热。
+2026 年 3 月 13 日该轮 JMeter 补测围绕当前版本中最核心的五条业务链路展开，脚本参数如表~\ref{tab:perf-scenarios} 所示。为降低缓存污染与历史数据干扰，登录、报名和签到场景不做预热；社团列表与 AI 问答场景通过 \texttt{setUp Thread Group} 进行预热。
 
 \begin{table}[H]
 \centering
@@ -223,21 +375,21 @@ AI 问答 & 20 & 60 & 68170.18 & 90016 & 90017 & 0.22 & 65\% \\
 \end{tabular}
 \end{table}
 
-结合表~\ref{tab:perf-concurrent} 可得到以下观察：
+结合表~\ref{tab:perf-concurrent}，可以对当前结果作如下归纳：
 \begin{enumerate}
-  \item 在当前脚本下，登录、社团列表热缓存查询、活动报名与活动签到四类核心业务接口均未出现错误，说明非 AI 业务链路在本轮单节点补测中表现稳定；
-  \item 社团列表查询的 6.24ms 平均响应时间仅对应热缓存场景，不能直接外推为冷缓存、缓存失效或数据规模进一步扩张后的表现；
-  \item 活动报名与签到属于写接口，但在 300 并发脚本下平均响应时间仍分别控制在 33.35ms 和 31.90ms，表明当前版本的唯一约束与并发控制机制未在本轮样本中引发明显性能退化；
-  \item AI 问答场景共发起 60 次请求，其中 21 次返回 200，另外 39 次表现为 \texttt{SocketTimeoutException} 超时；其平均响应时间约为 68.17s，P95 接近 90s，说明当前 AI 问答链路仍是系统最突出的性能瓶颈。
+  \item 在当前脚本下，登录、社团列表热缓存查询、活动报名与活动签到四类核心业务接口均未出现错误，至少从这一轮单节点补测看，非 AI 业务链路整体较为稳定；
+  \item 社团列表查询的 6.24ms 平均响应时间仅对应热缓存场景，因此更适合作为缓存命中条件下的参考结果，不能直接代表冷缓存、缓存失效或更大数据规模下的表现；
+  \item 活动报名与签到属于写接口，但在 300 并发脚本下平均响应时间仍分别控制在 33.35ms 和 31.90ms，说明当前版本的唯一约束与并发控制机制在这轮样本中没有带来明显的性能退化；
+  \item AI 问答场景共发起 60 次请求，其中 21 次返回 200，另外 39 次表现为 \texttt{SocketTimeoutException} 超时；其平均响应时间约为 68.17s，P95 接近 90s。结合这一结果看，AI 问答链路仍然是当前系统中最明显的性能短板。
 \end{enumerate}
 
 \subsubsection{覆盖边界与未覆盖项}
 
-需要说明的是，本轮补测主要覆盖短时并发脚本，并未执行持续 30 分钟的长稳压测，也未对 CPU、内存、连接池等资源指标进行系统化时间序列记录。因此，本文不再报告“30 分钟持续压测资源使用情况”等定量结论；相关内容需在后续结合 Prometheus 指标与更长时间的 soak test 单独补做。
+需要说明的是，2026 年 3 月 13 日该轮补测主要覆盖短时并发脚本，并未执行持续 30 分钟的长稳压测，也未对 CPU、内存、连接池等资源指标进行系统化时间序列记录。因此，本文不再报告“30 分钟持续压测资源使用情况”等定量结论；相关内容需在后续结合 Prometheus 指标与更长时间的 soak test 单独补做。
 
 \subsection{性能现象与优化启示}
 
-本轮补测未设计“关闭缓存”或“取消索引/锁策略”的 A/B 对照脚本，因此本文不再给出“优化前/优化后提升百分比”的定量表述。结合接口实现与压测现象，可归纳出以下工程启示：
+2026 年 3 月 13 日该轮补测未设计“关闭缓存”或“取消索引/锁策略”的 A/B 对照脚本，因此本文不再给出“优化前/优化后提升百分比”的定量表述。结合接口实现与压测现象，可归纳出以下工程启示：
 
 \begin{enumerate}
   \item 社团列表在热缓存场景下平均响应时间仅为 6.24ms，说明 Redis 缓存在重复读取场景中对降低查询时延具有明显作用；
@@ -299,9 +451,9 @@ AI 问答的上下文与降级可用性 & 功能实现、样例观察、问答�
 \end{tabular}
 \end{table}
 
-从本轮人工核验结果看，在当前知识库与题集范围内，RAG 问答系统在社团基本信息查询上表现最好（94\%），在政策类问题上相对较弱（82\%）。按当前聚合统计口径计算，总体观察值为 87.5\%，高于本文设置的关键词检索基线（约 62\%）；但该结果目前仅有聚合统计支撑，仓库尚未提供逐题判定表与题集原文，因此更适合作为内部阶段性观察，而非可独立复算的 benchmark 结论。这说明该问答链路在当前项目场景下具备一定辅助问答能力，但其泛化能力、误差边界与可复现性仍需通过更标准化的评估流程进一步验证。
+从本轮人工核验结果看，在当前知识库与题集范围内，RAG 问答系统在社团基本信息查询上表现最好（94\%），在政策类问题上相对较弱（82\%）。按现有聚合统计口径计算，总体观察值为 87.5\%，高于本文设置的关键词检索基线（约 62\%）；不过，这一结果目前仍主要停留在聚合统计层面，仓库中尚未提供逐题判定表与题集原文，因此更适合被理解为内部评估下的阶段性结果。换句话说，它可以说明该问答链路已经具备一定的辅助问答能力，但其泛化能力、误差边界与可复现性仍有待进一步检验。
 
-除题集人工核验外，本文还参考了 2026 年 3 月 13 日的低强度在线链路脚本结果：在 5 并发、10 次请求条件下，AI 问答仍出现 1 次超时，错误率为 10\%，平均响应时间为 39.58s。该结果说明 AI 链路的时延问题并非仅在高并发场景下出现，更适合作为“阶段性可用但仍不稳定”的工程观察，而非成熟能力证明。
+除题集人工核验外，本文还参考了 2026 年 3 月 13 日的低强度在线链路脚本结果：在 5 并发、10 次请求条件下，AI 问答仍出现 1 次超时，错误率为 10\%，平均响应时间为 39.58s。至少从这组结果看，AI 链路的时延问题并不只出现在高并发场景下，因此目前更适合将其理解为“已有原型可用性，但稳定性仍待提升”。
 
 \subsubsection{推荐策略阶段性观察}
 
@@ -324,11 +476,11 @@ hybrid & 300 & 300 & 300 & 280.46 & 1500 \\
 
 进一步统计标准化 Top-5 输出可见，三种模式均在 300 名用户上形成 1500 条同口径排序记录，且都涉及 22 个社团，说明当前样本下三种策略都能够稳定覆盖现有候选集合。若以每个用户 Top-5 中不同社团类别数作为粗粒度多样性代理指标，则纯协同过滤的人均不同类别数为 3.52，高于纯内容推荐的 2.58；混合推荐为 2.79，位于两者之间。就模式间重合度而言，hybrid 与 cb 在 300 名用户中有 60 名用户的 Top-5 完全一致，Top-5 集合平均重合率为 87.20\%；hybrid 与 cf 的对应数值分别为 23 和 75.73\%，说明当前融合结果整体更接近内容侧排序，但并非对 cb 的简单复制。
 
-从当前版本的同批用户对比结果看：
+从当前版本的同批用户对比结果看，可以得到以下几点较为稳妥的观察：
 \begin{enumerate}
-  \item 在相同 300 个测试用户上，cf、cb 与 hybrid 三种模式均实现了 300/300 成功和 300/300 非空返回，平均耗时仅在 273.02ms 到 280.46ms 之间波动，说明混合策略在当前实现下未带来明显的服务可用性损失；
-  \item 统一为 Top-5 后，hybrid 的排序结构位于 cf 与 cb 之间，且与 cb 的重合度更高，说明当前加权融合结果已经对输出排序产生实质影响，而不是简单退化为纯协同过滤或纯内容推荐；
-  \item 由于当前仍缺少显式相关性标签、点击日志与在线转化数据，本轮对比只能支持“可返回、可比较、结构有差异”的工程结论，尚不能据此宣称 hybrid 在推荐质量上优于 cf 或 cb。
+  \item 在相同 300 个测试用户上，cf、cb 与 hybrid 三种模式均实现了 300/300 成功和 300/300 非空返回，平均耗时仅在 273.02ms 到 280.46ms 之间波动，至少在当前实现与样本下，混合策略没有带来明显的可用性下降；
+  \item 统一为 Top-5 后，hybrid 的排序结构位于 cf 与 cb 之间，且与 cb 的重合度更高，这表明当前加权融合结果已经对输出排序产生了实际影响，而不是简单退化为纯协同过滤或纯内容推荐；
+  \item 由于当前仍缺少显式相关性标签、点击日志与在线转化数据，本轮对比更适合支持“可返回、可比较、结构有差异”这一层面的工程结论，尚不足以据此认定 hybrid 在推荐质量上优于 cf 或 cb。
 \end{enumerate}
 
 \section{测试结论与改进建议}
@@ -336,11 +488,10 @@ hybrid & 300 & 300 & 300 & 280.46 & 1500 \\
 \subsection{当前测试结论}
 
 \begin{enumerate}
-  \item 本轮自动化复跑中，6 个后端测试类共 14 个用例与 1 条前端 Playwright 登录流程均已通过，说明关键回归路径在当前版本中具备基本可复现性；
-  \item 鉴权烟测显示，未登录访问受保护接口返回 403，普通用户访问管理员监控端点返回 403，而管理员访问同一端点返回 200，说明所选代表性权限边界在当前版本下有效；但该结论仅覆盖权限边界烟测，不等同于完整安全测评；
-  \item 并发测试与 300 并发写接口脚本均未发现重复写入导致的接口错误，表明当前版本对核心写路径具备一定并发保护能力；
-  \item JMeter 补测为当前单节点环境建立了新的阶段性性能基线，但该基线仅对应既定脚本与当前数据规模，尚不能替代长期运行验证与多实例场景评估；
-  \item AI 模块在内部问答核验与同批 300 用户的推荐模式对比中均表现出一定原型可用性；其中 cf、cb 与 hybrid 三种推荐模式均实现 300/300 成功和非空返回，平均耗时分别为 273.02ms、276.88ms 与 280.46ms；但 AI 问答链路仍存在明显时延与超时问题，且 200 题结果目前仅有聚合统计，推荐模块也仍缺少带标签的相关性验证与在线行为证据，因此该部分结论应限定为阶段性工程观察。
+  \item 本轮自动化复跑中，6 个 Java 测试类共 15 个后端用例全部通过；前端 \texttt{npm run build} 与 1 条 Playwright 登录冒烟也通过，说明当前代码在核心回归路径上保持可运行；
+  \item 结合请求级 smoke 与运行时集成验证，当前版本已在单机容器环境下实测打通认证、多角色核心接口、活动创建/报名/签到/删除、通知、上传、AI 聊天与 WebSocket 广播等关键链路，已具备课堂/答辩演示所需的基本可运行性；
+  \item 现阶段仍未完整覆盖浏览器级全 UI 流程、Excel 导出内容校验、邮箱收件与 \texttt{reset-password} 最后一跳、长稳压测与故障注入，因此当前结论更接近“演示级/原型级可用性确认”，而非生产级质量证明；
+  \item 性能数据、AI 问答人工核验与推荐对比等内容仍主要来源于 2026 年 3 月 13 日专项结果，可作为阶段性工程参考，但不应与 2026 年 3 月 17 日本轮功能复跑等同看待。
 \end{enumerate}
 
 \subsection{改进建议}

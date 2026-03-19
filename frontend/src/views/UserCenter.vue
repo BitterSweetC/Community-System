@@ -22,6 +22,10 @@
             <el-icon><School /></el-icon>
             <span>我的社团</span>
           </el-menu-item>
+          <el-menu-item index="/user/archive">
+            <el-icon><Document /></el-icon>
+            <span>我的积分档案</span>
+          </el-menu-item>
           <el-menu-item index="/user/activities">
             <el-icon><Calendar /></el-icon>
             <span>我的活动</span>

@@ -1,36 +1,41 @@
 <template>
   <div class="resource-definition">
-    <div class="header">
-      <h2>资源定义管理</h2>
+    <div class="page-head">
+      <div>
+        <h2>资源定义管理</h2>
+        <p class="subtext">维护可申请的场地与物资资源。</p>
+      </div>
       <el-button type="primary" @click="showAddDialog">新增资源</el-button>
     </div>
-    <el-table class="resource-table" :data="resources" style="width: 100%" v-loading="loading">
-      <el-table-column prop="id" label="编号" width="70" />
-      <el-table-column prop="name" label="名称" min-width="180" />
-      <el-table-column prop="type" label="类型" min-width="140">
-        <template #default="scope">
-          <el-tag>{{ getTypeLabel(scope.row.type) }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="location" label="地点" min-width="150"/>
-      <el-table-column prop="capacity" label="容量" min-width="100" />
-      <el-table-column prop="totalQuantity" label="总数量" min-width="110" />
-      <el-table-column prop="status" label="状态" min-width="110">
-        <template #default="scope">
-          <el-tag :type="scope.row.status === 'AVAILABLE' ? 'success' : 'danger'">
-            {{ getStatusLabel(scope.row.status) }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" min-width="220" align="center" class-name="action-column">
-        <template #default="scope">
-          <div class="action-buttons">
-            <el-button type="primary" size="small" @click="edit(scope.row)">编辑</el-button>
-            <el-button type="danger" size="small" @click="remove(scope.row.id)">删除</el-button>
-          </div>
-        </template>
-      </el-table-column>
-    </el-table>
+    <div class="table-panel">
+      <el-table class="table-shell" :data="resources" v-loading="loading">
+        <el-table-column prop="id" label="编号" width="70" />
+        <el-table-column prop="name" label="名称" min-width="180" />
+        <el-table-column prop="type" label="类型" min-width="140">
+          <template #default="scope">
+            <el-tag>{{ getTypeLabel(scope.row.type) }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="location" label="地点" min-width="150"/>
+        <el-table-column prop="capacity" label="容量" min-width="100" />
+        <el-table-column prop="totalQuantity" label="总数量" min-width="110" />
+        <el-table-column prop="status" label="状态" min-width="110">
+          <template #default="scope">
+            <el-tag :type="scope.row.status === 'AVAILABLE' ? 'success' : 'danger'">
+              {{ getStatusLabel(scope.row.status) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" min-width="220" align="center" class-name="action-column">
+          <template #default="scope">
+            <div class="action-buttons">
+              <el-button type="primary" size="small" @click="edit(scope.row)">编辑</el-button>
+              <el-button type="danger" size="small" @click="remove(scope.row.id)">删除</el-button>
+            </div>
+          </template>
+        </el-table-column>
+      </el-table>
+    </div>
 
     <el-dialog v-model="dialogVisible" :title="form.id ? '编辑资源' : '新增资源'" width="500px">
       <el-form :model="form" label-width="80px">
@@ -160,11 +165,34 @@ onMounted(load)
 </script>
 
 <style scoped>
-.header {
+.resource-definition {
+  padding: 4px 0 8px;
+}
+
+.page-head {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
+  align-items: flex-start;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.subtext {
+  margin: 6px 0 0;
+  color: #60748c;
+}
+
+.table-panel {
+  padding: 12px;
+  border: 1px solid rgba(14, 55, 94, 0.12);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 10px 24px rgba(17, 46, 77, 0.08);
+}
+
+.table-shell {
+  width: 100%;
 }
 
 .action-buttons {
@@ -186,5 +214,4 @@ onMounted(load)
   padding-top: 6px;
   padding-bottom: 6px;
 }
-
 </style>

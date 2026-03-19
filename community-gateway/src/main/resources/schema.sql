@@ -12,6 +12,7 @@ DROP TABLE IF EXISTS `t_resource`;
 DROP TABLE IF EXISTS `t_recruit_application`;
 DROP TABLE IF EXISTS `t_recruit_form_field`;
 DROP TABLE IF EXISTS `t_recruit_batch`;
+DROP TABLE IF EXISTS `t_member_point_record`;
 DROP TABLE IF EXISTS `t_activity_attendance`;
 DROP TABLE IF EXISTS `t_activity_signup`;
 DROP TABLE IF EXISTS `t_activity`;
@@ -116,7 +117,28 @@ CREATE TABLE `t_member` (
   CONSTRAINT `fk_member_user` FOREIGN KEY (`user_id`) REFERENCES `t_user` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 7. Activity Table
+-- 7. Member Point Record Table
+CREATE TABLE `t_member_point_record` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `created_at` datetime(6) NOT NULL,
+  `updated_at` datetime(6) NOT NULL,
+  `club_id` bigint NOT NULL,
+  `user_id` bigint NOT NULL,
+  `delta_points` int NOT NULL,
+  `balance_after` int NOT NULL,
+  `source_type` varchar(32) NOT NULL,
+  `source_id` bigint DEFAULT NULL,
+  `remark` varchar(255) DEFAULT NULL,
+  `operator_id` bigint DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_member_point_record_club_user` (`club_id`,`user_id`),
+  KEY `idx_member_point_record_source` (`source_type`,`source_id`),
+  CONSTRAINT `fk_member_point_record_club` FOREIGN KEY (`club_id`) REFERENCES `t_club` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_member_point_record_user` FOREIGN KEY (`user_id`) REFERENCES `t_user` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_member_point_record_operator` FOREIGN KEY (`operator_id`) REFERENCES `t_user` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 8. Activity Table
 CREATE TABLE `t_activity` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `created_at` datetime(6) NOT NULL,
@@ -134,6 +156,9 @@ CREATE TABLE `t_activity` (
   `max_participants` int DEFAULT NULL,
   `need_attendance` bit(1) DEFAULT b'0',
   `checkin_code` varchar(20) DEFAULT NULL,
+  `reward_points` int NOT NULL DEFAULT '0',
+  `settlement_status` varchar(20) NOT NULL DEFAULT 'PENDING',
+  `settled_at` datetime(6) DEFAULT NULL,
   `status` varchar(20) NOT NULL DEFAULT 'DRAFT',
   PRIMARY KEY (`id`),
   KEY `idx_activity_club` (`club_id`),
@@ -141,7 +166,7 @@ CREATE TABLE `t_activity` (
   CONSTRAINT `fk_activity_club` FOREIGN KEY (`club_id`) REFERENCES `t_club` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 8. Activity Signup Table
+-- 10. Activity Signup Table
 CREATE TABLE `t_activity_signup` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `created_at` datetime(6) NOT NULL,
@@ -155,7 +180,7 @@ CREATE TABLE `t_activity_signup` (
   CONSTRAINT `fk_signup_user` FOREIGN KEY (`user_id`) REFERENCES `t_user` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 9. Activity Attendance Table
+-- 11. Activity Attendance Table
 CREATE TABLE `t_activity_attendance` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `created_at` datetime(6) NOT NULL,
@@ -170,7 +195,7 @@ CREATE TABLE `t_activity_attendance` (
   CONSTRAINT `fk_attend_user` FOREIGN KEY (`user_id`) REFERENCES `t_user` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 10. Recruit Batch Table
+-- 12. Recruit Batch Table
 CREATE TABLE `t_recruit_batch` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `created_at` datetime(6) NOT NULL,
@@ -186,7 +211,7 @@ CREATE TABLE `t_recruit_batch` (
   CONSTRAINT `fk_recruit_club` FOREIGN KEY (`club_id`) REFERENCES `t_club` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 11. Recruit Form Field Table
+-- 13. Recruit Form Field Table
 CREATE TABLE `t_recruit_form_field` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `created_at` datetime(6) NOT NULL,
@@ -203,7 +228,7 @@ CREATE TABLE `t_recruit_form_field` (
   CONSTRAINT `fk_field_batch` FOREIGN KEY (`batch_id`) REFERENCES `t_recruit_batch` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 12. Recruit Application Table
+-- 14. Recruit Application Table
 CREATE TABLE `t_recruit_application` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `created_at` datetime(6) NOT NULL,
@@ -221,7 +246,7 @@ CREATE TABLE `t_recruit_application` (
   CONSTRAINT `fk_app_user` FOREIGN KEY (`user_id`) REFERENCES `t_user` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 13. Notice Table
+-- 15. Notice Table
 CREATE TABLE `t_notice` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `created_at` datetime(6) NOT NULL,

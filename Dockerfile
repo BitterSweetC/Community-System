@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.7
 # Stage 1: Build
 FROM maven:3.9-eclipse-temurin-21 AS builder
 WORKDIR /app
@@ -11,9 +12,11 @@ COPY community-activity/pom.xml community-activity/
 COPY community-recruit/pom.xml community-recruit/
 COPY community-notice/pom.xml community-notice/
 # Download dependencies first (cache layer)
-RUN mvn dependency:go-offline -q
+RUN --mount=type=cache,target=/root/.m2 \
+    mvn dependency:go-offline -q
 COPY . .
-RUN mvn clean package -DskipTests -q
+RUN --mount=type=cache,target=/root/.m2 \
+    mvn clean package -DskipTests -q
 
 # Stage 2: Run
 FROM eclipse-temurin:21-jre-jammy

@@ -42,36 +42,42 @@
 \begin{figure}[H]
 \centering
 \begin{tikzpicture}[
-  mod/.style={draw, rectangle, rounded corners, minimum width=2.8cm, minimum height=0.8cm, align=center, font=\small},
-  core/.style={draw, rectangle, rounded corners, minimum width=3.1cm, minimum height=0.8cm, align=center, font=\small, fill=blue!12},
-  entry/.style={draw, rectangle, rounded corners, minimum width=9.6cm, minimum height=0.9cm, align=center, font=\small\bfseries, fill=orange!18},
+  mod/.style={draw, rectangle, rounded corners, minimum width=2.25cm, minimum height=0.86cm, text width=2.1cm, align=center, font=\small},
+  core/.style={draw, rectangle, rounded corners, minimum width=9.8cm, minimum height=0.9cm, align=center, font=\small, fill=blue!12},
+  entry/.style={draw, rectangle, rounded corners, minimum width=10.0cm, minimum height=0.9cm, align=center, font=\small\bfseries, fill=orange!18},
   arr/.style={-Stealth, thick}
 ]
-\node[entry] (gw) at (5,6.2) {community-gateway（启动入口 / 认证与看板相关控制器）};
+\node[entry] (gw) at (5.5,6.2) {community-gateway（启动入口 / 认证与看板相关控制器）};
 
-\node[mod] (user)     at (1.0,4.4)  {community-user};
-\node[mod] (club)     at (3.4,4.4)  {community-club};
-\node[mod] (activity) at (5.8,4.4)  {community-activity};
-\node[mod] (recruit)  at (8.2,4.4)  {community-recruit};
+\node[mod] (user)     at (1.5,4.4)  {community-user};
+\node[mod] (club)     at (4.1,4.4)  {community-club};
+\node[mod] (activity) at (6.9,4.4)  {community-activity};
+\node[mod] (recruit)  at (9.5,4.4)  {community-recruit};
+\node[mod] (notice)   at (4.1,2.6)  {community-notice};
+\node[mod] (admin)    at (6.9,2.6)  {community-admin};
 
-\node[mod] (notice)   at (2.2,2.7)  {community-notice};
-\node[mod] (admin)    at (6.8,2.7)  {community-admin};
+\node[core] (core)    at (5.5,0.9)  {community-core（Entity / Repository / 通用组件）};
 
-\node[core] (core)    at (5,1.0)    {community-core（Entity / Repository / 通用组件）};
+\coordinate (core1) at ($(core.north west)!0.12!(core.north east)$);
+\coordinate (core2) at ($(core.north west)!0.28!(core.north east)$);
+\coordinate (core3) at ($(core.north west)!0.44!(core.north east)$);
+\coordinate (core4) at ($(core.north west)!0.60!(core.north east)$);
+\coordinate (core5) at ($(core.north west)!0.76!(core.north east)$);
+\coordinate (core6) at ($(core.north west)!0.90!(core.north east)$);
 
-\draw[arr] (gw) -- (user);
-\draw[arr] (gw) -- (club);
-\draw[arr] (gw) -- (activity);
-\draw[arr] (gw) -- (recruit);
-\draw[arr] (gw) -- (notice);
-\draw[arr] (gw) -- (admin);
+\draw[arr] (gw.south west) -- ++(-2.8,-0.2) |- (user.north west);
+\draw[arr] (gw.south) -- (club.north);
+\draw[arr] (gw.south) -- (activity.north);
+\draw[arr] (gw.south east) -- ++(2.8,-0.2) |- (recruit.north east);
+\draw[arr] (gw.south west) -- ++(-1.4,-0.2) |- (notice.north west);
+\draw[arr] (gw.south east) -- ++(1.4,-0.2) |- (admin.north east);
 
-\draw[arr] (user) -- (core);
-\draw[arr] (club) -- (core);
-\draw[arr] (activity) -- (core);
-\draw[arr] (recruit) -- (core);
-\draw[arr] (notice) -- (core);
-\draw[arr] (admin) -- (core);
+\draw[arr] (user.south) -- (core1);
+\draw[arr] (club.south) -- (core2);
+\draw[arr] (activity.south) -- (core4);
+\draw[arr] (recruit.south) -- (core5);
+\draw[arr] (notice.south) -- (core3);
+\draw[arr] (admin.south) -- (core6);
 \end{tikzpicture}
 \caption{后端模块依赖关系图}
 \label{fig:module-dep}
@@ -145,33 +151,34 @@
   box/.style={draw, rectangle, rounded corners, minimum width=2.6cm, minimum height=0.8cm, align=center, font=\small},
   infra/.style={draw, rectangle, rounded corners, minimum width=2.6cm, minimum height=0.8cm, align=center, font=\small, fill=green!14},
   user/.style={draw, rectangle, rounded corners, minimum width=2.6cm, minimum height=0.8cm, align=center, font=\small, fill=yellow!20},
-  arr/.style={-Stealth}
+  arr/.style={-Stealth},
+  lab/.style={font=\tiny, fill=white, inner sep=1pt}
 ]
-\node[user] (browser) at (0,5.4) {Browser};
-\node[box] (nginx) at (3,5.4) {Nginx\\frontend:80};
-\node[box] (app) at (6.2,5.4) {Spring Boot\\app:8080};
-\node[box] (agent) at (9.2,5.4) {FastAPI\\rag-service:8000};
+\node[user] (browser) at (0,5.6) {Browser};
+\node[box] (nginx) at (3.0,5.6) {Nginx\\frontend:80};
+\node[box] (app) at (6.4,5.6) {Spring Boot\\app:8080};
+\node[box] (agent) at (10.4,5.6) {FastAPI\\rag-service:8000};
 
-\node[infra] (mysql) at (4.8,3.4) {MySQL 8};
-\node[infra] (redis) at (6.9,3.4) {Redis 7};
-\node[infra] (mq) at (9.0,3.4) {RabbitMQ 3.12};
-\node[infra] (oss) at (11.1,3.4) {Aliyun OSS};
+\node[infra] (redis) at (4.0,3.4) {Redis 7};
+\node[infra] (mq) at (6.8,3.4) {RabbitMQ 3.12};
+\node[infra] (mysql) at (10.4,3.4) {MySQL 8};
+\node[infra] (oss) at (13.2,3.4) {Aliyun OSS};
 
-\node[infra] (prom) at (6.0,1.5) {Prometheus};
-\node[infra] (grafana) at (8.6,1.5) {Grafana};
-\node[infra] (chroma) at (10.8,1.5) {Chroma DB};
+\node[infra] (prom) at (5.2,1.4) {Prometheus};
+\node[infra] (grafana) at (7.9,1.4) {Grafana};
+\node[infra] (chroma) at (10.4,1.4) {Chroma DB};
 
-\draw[arr] (browser) -- node[above,font=\tiny]{HTTP} (nginx);
-\draw[arr] (nginx) -- node[above,font=\tiny]{/api 反代} (app);
-\draw[arr] (app) -- node[above,font=\tiny]{REST} (agent);
-\draw[arr] (app) -- (mysql);
-\draw[arr] (app) -- (redis);
-\draw[arr] (app) -- (mq);
-\draw[arr] (app) -- (oss);
-\draw[arr] (app) -- node[right,font=\tiny]{/actuator/prometheus} (prom);
-\draw[arr] (prom) -- (grafana);
-\draw[arr] (agent) -- (chroma);
-\draw[arr] (agent) -- (mysql);
+\draw[arr] (browser) -- node[above,lab]{HTTP} (nginx);
+\draw[arr] (nginx) -- node[above,lab]{/api 反代} (app);
+\draw[arr] (app) -- node[above,lab]{REST} (agent);
+\draw[arr] (app.south west) -- node[above left,lab]{缓存} (redis.north);
+\draw[arr] (app.south) -- node[right,lab]{消息} (mq.north);
+\draw[arr] (app.south east) -- node[above,lab]{JPA} (mysql.north west);
+\draw[arr] (app.east) -- node[above,lab]{对象存储} (oss.north west);
+\draw[arr] (app.south west) -- ++(-0.2,-0.2) |- node[pos=0.8,above,lab]{/actuator/prometheus} (prom.north);
+\draw[arr] (prom) -- node[above,lab]{指标看板} (grafana);
+\draw[arr] (agent.south) -- node[right,lab]{向量访问} (chroma.north);
+\draw[arr] (agent.south west) -- ++(-0.7,-0.15) |- node[pos=0.34,left,lab]{业务数据查询} (mysql.east);
 \end{tikzpicture}
 \caption{系统部署拓扑图}
 \label{fig:deploy}
@@ -220,44 +227,43 @@
 \centering
 \begin{tikzpicture}[
   entity/.style={draw, rectangle, minimum width=2.2cm, minimum height=0.72cm, align=center, font=\small\bfseries, fill=blue!10},
-  line/.style={-}
+  line/.style={-Stealth, thin},
+  rel/.style={font=\tiny, fill=white, inner sep=1pt}
 ]
-\node[entity] (user) at (0,8) {t\_user};
-\node[entity] (role) at (3,8) {t\_role};
-\node[entity] (club) at (6,8) {t\_club};
-\node[entity] (member) at (6,6.4) {t\_member};
+\node[entity] (role) at (0,8.2) {t\_role};
+\node[entity] (user) at (0,6.4) {t\_user};
+\node[entity] (notification) at (0,2.8) {t\_notification};
 
-\node[entity] (activity) at (9,8) {t\_activity};
-\node[entity] (signup) at (9,6.4) {t\_activity\_signup};
-\node[entity] (attendance) at (9,4.8) {t\_activity\_attendance};
+\node[entity] (member) at (3.6,6.4) {t\_member};
+\node[entity] (app) at (3.6,4.6) {t\_recruit\_application};
+\node[entity] (notice) at (3.6,2.8) {t\_notice};
 
-\node[entity] (batch) at (0,6.4) {t\_recruit\_batch};
-\node[entity] (app) at (0,4.8) {t\_recruit\_application};
+\node[entity] (club) at (7.2,6.4) {t\_club};
+\node[entity] (batch) at (7.2,4.6) {t\_recruit\_batch};
 
-\node[entity] (notice) at (3,4.8) {t\_notice};
-\node[entity] (notification) at (3,3.2) {t\_notification};
+\node[entity] (activity) at (10.8,6.4) {t\_activity};
+\node[entity] (attendance) at (10.8,4.6) {t\_activity\_attendance};
+\node[entity] (finance) at (10.8,1.0) {t\_club\_finance};
+\node[entity] (resource) at (10.8,2.8) {t\_resource};
 
-\node[entity] (finance) at (6,3.2) {t\_club\_finance};
-\node[entity] (resource) at (9,3.2) {t\_resource};
-\node[entity] (resourceApp) at (9,1.6) {t\_resource\_application};
+\node[entity] (signup) at (14.4,6.4) {t\_activity\_signup};
+\node[entity] (resourceApp) at (14.4,2.8) {t\_resource\_application};
 
-\draw[line] (user) -- node[left,font=\tiny]{N} (member);
-\draw[line] (club) -- node[right,font=\tiny]{N} (member);
-\draw[line] (club) -- (activity);
-\draw[line] (user) -- (signup);
-\draw[line] (activity) -- (signup);
-\draw[line] (activity) -- (attendance);
-\draw[line] (user) -- (attendance);
-\draw[line] (club) -- (batch);
-\draw[line] (batch) -- (app);
-\draw[line] (user) -- (app);
-\draw[line] (club) -- (notice);
-\draw[line] (user) -- (notification);
-\draw[line] (club) -- (finance);
-\draw[line] (resource) -- (resourceApp);
-\draw[line] (club) -- (resourceApp);
-\draw[line] (activity) -- (resourceApp);
-\draw[line] (user) -- (role);
+\draw[line] (role) -- node[left,rel]{1:N} (user);
+\draw[line] (user.east) -- node[above,rel]{1:N} (member.west);
+\draw[line] (club.west) -- node[above,rel]{1:N} (member.east);
+\draw[line] (club.south) -- node[right,rel]{1:N} (batch.north);
+\draw[line] (batch.west) -- node[above,rel]{1:N} (app.east);
+\draw[line] (user.south east) -- ++(0.7,-0.2) |- node[pos=0.74,right,rel]{1:N} (app.north west);
+\draw[line] (user.south) -- node[left,rel]{1:N} (notification.north);
+\draw[line] (club.south west) -- ++(-0.7,-0.4) |- node[pos=0.72,above,rel]{1:N} (notice.north);
+\draw[line] (club.south east) -- ++(0.8,-0.4) |- node[pos=0.74,above,rel]{1:N} (finance.north);
+\draw[line] (club.east) -- node[above,rel]{1:N} (activity.west);
+\draw[line] (activity.south) -- node[right,rel]{1:N} (attendance.north);
+\draw[line] (activity.east) -- node[above,rel]{1:N} (signup.west);
+\draw[line] (resource.east) -- node[above,rel]{1:N} (resourceApp.west);
+\draw[line] (club.east) -- ++(0.9,0) |- node[pos=0.76,right,rel]{1:N} (resourceApp.north west);
+\draw[line] (user.north east) -- ++(0.5,0.9) -| node[pos=0.78,above,rel]{1:N} (attendance.north west);
 \end{tikzpicture}
 \caption{核心实体关系图}
 \label{fig:er}
@@ -695,27 +701,28 @@ created\_at & DATETIME & NOT NULL & 创建时间 \\
 \begin{tikzpicture}[
   actor/.style={font=\small},
   msg/.style={-Stealth, thin},
-  ret/.style={-Stealth, thin, dashed}
+  ret/.style={-Stealth, thin, dashed},
+  lab/.style={font=\tiny, fill=white, inner sep=1pt}
 ]
 \draw[thick] (0,8) -- (0,0);  \node[actor] at (0,8.35) {浏览器};
-\draw[thick] (3.2,8) -- (3.2,0); \node[actor] at (3.2,8.35) {AuthController};
-\draw[thick] (6.4,8) -- (6.4,0); \node[actor] at (6.4,8.35) {Redis};
-\draw[thick] (9.6,8) -- (9.6,0); \node[actor] at (9.6,8.35) {UserDetailsService/DB};
+\draw[thick] (3.6,8) -- (3.6,0); \node[actor] at (3.6,8.35) {AuthController};
+\draw[thick] (7.2,8) -- (7.2,0); \node[actor] at (7.2,8.35) {Redis};
+\draw[thick] (10.8,8) -- (10.8,0); \node[actor] at (10.8,8.35) {UserDetailsService/DB};
 
-\draw[msg] (0,7.4) -- node[above,font=\tiny]{POST /api/auth/login} (3.2,7.4);
-\draw[msg] (3.2,6.9) -- node[above,font=\tiny]{认证用户名密码} (9.6,6.9);
-\draw[ret] (9.6,6.6) -- (3.2,6.6);
-\draw[msg] (3.2,6.1) -- node[above,font=\tiny]{写入 auth:token:* 与 auth:refresh:*} (6.4,6.1);
-\draw[ret] (3.2,5.6) -- node[above,font=\tiny]{Set-Cookie: access\_token, refresh\_token} (0,5.6);
+\draw[msg] (0,7.4) -- node[above,lab]{POST /api/auth/login} (3.6,7.4);
+\draw[msg] (3.6,6.9) -- node[above,lab]{认证用户名密码} (10.8,6.9);
+\draw[ret] (10.8,6.6) -- (3.6,6.6);
+\draw[msg] (3.6,6.1) -- node[above,lab]{写入 auth:token:* 与 auth:refresh:*} (7.2,6.1);
+\draw[ret] (3.6,5.6) -- node[above,lab]{Set-Cookie: access\_token, refresh\_token} (0,5.6);
 
-\draw[msg] (0,4.7) -- node[above,font=\tiny]{业务请求（携带 Cookie）} (3.2,4.7);
-\draw[msg] (3.2,4.2) -- node[above,font=\tiny]{JWT 验签 + Redis 会话校验} (6.4,4.2);
-\draw[ret] (6.4,3.9) -- (3.2,3.9);
-\draw[ret] (3.2,3.4) -- node[above,font=\tiny]{放行业务接口} (0,3.4);
+\draw[msg] (0,4.7) -- node[above,lab]{业务请求（携带 Cookie）} (3.6,4.7);
+\draw[msg] (3.6,4.2) -- node[above,lab]{JWT 验签 + Redis 会话校验} (7.2,4.2);
+\draw[ret] (7.2,3.9) -- (3.6,3.9);
+\draw[ret] (3.6,3.4) -- node[above,lab]{放行业务接口} (0,3.4);
 
-\draw[msg] (0,2.5) -- node[above,font=\tiny]{POST /api/auth/refresh} (3.2,2.5);
-\draw[msg] (3.2,2.0) -- node[above,font=\tiny]{校验并轮换 refresh token} (6.4,2.0);
-\draw[ret] (3.2,1.5) -- node[above,font=\tiny]{下发新 access\_token Cookie} (0,1.5);
+\draw[msg] (0,2.5) -- node[above,lab]{POST /api/auth/refresh} (3.6,2.5);
+\draw[msg] (3.6,2.0) -- node[above,lab]{校验并轮换 refresh token} (7.2,2.0);
+\draw[ret] (3.6,1.5) -- node[above,lab]{下发新 access\_token Cookie} (0,1.5);
 \end{tikzpicture}
 \caption{认证与会话续期时序图}
 \label{fig:auth-seq}
@@ -765,6 +772,45 @@ GET /api/admin/audit-logs &  &  & \checkmark \\
 
 前端路由守卫在访问受限路由前读取 Pinia 中认证状态，并按需调用 \texttt{/api/users/me} 同步最新角色信息；当后端返回 401/403 时，Axios 拦截器统一触发登出与重定向，保证会话状态一致性。
 
+\subsection{活动报名与签到交互时序}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  actor/.style={font=\small},
+  msg/.style={-Stealth, thin},
+  ret/.style={-Stealth, thin, dashed},
+  lab/.style={font=\tiny, fill=white, inner sep=1pt}
+]
+\draw[thick] (0,9.2) -- (0,0);   \node[actor] at (0,9.55) {浏览器};
+\draw[thick] (3.3,9.2) -- (3.3,0); \node[actor] at (3.3,9.55) {ActivityController};
+\draw[thick] (6.6,9.2) -- (6.6,0); \node[actor] at (6.6,9.55) {ActivityService};
+\draw[thick] (9.9,9.2) -- (9.9,0); \node[actor] at (9.9,9.55) {MySQL};
+\draw[thick] (13.2,9.2) -- (13.2,0); \node[actor] at (13.2,9.55) {WebSocket Broker};
+\draw[thick] (16.5,9.2) -- (16.5,0); \node[actor] at (16.5,9.55) {管理端看板};
+
+\draw[msg] (0,8.6) -- node[above,lab]{POST /api/activities/\{id\}/signup} (3.3,8.6);
+\draw[msg] (3.3,8.1) -- node[above,lab]{校验角色与参数} (6.6,8.1);
+\draw[msg] (6.6,7.6) -- node[above,lab]{查询活动、报名记录、剩余名额} (9.9,7.6);
+\draw[ret] (9.9,7.3) -- (6.6,7.3);
+\draw[msg] (6.6,6.8) -- node[above,lab]{写入报名记录/更新状态} (9.9,6.8);
+\draw[ret] (6.6,6.3) -- node[above,lab]{返回报名成功} (0,6.3);
+
+\draw[msg] (0,5.2) -- node[above,lab]{POST /api/activities/\{id\}/checkin} (3.3,5.2);
+\draw[msg] (3.3,4.7) -- node[above,lab]{转发签到请求} (6.6,4.7);
+\draw[msg] (6.6,4.2) -- node[above,lab]{校验报名状态、时间窗、签到码} (9.9,4.2);
+\draw[ret] (9.9,3.9) -- (6.6,3.9);
+\draw[msg] (6.6,3.4) -- node[above,lab]{写入签到记录并统计人数} (9.9,3.4);
+\draw[msg] (6.6,2.7) -- node[above,lab]{推送 /topic/activity/\{id\}/checkin} (13.2,2.7);
+\draw[msg] (13.2,2.2) -- node[above,lab]{广播最新签到人数} (16.5,2.2);
+\draw[ret] (6.6,1.5) -- node[above,lab]{HTTP 200 / 业务错误} (0,1.5);
+\end{tikzpicture}
+\caption{活动报名与签到交互时序图}
+\label{fig:activity-seq}
+\end{figure}
+
+图~\ref{fig:activity-seq} 体现了活动模块中“同步写入 + 实时推送”的组合设计：报名与签到请求均通过 HTTP 进入主业务链路，签到成功后再额外触发 WebSocket 推送，使页面侧无需轮询即可感知人数变化。这种时序安排也与第五章中的实现代码和第六章中的链路验证保持一致。
+
 \section{AI 服务设计}
 
 \subsection{问答链路}
@@ -795,19 +841,20 @@ AI 服务采用独立部署的微服务架构，与主应用解耦，具有以�
 \centering
 \begin{tikzpicture}[
   box/.style={draw, rectangle, rounded corners, minimum width=2.4cm, minimum height=0.8cm, align=center, font=\small},
-  arr/.style={-Stealth, thick}
+  arr/.style={-Stealth, thick},
+  lab/.style={font=\tiny, fill=white, inner sep=1pt}
 ]
 \node[box, fill=blue!15] (app) at (0,3) {Spring Boot\\主应用};
 \node[box, fill=green!15] (ai) at (5,3) {FastAPI\\AI 服务};
 \node[box, fill=orange!15] (llm) at (5,0.8) {DeepSeek\\大模型};
-\node[box, fill=purple!15] (chroma) at (8.5,3) {Chroma\\向量库};
+\node[box, fill=purple!15] (chroma) at (10.0,3) {Chroma\\向量库};
 \node[box, fill=yellow!15] (mysql) at (0,0.8) {MySQL\\业务数据};
 
-\draw[arr] (app) -- node[above,font=\tiny]{HTTP REST} (ai);
-\draw[arr] (ai) -- node[right,font=\tiny]{API 调用} (llm);
-\draw[arr] (ai) -- node[above,font=\tiny]{向量检索} (chroma);
-\draw[arr] (ai) -- node[below,font=\tiny]{业务数据访问} (mysql);
-\draw[arr] (app) -- (mysql);
+\draw[arr] (app) -- node[above,lab]{HTTP REST} (ai);
+\draw[arr] (app.south) -- node[left,lab]{业务查询} (mysql.north);
+\draw[arr] (ai.south) -- node[right,lab]{API 调用} (llm.north);
+\draw[arr] (ai) -- node[above,lab]{向量检索} (chroma);
+\draw[arr] (ai.south west) -- ++(-0.8,0) |- node[pos=0.32,below,lab]{业务数据访问} (mysql.east);
 \end{tikzpicture}
 \caption{AI 服务架构图}
 \label{fig:ai-arch}
@@ -864,6 +911,36 @@ AI 问答服务依赖知识库的可维护性。当前版本采用“启动时�
 
   \item \textbf{缓存穿透防护}：对于不存在的数据，缓存空值（如空列表），设置较短的过期时间（如 1 分钟），避免恶意查询击穿缓存。
 \end{enumerate}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  box/.style={draw, rectangle, rounded corners, minimum width=2.5cm, minimum height=0.8cm, align=center, font=\small},
+  arr/.style={-Stealth, thick},
+  lab/.style={font=\tiny, fill=white, inner sep=1pt}
+]
+\node[box, fill=blue!15] (browser) at (0,2.8) {浏览器};
+\node[box, fill=green!15] (app) at (3.6,2.8) {Spring Boot\\业务接口};
+\node[box, fill=orange!20] (redis) at (7.2,2.8) {Redis\\热点缓存};
+\node[box, fill=yellow!20] (mysql) at (10.8,2.8) {MySQL\\业务数据};
+\node[box, fill=purple!15] (write) at (3.6,0.6) {写操作\\创建/审批/修改};
+\node[box, fill=gray!15] (invalidate) at (7.2,0.6) {删除相关缓存键\\等待下次重建};
+
+\draw[arr] (browser) -- node[above,lab]{GET 社团/活动列表} (app);
+\draw[arr] (app.north east) -- ++(0,0.45) -| node[pos=0.66,above,lab]{读取缓存} (redis.north west);
+\draw[arr] (redis.south west) -- ++(0,-0.45) -| node[pos=0.34,below,lab]{命中直接返回} (app.south east);
+\draw[arr] (redis.east) -- ++(0.45,0) |- node[pos=0.22,right,lab]{未命中} (mysql.north);
+\draw[arr] (mysql.south west) -- ++(-0.6,-0.45) -| node[pos=0.36,below,lab]{查询结果} (app.south east);
+\draw[arr] (app.south) -- node[left,lab]{写请求} (write.north);
+\draw[arr] (write.south east) -- ++(0.3,-0.35) -| node[pos=0.68,below,lab]{更新数据库} (mysql.south west);
+\draw[arr] (write) -- node[above,lab]{删除缓存} (invalidate);
+\draw[arr] (invalidate.north) -- ++(0,0.45) -| node[pos=0.76,above,lab]{下一次读取重建缓存} (redis.south);
+\end{tikzpicture}
+\caption{热点数据缓存读写与失效流程图}
+\label{fig:cache-flow}
+\end{figure}
+
+图~\ref{fig:cache-flow} 展示了当前版本采用的“读缓存优先、写后删缓存”策略。对于社团列表、活动列表等高频查询，读请求优先命中 Redis；写请求先落库，再删除相关缓存键，由后续首次读取完成缓存重建，以在实现复杂度与一致性之间取得平衡。
 
 \subsection{并发控制设计}
 

@@ -13,6 +13,10 @@ import java.util.Optional;
 public interface ClubFinanceRepository extends JpaRepository<ClubFinance, Long> {
     List<ClubFinance> findByClubId(Long clubId);
     List<ClubFinance> findByClubIdAndStatus(Long clubId, String status);
+    List<ClubFinance> findByStatusOrderByCreatedAtDesc(String status);
+    List<ClubFinance> findByClubIdInAndStatusOrderByCreatedAtDesc(java.util.Collection<Long> clubIds, String status);
+    long countByStatus(String status);
+    long countByClubIdInAndStatus(java.util.Collection<Long> clubIds, String status);
     boolean existsByClubIdAndStatus(Long clubId, String status);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

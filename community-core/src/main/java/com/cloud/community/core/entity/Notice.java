@@ -32,4 +32,10 @@ public class Notice extends BaseEntity {
 
     @Column(nullable = false, length = 20)
     private String status = "DRAFT";
+
+    @Transient
+    private String clubName;
+
+    @Transient
+    private String publisherName;
 }

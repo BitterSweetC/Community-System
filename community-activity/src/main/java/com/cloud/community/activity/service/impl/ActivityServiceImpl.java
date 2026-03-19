@@ -6,11 +6,13 @@ import com.cloud.community.core.entity.ActivitySignup;
 import com.cloud.community.core.entity.User;
 import com.cloud.community.core.exception.BusinessException;
 import com.cloud.community.core.model.dto.ActivityUpdateDTO;
+import com.cloud.community.core.model.vo.ActivityRewardSettlementVO;
 import com.cloud.community.core.repository.ActivityAttendanceRepository;
 import com.cloud.community.core.repository.ActivityRepository;
 import com.cloud.community.core.repository.ActivitySignupRepository;
 import com.cloud.community.core.repository.MemberRepository;
 import com.cloud.community.core.repository.UserRepository;
+import com.cloud.community.core.service.MemberArchiveService;
 import com.cloud.community.activity.service.ActivityService;
 import com.cloud.community.notice.service.NotificationService;
 import com.cloud.community.user.service.PermissionService;
@@ -26,6 +28,7 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 
 @Slf4j
 @Service
@@ -41,11 +44,21 @@ public class ActivityServiceImpl implements ActivityService {
     private final NotificationService notificationService;
     private final RabbitTemplate rabbitTemplate;
     private final SimpMessagingTemplate messagingTemplate;
+    private final MemberArchiveService memberArchiveService;
 
     @Override
     @Transactional
     public Activity createActivity(Activity activity) {
         permissionService.checkClubActive(activity.getClub().getId());
+        if (activity.getNeedAttendance() == null) {
+            activity.setNeedAttendance(false);
+        }
+        if (activity.getRewardPoints() == null) {
+            activity.setRewardPoints(0);
+        }
+        if (activity.getSettlementStatus() == null) {
+            activity.setSettlementStatus("PENDING");
+        }
         activity.setStatus("PUBLISHED");
         return activityRepository.save(activity);
     }
@@ -215,6 +228,7 @@ public class ActivityServiceImpl implements ActivityService {
     @Transactional
     public Activity updateActivity(Long id, ActivityUpdateDTO dto) {
         Activity activity = getActivityById(id);
+        boolean settlementDirty = false;
         if (dto.getTitle() != null) activity.setTitle(dto.getTitle());
         if (dto.getDescription() != null) activity.setDescription(dto.getDescription());
         if (dto.getCoverUrl() != null) activity.setCoverUrl(dto.getCoverUrl());
@@ -225,8 +239,26 @@ public class ActivityServiceImpl implements ActivityService {
         if (dto.getSignupStartTime() != null) activity.setSignupStartTime(dto.getSignupStartTime());
         if (dto.getSignupEndTime() != null) activity.setSignupEndTime(dto.getSignupEndTime());
         if (dto.getMaxParticipants() != null) activity.setMaxParticipants(dto.getMaxParticipants());
-        if (dto.getNeedAttendance() != null) activity.setNeedAttendance(dto.getNeedAttendance());
+        if (dto.getNeedAttendance() != null && !Objects.equals(dto.getNeedAttendance(), activity.getNeedAttendance())) {
+            activity.setNeedAttendance(dto.getNeedAttendance());
+            settlementDirty = true;
+        }
+        if (dto.getCheckinCode() != null) activity.setCheckinCode(dto.getCheckinCode());
+        if (dto.getRewardPoints() != null && !Objects.equals(dto.getRewardPoints(), activity.getRewardPoints())) {
+            activity.setRewardPoints(dto.getRewardPoints());
+            settlementDirty = true;
+        }
+        if (settlementDirty) {
+            activity.setSettlementStatus("PENDING");
+            activity.setSettledAt(null);
+        }
         return activityRepository.save(activity);
+    }
+
+    @Override
+    @Transactional
+    public ActivityRewardSettlementVO settleRewards(Long activityId, Long operatorId) {
+        return memberArchiveService.settleActivityRewards(activityId, operatorId);
     }
 
     @Override

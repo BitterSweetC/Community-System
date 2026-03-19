@@ -14,7 +14,10 @@ import java.util.Optional;
 public interface ResourceApplicationRepository extends JpaRepository<ResourceApplication, Long> {
     List<ResourceApplication> findByClubId(Long clubId);
     List<ResourceApplication> findByStatus(String status);
+    List<ResourceApplication> findByStatusOrderByCreatedAtDesc(String status);
+    List<ResourceApplication> findByClubIdInAndStatusOrderByCreatedAtDesc(java.util.Collection<Long> clubIds, String status);
     long countByStatus(String status);
+    long countByClubIdInAndStatus(java.util.Collection<Long> clubIds, String status);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT r FROM ResourceApplication r WHERE r.id = :id")

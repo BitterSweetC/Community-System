@@ -1,6 +1,18 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
+const CHUNK_RELOAD_KEY = 'community:chunk-reload-path'
+
+function isChunkLoadError(error) {
+  const message = error?.message || ''
+  return [
+    'Failed to fetch dynamically imported module',
+    'Importing a module script failed',
+    'Unable to preload CSS',
+    'Loading chunk'
+  ].some(fragment => message.includes(fragment))
+}
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -14,7 +26,7 @@ const router = createRouter({
       name: 'login',
       component: () => import('@/views/LoginView.vue')
     },
-    {
+    ci    {
       path: '/register',
       name: 'register',
       component: () => import('@/views/RegisterView.vue')
@@ -23,6 +35,11 @@ const router = createRouter({
       path: '/forgot-password',
       name: 'forgot-password',
       component: () => import('@/views/ForgotPasswordView.vue')
+    },
+    {
+      path: '/screenshot-login',
+      name: 'screenshot-login',
+      component: () => import('@/views/tools/ScreenshotLoginView.vue')
     },
     {
       path: '/home',
@@ -90,6 +107,11 @@ const router = createRouter({
               component: () => import('@/views/student/MyClubsView.vue')
             },
             {
+              path: 'archive',
+              name: 'my-archive',
+              component: () => import('@/views/student/MyArchiveView.vue')
+            },
+            {
               path: 'activities',
               name: 'my-activities',
               component: () => import('@/views/student/MyActivitiesView.vue')
@@ -124,44 +146,49 @@ const router = createRouter({
           component: () => import('@/views/admin/RealtimeDashboard.vue')
         },
         {
-            path: 'clubs',
-            name: 'admin-clubs',
-            component: () => import('@/views/admin/ClubManagement.vue')
+          path: 'todos',
+          name: 'admin-todos',
+          component: () => import('@/views/admin/TodoCenterView.vue')
         },
         {
-            path: 'recruit/:clubId',
-            name: 'admin-recruit',
-            component: () => import('@/views/admin/RecruitManagement.vue')
+          path: 'clubs',
+          name: 'admin-clubs',
+          component: () => import('@/views/admin/ClubManagement.vue')
         },
         {
-            path: 'notices/:clubId?', // Optional clubId for club-specific notices
-            name: 'admin-notices',
-            component: () => import('@/views/admin/NoticeManagement.vue')
+          path: 'recruit/:clubId',
+          name: 'admin-recruit',
+          component: () => import('@/views/admin/RecruitManagement.vue')
         },
         {
-            path: 'activities/:clubId?',
-            name: 'admin-activities',
-            component: () => import('@/views/admin/ActivityManagement.vue')
+          path: 'notices/:clubId?', // Optional clubId for club-specific notices
+          name: 'admin-notices',
+          component: () => import('@/views/admin/NoticeManagement.vue')
         },
         {
-            path: 'resources',
-            name: 'admin-resources',
-            component: () => import('@/views/admin/AdminResourceApproval.vue')
+          path: 'activities/:clubId?',
+          name: 'admin-activities',
+          component: () => import('@/views/admin/ActivityManagement.vue')
         },
         {
-            path: 'resources/definitions',
-            name: 'admin-resource-definitions',
-            component: () => import('@/views/admin/AdminResourceDefinition.vue')
+          path: 'resources',
+          name: 'admin-resources',
+          component: () => import('@/views/admin/AdminResourceApproval.vue')
         },
         {
-            path: 'audit',
-            name: 'admin-audit',
-            component: () => import('@/views/admin/AuditLogManagement.vue')
+          path: 'resources/definitions',
+          name: 'admin-resource-definitions',
+          component: () => import('@/views/admin/AdminResourceDefinition.vue')
         },
         {
-            path: 'finance/:clubId',
-            name: 'admin-finance',
-            component: () => import('@/views/admin/FinanceManagement.vue')
+          path: 'audit',
+          name: 'admin-audit',
+          component: () => import('@/views/admin/AuditLogManagement.vue')
+        },
+        {
+          path: 'finance/:clubId',
+          name: 'admin-finance',
+          component: () => import('@/views/admin/FinanceManagement.vue')
         }
       ]
     },
@@ -176,39 +203,44 @@ const router = createRouter({
           component: () => import('@/views/admin/ClubAdminDashboard.vue')
         },
         {
-            path: 'recruit/:clubId',
-            name: 'club-admin-recruit',
-            component: () => import('@/views/admin/RecruitManagement.vue')
+          path: 'todos',
+          name: 'club-admin-todos',
+          component: () => import('@/views/admin/TodoCenterView.vue')
         },
         {
-            path: 'members/:clubId',
-            name: 'club-admin-members',
-            component: () => import('@/views/admin/MemberManagement.vue')
+          path: 'recruit/:clubId',
+          name: 'club-admin-recruit',
+          component: () => import('@/views/admin/RecruitManagement.vue')
         },
         {
-            path: 'notices/:clubId?',
-            name: 'club-admin-notices',
-            component: () => import('@/views/admin/NoticeManagement.vue')
+          path: 'members/:clubId',
+          name: 'club-admin-members',
+          component: () => import('@/views/admin/MemberManagement.vue')
         },
         {
-            path: 'activities/:clubId?',
-            name: 'club-admin-activities',
-            component: () => import('@/views/admin/ActivityManagement.vue')
+          path: 'notices/:clubId?',
+          name: 'club-admin-notices',
+          component: () => import('@/views/admin/NoticeManagement.vue')
         },
         {
-            path: 'resources/:clubId',
-            name: 'club-admin-resources',
-            component: () => import('@/views/admin/ResourceManagement.vue')
+          path: 'activities/:clubId?',
+          name: 'club-admin-activities',
+          component: () => import('@/views/admin/ActivityManagement.vue')
         },
         {
-            path: 'settings/:clubId',
-            name: 'club-admin-settings',
-            component: () => import('@/views/admin/ClubSettings.vue')
+          path: 'resources/:clubId',
+          name: 'club-admin-resources',
+          component: () => import('@/views/admin/ResourceManagement.vue')
         },
         {
-            path: 'finance/:clubId',
-            name: 'club-admin-finance',
-            component: () => import('@/views/admin/FinanceManagement.vue')
+          path: 'settings/:clubId',
+          name: 'club-admin-settings',
+          component: () => import('@/views/admin/ClubSettings.vue')
+        },
+        {
+          path: 'finance/:clubId',
+          name: 'club-admin-finance',
+          component: () => import('@/views/admin/FinanceManagement.vue')
         }
       ]
     }
@@ -236,10 +268,10 @@ router.beforeEach(async (to, from, next) => {
       if (!hasRole) {
         // Redirect unauthorized access to appropriate page or home
         if (userRoles.some(r => (typeof r === 'string' ? r : r.code) === 'CLUB_ADMIN')) {
-             if (to.path.startsWith('/admin')) {
-                 next('/clubadmin')
-                 return
-             }
+          if (to.path.startsWith('/admin')) {
+            next('/clubadmin')
+            return
+          }
         }
         next('/home')
         return
@@ -247,6 +279,33 @@ router.beforeEach(async (to, from, next) => {
     }
     next()
   }
+})
+
+router.afterEach(to => {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  if (sessionStorage.getItem(CHUNK_RELOAD_KEY) === to.fullPath) {
+    sessionStorage.removeItem(CHUNK_RELOAD_KEY)
+  }
+})
+
+router.onError((error, to) => {
+  if (typeof window === 'undefined' || !isChunkLoadError(error)) {
+    return
+  }
+
+  const reloadPath = to?.fullPath || `${window.location.pathname}${window.location.search}${window.location.hash}`
+  const previousReloadPath = sessionStorage.getItem(CHUNK_RELOAD_KEY)
+
+  if (previousReloadPath === reloadPath) {
+    sessionStorage.removeItem(CHUNK_RELOAD_KEY)
+    return
+  }
+
+  sessionStorage.setItem(CHUNK_RELOAD_KEY, reloadPath)
+  window.location.assign(reloadPath)
 })
 
 export default router

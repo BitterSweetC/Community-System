@@ -1,12 +1,13 @@
 package com.cloud.community.gateway.controller;
 
 import com.cloud.community.core.common.Result;
+import com.cloud.community.core.model.vo.TodoOverviewVO;
 import com.cloud.community.core.repository.ActivityAttendanceRepository;
 import com.cloud.community.core.repository.ActivitySignupRepository;
 import com.cloud.community.core.repository.ClubRepository;
 import com.cloud.community.core.repository.ResourceApplicationRepository;
+import com.cloud.community.gateway.service.DashboardTodoService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -25,6 +26,7 @@ public class DashboardController {
     private final ActivityAttendanceRepository attendanceRepository;
     private final ActivitySignupRepository signupRepository;
     private final ResourceApplicationRepository resourceApplicationRepository;
+    private final DashboardTodoService dashboardTodoService;
 
     @GetMapping("/stats")
     @PreAuthorize("hasRole('ADMIN') or hasRole('CLUB_ADMIN')")
@@ -43,5 +45,11 @@ public class DashboardController {
                 "pendingResources", pendingResources,
                 "totalSignups", totalSignups
         ));
+    }
+
+    @GetMapping("/todos")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('CLUB_ADMIN')")
+    public Result<TodoOverviewVO> getTodos() {
+        return Result.success(dashboardTodoService.getCurrentUserTodos());
     }
 }

@@ -10,6 +10,7 @@ import com.cloud.community.core.model.dto.ActivityCreateDTO;
 import com.cloud.community.core.model.dto.ActivityUpdateDTO;
 import com.cloud.community.core.entity.ActivityAttendance;
 import com.cloud.community.core.model.vo.ActivityCheckInExportVO;
+import com.cloud.community.core.model.vo.ActivityRewardSettlementVO;
 import com.cloud.community.core.model.vo.ActivityVO;
 import com.cloud.community.core.model.vo.MySignupActivityVO;
 import com.alibaba.excel.EasyExcel;
@@ -192,6 +193,18 @@ public class ActivityController {
             permissionService.checkSystemAdmin(user.getId());
         }
         return Result.success(ActivityVO.from(activityService.updateActivity(id, dto)));
+    }
+
+    @PostMapping("/{id}/settle-rewards")
+    public Result<ActivityRewardSettlementVO> settleRewards(@PathVariable Long id) {
+        User user = getCurrentUser();
+        Activity activity = activityService.getActivityById(id);
+        if (activity.getClub() != null) {
+            permissionService.checkClubAdmin(user.getId(), activity.getClub().getId());
+        } else {
+            permissionService.checkSystemAdmin(user.getId());
+        }
+        return Result.success(activityService.settleRewards(id, user.getId()));
     }
 
     @DeleteMapping("/{id}")

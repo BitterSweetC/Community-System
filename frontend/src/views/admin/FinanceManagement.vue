@@ -44,7 +44,7 @@
           {{ formatDate(scope.row.createdAt) }}
         </template>
       </el-table-column>
-      <el-table-column label="操作" v-if="isAdmin" width="160" align="center">
+      <el-table-column label="操作" v-if="isAdmin" min-width="180" align="center" class-name="action-column">
         <template #default="scope">
           <div v-if="scope.row.status === 'PENDING'" class="action-buttons">
             <el-button type="success" size="small" @click="handleApprove(scope.row.id)">通过</el-button>
@@ -291,5 +291,18 @@ onMounted(() => {
   justify-content: center;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
+}
+
+.action-buttons :deep(.el-button) {
+  margin-left: 0 !important;
+}
+
+:deep(.action-column .cell) {
+  white-space: normal !important;
+  overflow: visible;
+  line-height: 1.35;
+  padding-top: 6px;
+  padding-bottom: 6px;
 }
 </style>

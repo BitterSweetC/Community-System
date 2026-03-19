@@ -1,8 +1,11 @@
 <template>
   <div class="audit-log-management">
-    <div class="header">
-      <h2>审计日志</h2>
-      <el-form :inline="true" :model="searchForm" class="demo-form-inline">
+    <div class="page-head">
+      <div>
+        <h2>审计日志</h2>
+        <p class="subtext">筛选并追踪系统关键操作记录。</p>
+      </div>
+      <el-form :inline="true" :model="searchForm" class="filter-form">
         <el-form-item label="操作行为">
           <el-input v-model="searchForm.action" placeholder="输入操作行为" clearable />
         </el-form-item>
@@ -15,25 +18,27 @@
       </el-form>
     </div>
 
-    <el-table class="audit-table" :data="logs" style="width: 100%" height="640" v-loading="loading">
-      <el-table-column prop="id" label="编号" width="80" />
-      <el-table-column prop="username" label="用户名" width="120" />
-      <el-table-column prop="realName" label="真实姓名" width="120" />
-      <el-table-column prop="action" label="操作行为" width="150">
-         <template #default="scope">
-           <el-tag>{{ scope.row.action }}</el-tag>
-         </template>
-      </el-table-column>
-      <el-table-column prop="resourceType" label="资源类型" width="150" />
-      <el-table-column prop="resourceId" label="资源编号" width="120" />
-      <el-table-column prop="detail" label="详情" show-overflow-tooltip />
-      <el-table-column prop="ip" label="IP地址" width="140" />
-      <el-table-column prop="createdAt" label="时间" width="180">
-        <template #default="scope">
-          {{ formatDate(scope.row.createdAt) }}
-        </template>
-      </el-table-column>
-    </el-table>
+    <div class="table-panel">
+      <el-table class="table-shell" :data="logs" height="640" v-loading="loading">
+        <el-table-column prop="id" label="编号" width="80" />
+        <el-table-column prop="username" label="用户名" width="120" />
+        <el-table-column prop="realName" label="真实姓名" width="120" />
+        <el-table-column prop="action" label="操作行为" width="150">
+           <template #default="scope">
+             <el-tag>{{ scope.row.action }}</el-tag>
+           </template>
+        </el-table-column>
+        <el-table-column prop="resourceType" label="资源类型" width="150" />
+        <el-table-column prop="resourceId" label="资源编号" width="120" />
+        <el-table-column prop="detail" label="详情" show-overflow-tooltip />
+        <el-table-column prop="ip" label="IP地址" width="140" />
+        <el-table-column prop="createdAt" label="时间" width="180">
+          <template #default="scope">
+            {{ formatDate(scope.row.createdAt) }}
+          </template>
+        </el-table-column>
+      </el-table>
+    </div>
 
     <div class="pagination-wrapper" v-if="total > 0">
       <el-pagination
@@ -98,19 +103,48 @@ onMounted(load)
 
 <style scoped>
 .audit-log-management {
-  padding: 20px;
+  padding: 4px 0 8px;
 }
 
-.header {
-  margin-bottom: 20px;
+.page-head {
+  margin-bottom: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
-.audit-table {
-  margin-top: 8px;
+.subtext {
+  margin: 6px 0 0;
+  color: #60748c;
+}
+
+.filter-form {
+  display: flex;
+  align-items: center;
+  gap: 8px 0;
+  flex-wrap: wrap;
+}
+
+.filter-form :deep(.el-form-item) {
+  margin-bottom: 0;
+}
+
+.table-panel {
+  padding: 12px;
+  border: 1px solid rgba(14, 55, 94, 0.12);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 10px 24px rgba(17, 46, 77, 0.08);
+}
+
+.table-shell {
+  width: 100%;
 }
 
 .pagination-wrapper {
-  margin-top: 20px;
+  margin-top: 16px;
   display: flex;
   justify-content: flex-end;
 }

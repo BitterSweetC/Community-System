@@ -8,10 +8,14 @@ import com.cloud.community.core.entity.Member;
 import com.cloud.community.core.entity.User;
 import com.cloud.community.core.model.dto.ClubCreateDTO;
 import com.cloud.community.core.model.dto.ClubUpdateDTO;
+import com.cloud.community.core.model.dto.MemberPointAdjustDTO;
 import com.cloud.community.core.model.vo.ClubMemberExportVO;
 import com.cloud.community.core.model.vo.ClubVO;
+import com.cloud.community.core.model.vo.MemberArchiveVO;
+import com.cloud.community.core.model.vo.MemberPointRecordVO;
 import com.alibaba.excel.EasyExcel;
 import com.cloud.community.club.service.ClubService;
+import com.cloud.community.core.service.MemberArchiveService;
 import com.cloud.community.user.service.PermissionService;
 import com.cloud.community.user.service.UserService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -36,6 +40,7 @@ public class ClubController {
     private final ClubService clubService;
     private final UserService userService;
     private final PermissionService permissionService;
+    private final MemberArchiveService memberArchiveService;
 
     private User getCurrentUser() {
         if (SecurityContextHolder.getContext().getAuthentication() == null ||
@@ -198,6 +203,41 @@ public class ClubController {
         permissionService.checkClubAdmin(user.getId(), id);
         clubService.removeMember(id, userId);
         return Result.success();
+    }
+
+    @GetMapping("/{id}/members/{userId}/archive")
+    public Result<MemberArchiveVO> getMemberArchive(@PathVariable Long id, @PathVariable Long userId) {
+        User user = getCurrentUser();
+        permissionService.checkClubAdmin(user.getId(), id);
+        return Result.success(memberArchiveService.getMemberArchive(id, userId));
+    }
+
+    @GetMapping("/{id}/members/{userId}/point-records")
+    public Result<List<MemberPointRecordVO>> getMemberPointRecords(@PathVariable Long id, @PathVariable Long userId) {
+        User user = getCurrentUser();
+        permissionService.checkClubAdmin(user.getId(), id);
+        return Result.success(memberArchiveService.getPointRecords(id, userId));
+    }
+
+    @PostMapping("/{id}/members/{userId}/points/adjust")
+    public Result<MemberPointRecordVO> adjustMemberPoints(@PathVariable Long id,
+                                                          @PathVariable Long userId,
+                                                          @Validated @RequestBody MemberPointAdjustDTO dto) {
+        User user = getCurrentUser();
+        permissionService.checkClubAdmin(user.getId(), id);
+        return Result.success(memberArchiveService.adjustPoints(id, userId, dto.getDeltaPoints(), dto.getRemark(), user.getId()));
+    }
+
+    @GetMapping("/{id}/members/me/archive")
+    public Result<MemberArchiveVO> getMyMemberArchive(@PathVariable Long id) {
+        User user = getCurrentUser();
+        return Result.success(memberArchiveService.getMemberArchive(id, user.getId()));
+    }
+
+    @GetMapping("/{id}/members/me/point-records")
+    public Result<List<MemberPointRecordVO>> getMyPointRecords(@PathVariable Long id) {
+        User user = getCurrentUser();
+        return Result.success(memberArchiveService.getPointRecords(id, user.getId()));
     }
 
     @AuditLog(action = "APPLY_DISSOLUTION", resourceType = "CLUB", resourceId = "#id")

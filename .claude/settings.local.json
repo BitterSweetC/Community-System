@@ -23,7 +23,8 @@
       "Bash(curl -s http://localhost:8080/api/clubs/1/members -b /tmp/admin_cookies.txt)",
       "Bash(curl -s -X POST \"http://localhost:8080/api/clubs/1/members?userId=2&role=MEMBER\" -b /tmp/admin_cookies.txt)",
       "Bash(wc:*)",
-      "Bash(xelatex:*)"
+      "Bash(xelatex:*)",
+      "mcp__plugin_oh-my-claudecode_t__python_repl"
     ]
   },
   "disabledMcpjsonServers": [

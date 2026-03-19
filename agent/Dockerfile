@@ -1,6 +1,8 @@
+# syntax=docker/dockerfile:1.7
 FROM python:3.10-slim
 
 WORKDIR /app
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 
 # Install system dependencies if needed (e.g. for building packages)
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -11,7 +13,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 
 # Install python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install -r requirements.txt
 
 # Copy application code
 COPY . .

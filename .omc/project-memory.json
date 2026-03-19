@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastScanned": 1773199717659,
+  "lastScanned": 1773803339449,
   "projectRoot": "E:\\IntelliJ IDEA 2024.2.3\\code\\Community",
   "techStack": {
     "languages": [
@@ -34,7 +34,8 @@
     "isMonorepo": false,
     "workspaces": [],
     "mainDirectories": [
-      "docs"
+      "docs",
+      "scripts"
     ],
     "gitBranches": null
   },
@@ -44,7 +45,7 @@
       "path": "agent",
       "purpose": null,
       "fileCount": 8,
-      "lastAccessed": 1773199717643,
+      "lastAccessed": 1773803339428,
       "keyFiles": [
         "crawler.py",
         "Dockerfile",
@@ -57,7 +58,7 @@
       "path": "community-activity",
       "purpose": null,
       "fileCount": 1,
-      "lastAccessed": 1773199717644,
+      "lastAccessed": 1773803339428,
       "keyFiles": [
         "pom.xml"
       ]
@@ -66,7 +67,7 @@
       "path": "community-admin",
       "purpose": null,
       "fileCount": 1,
-      "lastAccessed": 1773199717644,
+      "lastAccessed": 1773803339429,
       "keyFiles": [
         "pom.xml"
       ]
@@ -75,7 +76,7 @@
       "path": "community-club",
       "purpose": null,
       "fileCount": 1,
-      "lastAccessed": 1773199717645,
+      "lastAccessed": 1773803339429,
       "keyFiles": [
         "pom.xml"
       ]
@@ -84,7 +85,7 @@
       "path": "community-core",
       "purpose": null,
       "fileCount": 1,
-      "lastAccessed": 1773199717645,
+      "lastAccessed": 1773803339430,
       "keyFiles": [
         "pom.xml"
       ]
@@ -93,7 +94,7 @@
       "path": "community-gateway",
       "purpose": null,
       "fileCount": 1,
-      "lastAccessed": 1773199717646,
+      "lastAccessed": 1773803339430,
       "keyFiles": [
         "pom.xml"
       ]
@@ -102,7 +103,7 @@
       "path": "community-notice",
       "purpose": null,
       "fileCount": 1,
-      "lastAccessed": 1773199717646,
+      "lastAccessed": 1773803339430,
       "keyFiles": [
         "pom.xml"
       ]
@@ -111,7 +112,7 @@
       "path": "community-recruit",
       "purpose": null,
       "fileCount": 1,
-      "lastAccessed": 1773199717646,
+      "lastAccessed": 1773803339430,
       "keyFiles": [
         "pom.xml"
       ]
@@ -120,7 +121,7 @@
       "path": "community-user",
       "purpose": null,
       "fileCount": 1,
-      "lastAccessed": 1773199717646,
+      "lastAccessed": 1773803339431,
       "keyFiles": [
         "pom.xml"
       ]
@@ -128,21 +129,21 @@
     "docs": {
       "path": "docs",
       "purpose": "Documentation",
-      "fileCount": 11,
-      "lastAccessed": 1773199717647,
+      "fileCount": 12,
+      "lastAccessed": 1773803339431,
       "keyFiles": [
+        "基于SpringBoot的社团管理系统论文写作方案.md",
         "校园社团管理与招新系统API接口文档.md",
         "校园社团管理与招新系统数据库设计说明书.md",
         "校园社团管理与招新系统设计说明书.md",
-        "校园社团管理与招新系统需求规格说明书.md",
-        "校园社团管理与招新系统项目计划.md"
+        "校园社团管理与招新系统需求规格说明书.md"
       ]
     },
     "frontend": {
       "path": "frontend",
       "purpose": null,
       "fileCount": 13,
-      "lastAccessed": 1773199717647,
+      "lastAccessed": 1773803339432,
       "keyFiles": [
         "backend-run.err.log",
         "backend-run.out.log",
@@ -155,27 +156,64 @@
       "path": "monitoring",
       "purpose": null,
       "fileCount": 2,
-      "lastAccessed": 1773199717648,
+      "lastAccessed": 1773803339432,
       "keyFiles": [
         "alerts.yml",
         "prometheus.yml"
       ]
     },
+    "papero": {
+      "path": "papero",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1773803339432,
+      "keyFiles": []
+    },
+    "paper_outputs": {
+      "path": "paper_outputs",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1773803339432,
+      "keyFiles": [
+        "ai_artifact_manifest.md"
+      ]
+    },
+    "scripts": {
+      "path": "scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 1,
+      "lastAccessed": 1773803339433,
+      "keyFiles": [
+        "paper_benchmark.mjs"
+      ]
+    },
     "thesis": {
       "path": "thesis",
       "purpose": null,
-      "fileCount": 2,
-      "lastAccessed": 1773199717648,
+      "fileCount": 7,
+      "lastAccessed": 1773803339433,
       "keyFiles": [
+        "final_package_notes.md",
         "main.tex",
-        "references.bib"
+        "references.bib",
+        "writing-style-analysis.md",
+        "撰写规范.docx"
+      ]
+    },
+    "tools": {
+      "path": "tools",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1773803339433,
+      "keyFiles": [
+        "apache-jmeter-5.5.zip"
       ]
     },
     "agent\\data": {
       "path": "agent\\data",
       "purpose": "Data files",
       "fileCount": 100,
-      "lastAccessed": 1773199717648,
+      "lastAccessed": 1773803339434,
       "keyFiles": [
         "0032bdea705f70478f314062352f49f8.md",
         "03b1c8f4e1e206236664d0d5771a8e3a.md",
@@ -186,63 +224,63 @@
       "path": "community-activity\\src",
       "purpose": "Source code",
       "fileCount": 0,
-      "lastAccessed": 1773199717649,
+      "lastAccessed": 1773803339434,
       "keyFiles": []
     },
     "community-admin\\src": {
       "path": "community-admin\\src",
       "purpose": "Source code",
       "fileCount": 0,
-      "lastAccessed": 1773199717649,
+      "lastAccessed": 1773803339435,
       "keyFiles": []
     },
     "community-club\\src": {
       "path": "community-club\\src",
       "purpose": "Source code",
       "fileCount": 0,
-      "lastAccessed": 1773199717649,
+      "lastAccessed": 1773803339435,
       "keyFiles": []
     },
     "community-core\\src": {
       "path": "community-core\\src",
       "purpose": "Source code",
       "fileCount": 0,
-      "lastAccessed": 1773199717650,
+      "lastAccessed": 1773803339435,
       "keyFiles": []
     },
     "community-gateway\\src": {
       "path": "community-gateway\\src",
       "purpose": "Source code",
       "fileCount": 0,
-      "lastAccessed": 1773199717650,
+      "lastAccessed": 1773803339436,
       "keyFiles": []
     },
     "community-notice\\src": {
       "path": "community-notice\\src",
       "purpose": "Source code",
       "fileCount": 0,
-      "lastAccessed": 1773199717650,
+      "lastAccessed": 1773803339436,
       "keyFiles": []
     },
     "community-recruit\\src": {
       "path": "community-recruit\\src",
       "purpose": "Source code",
       "fileCount": 0,
-      "lastAccessed": 1773199717651,
+      "lastAccessed": 1773803339436,
       "keyFiles": []
     },
     "community-user\\src": {
       "path": "community-user\\src",
       "purpose": "Source code",
       "fileCount": 0,
-      "lastAccessed": 1773199717651,
+      "lastAccessed": 1773803339437,
       "keyFiles": []
     },
     "frontend\\dist": {
       "path": "frontend\\dist",
       "purpose": "Distribution/build output",
       "fileCount": 3,
-      "lastAccessed": 1773199717652,
+      "lastAccessed": 1773803339437,
       "keyFiles": [
         "favicon.ico",
         "index.html",
@@ -252,118 +290,34 @@
   },
   "hotPaths": [
     {
-      "path": "pom.xml",
-      "accessCount": 1,
-      "lastAccessed": 1773199794821,
+      "path": "community-club/src/main/java/com/cloud/community/club/controller/ClubController.java",
+      "accessCount": 3,
+      "lastAccessed": 1773804196770,
       "type": "file"
     },
     {
-      "path": "README.md",
+      "path": "community-user/src/main/java/com/cloud/community/user/service/impl/PermissionServiceImpl.java",
       "accessCount": 1,
-      "lastAccessed": 1773199794882,
-      "type": "file"
-    },
-    {
-      "path": "community-gateway/src/main/resources/schema.sql",
-      "accessCount": 1,
-      "lastAccessed": 1773199801077,
-      "type": "file"
-    },
-    {
-      "path": "community-core/pom.xml",
-      "accessCount": 1,
-      "lastAccessed": 1773199801099,
-      "type": "file"
-    },
-    {
-      "path": "community-gateway/src/main/resources/application.properties",
-      "accessCount": 1,
-      "lastAccessed": 1773199801147,
-      "type": "file"
-    },
-    {
-      "path": "community-core/src/main/java/com/cloud/community/core/entity/User.java",
-      "accessCount": 1,
-      "lastAccessed": 1773199817604,
-      "type": "file"
-    },
-    {
-      "path": "community-core/src/main/java/com/cloud/community/core/entity/Club.java",
-      "accessCount": 1,
-      "lastAccessed": 1773199817637,
-      "type": "file"
-    },
-    {
-      "path": "community-core/src/main/java/com/cloud/community/core/entity/Activity.java",
-      "accessCount": 1,
-      "lastAccessed": 1773199817661,
+      "lastAccessed": 1773803798832,
       "type": "file"
     },
     {
       "path": "community-core/src/main/java/com/cloud/community/core/entity/Member.java",
       "accessCount": 1,
-      "lastAccessed": 1773199817692,
+      "lastAccessed": 1773803798850,
       "type": "file"
     },
     {
-      "path": "community-club/src/main/java/com/cloud/community/club/controller/ClubController.java",
+      "path": "community-user/src/main/java/com/cloud/community/user/service/PermissionService.java",
       "accessCount": 1,
-      "lastAccessed": 1773199824996,
+      "lastAccessed": 1773803798907,
       "type": "file"
     },
     {
-      "path": "community-gateway/src/main/java/com/cloud/community/gateway/controller/AuthController.java",
+      "path": "community-club",
       "accessCount": 1,
-      "lastAccessed": 1773199825054,
-      "type": "file"
-    },
-    {
-      "path": "agent/requirements.txt",
-      "accessCount": 1,
-      "lastAccessed": 1773199834421,
-      "type": "file"
-    },
-    {
-      "path": "agent/main.py",
-      "accessCount": 1,
-      "lastAccessed": 1773199834441,
-      "type": "file"
-    },
-    {
-      "path": "frontend/package.json",
-      "accessCount": 1,
-      "lastAccessed": 1773199834511,
-      "type": "file"
-    },
-    {
-      "path": "agent/rag.py",
-      "accessCount": 1,
-      "lastAccessed": 1773199842728,
-      "type": "file"
-    },
-    {
-      "path": "community-recruit/src/main/java/com/cloud/community/recruit/controller/RecruitController.java",
-      "accessCount": 1,
-      "lastAccessed": 1773199842757,
-      "type": "file"
-    },
-    {
-      "path": "frontend/src/router/index.js",
-      "accessCount": 1,
-      "lastAccessed": 1773199842788,
-      "type": "file"
-    },
-    {
-      "path": "community-activity/src/main/java/com/cloud/community/activity/controller/ActivityController.java",
-      "accessCount": 1,
-      "lastAccessed": 1773199842818,
-      "type": "file"
-    },
-    {
-      "path": "agent/recommendation.py",
-      "accessCount": 1,
-      "lastAccessed": 1773199842879,
-      "type": "file"
+      "lastAccessed": 1773804196821,
+      "type": "directory"
     }
   ],
   "userDirectives": []

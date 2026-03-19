@@ -9,6 +9,55 @@
     </div>
 
     <div class="dashboard-grid">
+      <el-card v-if="todoOverview" class="todo-overview-card">
+        <template #header>
+          <div class="todo-head">
+            <div>
+              <h3 class="section-title">统一待办中心</h3>
+              <p class="todo-subtext">招新审核、状态提醒和待跟进申请已经按当前账号聚合。</p>
+            </div>
+            <el-button type="primary" plain @click="handleNavigate('/clubadmin/todos')">进入待办</el-button>
+          </div>
+        </template>
+
+        <el-row :gutter="12" class="todo-summary-row">
+          <el-col :span="8">
+            <div class="todo-summary-box">
+              <span class="todo-summary-label">总待办</span>
+              <strong class="todo-summary-value">{{ todoOverview.totalPending || 0 }}</strong>
+            </div>
+          </el-col>
+          <el-col :span="8">
+            <div class="todo-summary-box">
+              <span class="todo-summary-label">待处理模块</span>
+              <strong class="todo-summary-value">{{ todoOverview.nonEmptySectionCount || 0 }}</strong>
+            </div>
+          </el-col>
+          <el-col :span="8">
+            <div class="todo-summary-box">
+              <span class="todo-summary-label">可见分组</span>
+              <strong class="todo-summary-value">{{ todoOverview.sections?.length || 0 }}</strong>
+            </div>
+          </el-col>
+        </el-row>
+
+        <div v-if="todoSections.length" class="todo-preview-list">
+          <button
+            v-for="section in todoSections"
+            :key="section.key"
+            type="button"
+            class="todo-preview-item"
+            @click="handleNavigate(section.actionPath || '/clubadmin/todos')"
+          >
+            <span class="todo-preview-title">{{ section.title }}</span>
+            <span class="todo-preview-meta">
+              <el-tag size="small" :type="toTagType(section.tone)" effect="plain">{{ section.pendingCount }}</el-tag>
+              <span>{{ section.description }}</span>
+            </span>
+          </button>
+        </div>
+      </el-card>
+
       <div v-if="myClubs.length > 0" class="my-clubs-section">
         <h3 class="section-title">管理中的社团</h3>
 
@@ -33,7 +82,7 @@
                   plain
                   :disabled="isClubDisabled(club.status)"
                   :title="isClubDisabled(club.status) ? '该社团当前非活跃状态，部分管理功能不可用。' : ''"
-                  @click.stop="$router.push(`/clubadmin/settings/${club.id}`)"
+                  @click.stop="handleNavigate(`/clubadmin/settings/${club.id}`)"
                 >
                   修改资料
                 </el-button>
@@ -117,15 +166,27 @@
 
 <script setup>
 import { nextTick, onMounted, onUnmounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import axios from '@/api/axios'
+import { getDashboardTodos } from '@/api/dashboard'
 import * as echarts from 'echarts'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
+const router = useRouter()
 const authStore = useAuthStore()
 const myClubs = ref([])
 const selectedClubId = ref(null)
 const stats = ref(null)
+const todoOverview = ref(null)
+const todoSections = ref([])
+
+const handleNavigate = (path) => {
+  console.log('导航到:', path)
+  router.push(path).catch(err => {
+    console.error('路由跳转失败:', err)
+  })
+}
 
 const trendChartRef = ref(null)
 const roleChartRef = ref(null)
@@ -175,6 +236,21 @@ const getRoleLabel = (role) => {
   }
 }
 
+const toTagType = (tone) => {
+  switch (tone) {
+    case 'danger':
+      return 'danger'
+    case 'warning':
+      return 'warning'
+    case 'success':
+      return 'success'
+    case 'primary':
+      return 'primary'
+    default:
+      return 'info'
+  }
+}
+
 const selectClub = async (clubId) => {
   selectedClubId.value = clubId
   await loadStats(clubId)
@@ -188,6 +264,17 @@ const loadStats = async (clubId) => {
     initCharts()
   } catch (error) {
     console.error('加载统计数据失败', error)
+  }
+}
+
+const loadTodos = async () => {
+  try {
+    todoOverview.value = await getDashboardTodos()
+    todoSections.value = (todoOverview.value?.sections || [])
+      .filter((section) => section.pendingCount > 0)
+      .slice(0, 4)
+  } catch (error) {
+    console.error('加载统一待办失败', error)
   }
 }
 
@@ -276,6 +363,8 @@ const initCharts = () => {
 }
 
 onMounted(async () => {
+  loadTodos()
+
   try {
     const res = await axios.get('/clubs/my')
     if (res.list) myClubs.value = res.list
@@ -385,6 +474,84 @@ const handleResize = () => {
   display: flex;
   flex-direction: column;
   gap: 18px;
+}
+
+.todo-overview-card {
+  border-radius: 14px;
+}
+
+.todo-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.todo-subtext {
+  margin: 6px 0 0;
+  color: #60748c;
+}
+
+.todo-summary-row {
+  margin-bottom: 14px;
+}
+
+.todo-summary-box {
+  min-height: 90px;
+  border-radius: 12px;
+  padding: 16px;
+  background: linear-gradient(135deg, rgba(29, 95, 159, 0.12), rgba(35, 160, 137, 0.08));
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+}
+
+.todo-summary-label {
+  color: #5f7289;
+}
+
+.todo-summary-value {
+  font-size: 26px;
+  color: #173551;
+}
+
+.todo-preview-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.todo-preview-item {
+  width: 100%;
+  border: 1px solid rgba(16, 63, 105, 0.12);
+  border-radius: 12px;
+  background: #fff;
+  padding: 14px 16px;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.todo-preview-item:hover {
+  transform: translateY(-2px);
+  border-color: rgba(29, 95, 159, 0.28);
+  box-shadow: 0 8px 18px rgba(15, 61, 104, 0.1);
+}
+
+.todo-preview-title {
+  font-weight: 600;
+  color: #183650;
+}
+
+.todo-preview-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #60748c;
 }
 
 .my-clubs-section {

@@ -97,7 +97,7 @@
       <div class="notice-detail">
         <div class="detail-meta">
           <span>发布时间：{{ formatDate(currentNotice.publishedAt) || '-' }}</span>
-          <span>发布单位：{{ currentNotice.publisherName || '管理员' }}</span>
+          <span>发布单位：{{ currentNotice.publisherName || currentNotice.clubName || '管理员' }}</span>
         </div>
         <div class="detail-content">
           {{ currentNotice.content || '暂无公告内容' }}
@@ -174,7 +174,7 @@ const fetchNotices = async () => {
 
     notices.value = data.map((item) => ({
       ...item,
-      publisherName: item.publisherName || (item.clubId ? '社团管理员' : '教务处')
+      publisherName: item.publisherName || item.clubName || (item.clubId ? '社团管理员' : '教务处')
     }))
   } catch (error) {
     console.error('Failed to fetch notices:', error)
