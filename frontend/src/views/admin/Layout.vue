@@ -18,6 +18,7 @@
           <el-menu-item v-if="isAdmin" index="/admin/realtime">实时大屏</el-menu-item>
           <el-menu-item v-if="isAdmin" index="/admin/clubs">社团管理</el-menu-item>
           <el-menu-item v-if="isAdmin" index="/admin/notices">公告管理</el-menu-item>
+          <el-menu-item v-if="isAdmin" index="/admin/prohibited-words">违禁词管理</el-menu-item>
           <el-menu-item v-if="isAdmin" index="/admin/resources">资源审批</el-menu-item>
           <el-menu-item v-if="isAdmin" index="/admin/resources/definitions">资源定义</el-menu-item>
           <el-menu-item v-if="isAdmin" index="/admin/audit">审计日志</el-menu-item>
@@ -228,6 +229,7 @@ onMounted(() => {
 .clubadmin-theme :deep(.recruit-management),
 .clubadmin-theme :deep(.member-management),
 .clubadmin-theme :deep(.notice-management),
+.clubadmin-theme :deep(.prohibited-word-management),
 .clubadmin-theme :deep(.activity-management),
 .clubadmin-theme :deep(.resource-management),
 .clubadmin-theme :deep(.finance-management),
@@ -508,4 +510,3 @@ onMounted(() => {
   }
 }
 </style>
-

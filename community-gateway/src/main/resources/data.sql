@@ -2,6 +2,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- Clean up existing data
 TRUNCATE TABLE `t_notification`;
 TRUNCATE TABLE `t_audit_log`;
+TRUNCATE TABLE `t_prohibited_word`;
 TRUNCATE TABLE `t_notice_read`;
 TRUNCATE TABLE `t_notice`;
 TRUNCATE TABLE `t_club_finance`;

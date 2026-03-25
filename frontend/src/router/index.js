@@ -26,7 +26,7 @@ const router = createRouter({
       name: 'login',
       component: () => import('@/views/LoginView.vue')
     },
-    ci    {
+    {
       path: '/register',
       name: 'register',
       component: () => import('@/views/RegisterView.vue')
@@ -164,6 +164,11 @@ const router = createRouter({
           path: 'notices/:clubId?', // Optional clubId for club-specific notices
           name: 'admin-notices',
           component: () => import('@/views/admin/NoticeManagement.vue')
+        },
+        {
+          path: 'prohibited-words',
+          name: 'admin-prohibited-words',
+          component: () => import('@/views/admin/ProhibitedWordManagement.vue')
         },
         {
           path: 'activities/:clubId?',

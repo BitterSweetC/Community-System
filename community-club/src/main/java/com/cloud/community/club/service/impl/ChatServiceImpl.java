@@ -24,7 +24,7 @@ public class ChatServiceImpl implements ChatService {
     private final RestTemplate restTemplate = new RestTemplate();
 
     @Override
-    public String chat(String message, String sessionId) {
+    public String chat(String message, String sessionId, Map<String, Object> userContext) {
         if (message == null || message.trim().isEmpty()) {
             return "Please enter a message.";
         }
@@ -34,13 +34,16 @@ public class ChatServiceImpl implements ChatService {
         headers.setContentType(MediaType.APPLICATION_JSON);
 
         // Build body
-        Map<String, String> body = new HashMap<>();
+        Map<String, Object> body = new HashMap<>();
         body.put("query", message);
         if (sessionId != null && !sessionId.trim().isEmpty()) {
             body.put("session_id", sessionId.trim());
         }
+        if (userContext != null && !userContext.isEmpty()) {
+            body.put("user_context", userContext);
+        }
 
-        HttpEntity<Map<String, String>> request = new HttpEntity<>(body, headers);
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
 
         try {
             // Call RAG Agent

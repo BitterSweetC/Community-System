@@ -104,7 +104,7 @@ const submitNotice = async () => {
     form.value.content = ''
     loadNotices()
   } catch (error) {
-    ElMessage.error('发布失败')
+    ElMessage.error(error.message || '发布失败')
   }
 }
 

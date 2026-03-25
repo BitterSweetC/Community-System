@@ -1,15 +1,15 @@
-% ============================================================
+﻿% ============================================================
 %  第五章 系统实现
 % ============================================================
 \chapter{系统实现}
 
 \section{实现说明边界与项目结构}
 
-本章仅保留与研究问题直接相关的实现机制说明，用于解释系统为何能够形成可运行原型以及第六章测试环境的来源。IDE 使用偏好、完整部署手册与逐项操作指南并非本文的论证重点，因此只保留与复现直接相关的最小信息。
+这一章主要说明与研究问题直接相关的实现机制，用来解释系统如何形成可运行原型，并为第六章的测试结果提供实现背景。这里选取的代码、配置与流程均为代表性节选，其作用是说明关键设计如何落地，而不是替代完整开发文档或部署手册。
 
 \subsection{开发环境配置}
 
-为说明代码运行边界，表中列出当前原型实现所依赖的核心环境。这里给出的重点是与复现直接相关的版本约束，而不是完整的安装教程或工具推荐。
+为说明代码运行边界，表中列出当前原型实现所依赖的核心环境。这里关注的是与复现直接相关的版本约束，而不是完整的安装教程。
 
 \begin{table}[H]
 \centering
@@ -33,11 +33,11 @@ IDE & IntelliJ IDEA 2024 / VS Code \\
 \end{tabular}
 \end{table}
 
-从实现角度看，JDK 21/Spring Boot 3.x 负责业务主链路，Node.js 20 与 Vite 支撑前端构建，Python 3.11 承载 AI 服务，MySQL/Redis/RabbitMQ 组成主要依赖，Docker Compose 用于统一复现单节点运行环境。保留这些信息的目的，是说明后续测试结果所依赖的运行边界，而不是比较不同开发工具或版本选择的优劣。
+从运行组成看，JDK 21/Spring Boot 3.x 负责业务主链路，Node.js 20 与 Vite 支撑前端构建，Python 3.11 承载 AI 服务，MySQL、Redis 与 RabbitMQ 构成主要依赖，Docker Compose 用来统一复现单节点运行环境。保留这些信息的目的，是说明后续测试结果所依赖的运行边界，而不是比较不同开发工具或版本选择的优劣。
 
 \subsection{项目目录结构}
 
-项目采用 Maven 多模块组织 Java 侧代码，并将前端、AI 服务与运行支撑独立分层。下述目录树仅作为结构示意，本文更关注模块职责分工及其与研究问题的对应关系，而非逐级文件树说明。
+项目采用 Maven 多模块组织 Java 侧代码，并将前端、AI 服务与运行支撑独立分层。下述目录树仅用来说明模块边界与职责分布，重点在于展示系统如何围绕研究问题形成可维护的实现结构，而不是逐级展开完整文件树。
 
 \begin{lstlisting}[caption=项目目录结构]
 Community/
@@ -63,7 +63,7 @@ Community/
 │   ├── recommendation.py  # 推荐算法实现
 │   └── requirements.txt   # Python 依赖
 ├── docs/                  # 项目文档
-├── scripts/               # 脚本文件（数据库初始化、数据生成等）
+├── scripts/               # 脚这篇论文件（数据库初始化、数据生成等）
 ├── monitoring/            # 监控配置（Prometheus 配置文件）
 ├── docker-compose.yml     # Docker Compose 编排文件
 └── pom.xml                # Maven 父 POM
@@ -71,14 +71,14 @@ Community/
 
 \subsection{模块职责划分}
 
-各模块的职责划分遵循单一职责原则和领域驱动设计思想：
+各模块的职责按业务边界划分如下：
 
 \begin{enumerate}
   \item \textbf{community-core}：核心模块，定义了所有的 JPA 实体类（User、Club、Activity 等）、Repository 接口、统一返回结构（Result、PageResult）、JWT 工具类、OSS 文件上传服务、邮件发送服务等通用能力。该模块被所有业务模块依赖，确保数据模型和基础能力的一致性。
 
   \item \textbf{community-gateway}：网关模块，作为整个应用的启动入口，包含 Spring Boot 主类、Spring Security 配置、JWT 过滤器、全局异常处理器、CORS 配置、WebSocket 配置等。该模块聚合了所有业务模块，最终打包为可执行的 JAR 文件。
 
-  \item \textbf{community-user}：用户模块，负责用户注册、登录、个人信息管理、密码修改等功能。该模块还包含权限服务（PermissionService），用于校验用户在社团内的权限。
+  \item \textbf{community-user}：用户模块，负责用户注册、登录、个人信息管理、密码修改等功能。该模块还包含权限服务（PermissionService），用来校验用户在社团内的权限。
 
   \item \textbf{community-club}：社团模块，是系统的核心业务模块之一，负责社团的创建、审批、查询、推荐、成员管理、解散流程等。该模块还包含资源申请、财务管理、AI 聊天入口等功能。
 
@@ -86,22 +86,22 @@ Community/
 
   \item \textbf{community-recruit}：招新模块，负责招新批次管理、动态表单字段配置、报名申请、初审终审流程等。该模块实现了复杂的并发控制逻辑，确保名额不超发。
 
-  \item \textbf{community-notice}：通知模块，负责公告的发布与查询、站内通知的生成与推送。该模块作为 RabbitMQ 消息的消费者，异步接收其他模块发送的通知消息并落库。
+  \item \textbf{community-notice}：通知模块，负责公告的发布与查询、站内通知的生成与推送。该模块作为 RabbitMQ 消息的消费者，异步接收其他模块发送的通知消息并落库；同时在公告发布前对标题和正文执行违禁词校验，校验词库由系统默认词与管理员维护的自定义词共同组成。
 
-  \item \textbf{community-admin}：管理模块，负责系统管理员的审批功能（社团审批、解散审批）、审计日志查询、统计数据接口等。
+  \item \textbf{community-admin}：管理模块，负责系统管理员的审批功能（社团审批、解散审批）、审计日志查询、统计数据接口等，并提供平台级违禁词管理入口。
 
   \item \textbf{frontend}：前端项目，基于 Vue 3 + Vite 构建的单页应用，包含学生端和管理端的所有页面。前端通过 Axios 调用后端 RESTful API，通过 Pinia 管理全局状态，通过 Vue Router 实现路由和权限控制。
 
   \item \textbf{agent}：AI 服务，独立于 Java 主应用的 Python 服务，使用 FastAPI 框架提供 RESTful 接口。该服务实现了基于 RAG 的知识问答和基于协同过滤的社团推荐功能。
 \end{enumerate}
 
-这种模块化设计使得各业务领域的代码职责清晰，降低了模块间的耦合度，便于团队协作开发和后续维护。
+这样划分后，各业务领域的代码职责比较清楚，也便于后续维护和扩展。
 
 \section{认证与权限实现}
 
 \subsection{认证机制设计与实现}
 
-系统的认证机制是保障用户身份安全的核心组件。本系统采用 JWT（JSON Web Token）结合 HttpOnly Cookie 和 Redis 会话管理的混合认证方案，既保留了 JWT 的无状态优势，又实现了服务端主动失效的能力。
+系统的认证机制是保障用户身份安全的核心组件。本系统采用 JWT 结合 HttpOnly Cookie 和 Redis 会话管理的混合认证方案，既保留了 JWT 的轻量特征，又补充了服务端主动失效能力。下文代码节选主要用来说明“令牌如何签发、校验与回收”，而不是完整展开框架配置细节。
 
 \subsubsection{JWT 令牌生成流程}
 
@@ -116,7 +116,7 @@ Community/
   \item 返回用户基本信息给前端，前端保存到 Pinia 状态管理。
 \end{enumerate}
 
-HttpOnly Cookie 的使用有效防止了 XSS 攻击窃取令牌，而 Redis 会话管理则使得系统可以主动使令牌失效（如用户登出、管理员强制下线等场景）。
+HttpOnly Cookie 的使用可以降低令牌被脚本直接读取的风险，而 Redis 会话管理则使得系统可以主动使令牌失效（如用户登出、管理员强制下线等场景）。
 
 \subsubsection{JWT 过滤器实现}
 
@@ -179,7 +179,7 @@ if (jwtUtils.isTokenValid(jwt, userDetails)) {
   \item 前端清除 Pinia 中的用户状态，重定向到登录页。
 \end{enumerate}
 
-通过删除 Redis 会话键，即使令牌尚未过期，也无法通过 JWT 过滤器的验证，实现了即时下线的效果。
+通过删除 Redis 会话键，即使令牌还没有过期，也无法通过 JWT 过滤器的验证，实现了即时下线的效果。
 
 \subsection{登录失败限流实现}
 
@@ -225,7 +225,7 @@ public void clearLoginAttempts(String username, String ip) {
 
 \subsection{业务权限服务实现}
 
-系统除了使用 Spring Security 的方法级注解（如 \texttt{@PreAuthorize}）外，还实现了 \texttt{PermissionService} 统一校验业务权限。该服务主要用于校验用户在特定社团内的操作权限。
+系统除了使用 Spring Security 的方法级注解（如 \texttt{@PreAuthorize}）外，还实现了 \texttt{PermissionService} 统一校验业务权限。该服务主要用来校验用户在特定社团内的操作权限。
 
 \subsubsection{权限校验规则}
 
@@ -342,7 +342,7 @@ public void approveClub(Long clubId) {
   \item \textbf{完成阶段}：管理员审批通过后，社团状态变更为 \texttt{DISSOLVED}，所有成员的 \texttt{CLUB\_ADMIN} 角色被移除。
 \end{enumerate}
 
-需要说明的是，当前实现中的“管理员删除社团”接口复用了强制解散逻辑，因此删除后的社团记录仍可被查询，但状态会变为 \texttt{DISSOLVED}；同样，成员移除与用户退社采用软删除策略，通过将 \texttt{t\_member.status} 标记为 \texttt{LEFT} 保留历史成员关系，便于审计追踪与统计分析。
+这里补充说明两点实现细节：其一，“管理员删除社团”接口复用了强制解散逻辑，因此删除后的社团记录仍可被查询，但状态会变为 \texttt{DISSOLVED}；其二，成员移除与用户退社采用软删除策略，通过将 \texttt{t\_member.status} 标记为 \texttt{LEFT} 保留历史成员关系，便于审计追踪与统计分析。
 
 \begin{figure}[H]
 \centering
@@ -352,15 +352,24 @@ public void approveClub(Long clubId) {
   lab/.style={font=\tiny, fill=white, inner sep=1pt}
 ]
 \node[state, fill=yellow!20] (pending) at (0,0) {PENDING};
-\node[state, fill=green!20] (active) at (3.5,0) {ACTIVE};
-\node[state, fill=orange!20] (dissolving) at (7.0,0) {DISSOLVING};
-\node[state, fill=red!20] (dissolved) at (10.5,0) {DISSOLVED};
+\node[state, fill=green!20] (active) at (4.6,0) {ACTIVE};
+\node[state, fill=orange!20] (dissolving) at (9.2,0) {DISSOLVING};
+\node[state, fill=red!20] (dissolved) at (13.8,0) {DISSOLVED};
 
-\draw[arr] (pending) -- node[above,lab]{管理员审批通过} (active);
-\draw[arr] (active) -- node[above,lab]{申请解散} (dissolving);
-\draw[arr] (dissolving) -- node[above,lab]{通过解散审批 / 冷静期结束} (dissolved);
-\draw[arr] (dissolving.south) .. controls (7.0,-1.2) and (3.8,-1.2) .. node[below,lab]{撤回 / 驳回} (active.south);
-\draw[arr] (dissolved.south) .. controls (10.5,-2.0) and (4.2,-2.0) .. node[below,lab]{恢复社团} (active.south east);
+\draw[arr] (pending) -- (active);
+\node[lab] at (2.3,0.42) {管理员审批通过};
+
+\draw[arr] (active) -- (dissolving);
+\node[lab] at (6.9,0.42) {申请解散};
+
+\draw[arr] (dissolving) -- (dissolved);
+\node[lab] at (11.5,0.42) {通过解散审批 / 冷静期结束};
+
+\draw[arr] (dissolving.south) .. controls (9.2,-1.5) and (5.0,-1.5) .. (active.south);
+\node[lab] at (7.1,-1.25) {撤回 / 驳回};
+
+\draw[arr] (dissolved.south) .. controls (13.8,-2.4) and (5.4,-2.4) .. (active.south east);
+\node[lab] at (10.0,-2.1) {恢复社团};
 \end{tikzpicture}
 \caption{社团状态流转实现}
 \label{fig:club-state}
@@ -613,6 +622,14 @@ messagingTemplate.convertAndSend(“/topic/activity/” + activityId + “/check
 
 WebSocket 实时广播的实现基于 STOMP 协议，前端通过订阅特定主题（\texttt{/topic/activity/\{id\}/checkin}）接收服务器推送的消息。这种实时通信机制使得活动管理员可以实时看到签到人数的变化，无需手动刷新页面。
 
+\subsubsection{活动奖励结算与成员积分档案}
+
+在活动模块之外，系统还将成员激励能力收敛到社团成员关系中实现。其核心数据结构不是单独维护“全站积分账户”，而是直接在 \texttt{t\_member} 表中保存成员在该社团内的当前积分，并以 \texttt{t\_member\_point\_record} 记录每次增减流水、来源类型、来源业务单据、操作人和结算后余额。这样既能满足成员档案页对当前积分与流水记录的联合展示，也能保证积分口径天然受社团边界约束。
+
+活动奖励结算由 \texttt{MemberArchiveServiceImpl} 统一处理。活动创建和编辑阶段可配置 \texttt{reward\_points}、\texttt{need\_attendance}、\texttt{settlement\_status} 与 \texttt{settled\_at} 等字段；当活动状态已变为 \texttt{ENDED} 后，社团管理员可在活动管理页调用 \texttt{/activities/\{id\}/settle-rewards} 发起结算。若活动要求签到，则以签到记录作为奖励对象；否则以未取消报名记录作为奖励对象。结算过程会先锁定活动与相关成员记录，再根据旧流水回滚历史发放结果，最后按最新口径重建积分流水，因此前端看到的“重新结算”并不是简单追加积分，而是一次可重算的校正过程。
+
+除活动自动奖励外，系统也保留了面向社团管理员的人工调分接口 \texttt{/clubs/\{id\}/members/\{userId\}/points/adjust}，用来处理补录、纠错等小规模运营场景。为避免异常数据扩散，服务层在调分和重算时都会校验成员积分结果不得为负数；若重算后出现负值风险，则直接拒绝本次操作并提示先处理历史流水。由此，活动结算、人工调整与成员档案查询被统一纳入同一套成员激励模型中。
+
 \subsection{资源与财务审批实现}
 
 资源管理和财务管理是社团运营的重要支撑功能，系统实现了完整的申请-审批流程，并通过并发控制确保资源分配和财务操作的准确性。
@@ -735,25 +752,36 @@ public void approveFinance(Long financeId) {
   arr/.style={-Stealth, thick},
   lab/.style={font=\tiny, fill=white, inner sep=1pt}
 ]
-\node[box, fill=blue!15] (producer) at (0,2.2) {业务模块\\Club / Recruit / Finance};
-\node[box, fill=orange!20] (exchange) at (4.0,2.2) {Topic Exchange\\notification.topic};
-\node[box, fill=yellow!20] (queue) at (8.0,2.2) {Queue\\notification.queue};
-\node[box, fill=green!20] (consumer) at (12.0,2.2) {NotificationConsumer};
-\node[box, fill=purple!15] (db) at (12.0,0.2) {t\_notification\\站内通知表};
-\node[box, fill=gray!15] (ui) at (8.0,0.2) {前端消息中心\\轮询未读数/列表};
+\node[box, fill=blue!15] (producer) at (0,2.4) {业务模块\\Club / Recruit / Finance};
+\node[box, fill=orange!20] (exchange) at (5.0,2.4) {Topic Exchange\\notification.topic};
+\node[box, fill=yellow!20] (queue) at (10.0,2.4) {Queue\\notification.queue};
+\node[box, fill=green!20] (consumer) at (15.0,2.4) {NotificationConsumer};
+\node[box, fill=gray!15] (ui) at (10.0,0.0) {前端消息中心\\轮询未读数/列表};
+\node[box, fill=purple!15] (db) at (15.0,0.0) {t\_notification\\站内通知表};
 
-\draw[arr] (producer) -- node[above,lab]{notification.club.approved 等} (exchange);
-\draw[arr] (exchange) -- node[above,lab]{Routing Key 匹配} (queue);
-\draw[arr] (queue) -- node[above,lab]{监听消费} (consumer);
-\draw[arr] (consumer) -- node[right,lab]{落库} (db);
-\draw[arr] (db.west) -- node[above,lab]{查询通知列表} (ui.east);
-\draw[arr] (ui.south east) to[bend right=24] node[below,lab]{读状态回写} (db.south west);
+\draw[arr] (producer) -- (exchange);
+\node[lab] at (2.5,2.78) {notification.club.approved 等};
+
+\draw[arr] (exchange) -- (queue);
+\node[lab] at (7.5,2.78) {Routing Key 匹配};
+
+\draw[arr] (queue) -- (consumer);
+\node[lab] at (12.5,2.78) {监听消费};
+
+\draw[arr] (consumer.south) -- (db.north);
+\node[lab] at (15.6,1.2) {落库};
+
+\draw[arr] (db.west) -- (ui.east);
+\node[lab] at (12.5,0.42) {查询通知列表};
+
+\draw[arr] (ui.south east) .. controls (11.4,-1.0) and (14.2,-1.0) .. (db.south west);
+\node[lab] at (12.9,-1.05) {读状态回写};
 \end{tikzpicture}
 \caption{RabbitMQ 异步通知分发链路图}
 \label{fig:notice-mq-flow}
 \end{figure}
 
-图~\ref{fig:notice-mq-flow} 对应了本节列举的 Exchange、Routing Key、Queue、Producer 与 Consumer 五个核心元素：各业务模块只负责发布标准化消息，通知模块异步消费后写入 \texttt{t\_notification}，前端再以统一入口读取通知列表和未读数。这样既降低了主业务链路与通知发送的耦合度，也便于后续扩展更多通知类型。
+图~\ref{fig:notice-mq-flow} 对应了这一节列举的 Exchange、Routing Key、Queue、Producer 与 Consumer 五个核心元素：各业务模块只负责发布标准化消息，通知模块异步消费后写入 \texttt{t\_notification}，前端再以统一入口读取通知列表和未读数。这样既降低了主业务链路与通知发送的耦合度，也便于后续扩展更多通知类型。
 
 \begin{lstlisting}[language=Java, caption=RabbitMQ 配置（节选）]
 @Configuration
@@ -840,7 +868,7 @@ public class NotificationConsumer {
 
 \subsubsection{自定义审计注解}
 
-系统定义了 \texttt{@AuditLog} 注解，用于标记需要记录审计日志的方法：
+系统定义了 \texttt{@AuditLog} 注解，用来标记需要记录审计日志的方法：
 
 \begin{lstlisting}[language=Java, caption=审计日志注解定义]
 @Target(ElementType.METHOD)
@@ -849,7 +877,7 @@ public class NotificationConsumer {
 public @interface AuditLog {
     String action();              // 操作类型，如"创建社团"、"审批招新"
     String resourceType();        // 资源类型，如"CLUB"、"RECRUIT"
-    String resourceIdExpression() default ""; // SpEL表达式，用于提取资源ID
+    String resourceIdExpression() default ""; // SpEL表达式，用来提取资源ID
 }
 \end{lstlisting}
 
@@ -988,7 +1016,7 @@ function setToken(nextToken) {
 }
 \end{lstlisting}
 
-真实的 JWT 令牌存储在 HttpOnly Cookie 中，JavaScript 代码无法访问，有效防止了 XSS 攻击窃取令牌。当后端返回 401（未认证）或 403（无权限）错误时，Axios 响应拦截器会自动清除本地认证状态并重定向到登录页。
+真实的 JWT 令牌存储在 HttpOnly Cookie 中，JavaScript 代码无法直接访问，从而降低了令牌被脚本读取的风险。当后端返回 401（未认证）或 403（无权限）错误时，Axios 响应拦截器会自动清除本地认证状态并重定向到登录页。
 
 \subsubsection{路由权限守卫实现}
 
@@ -1045,165 +1073,175 @@ router.beforeEach(async (to, from, next) => {
 }
 \end{lstlisting}
 
+\subsection{前端业务辅助页面实现}
+
+除认证与权限控制外，前端还实现了与成员激励、待办聚合和运营观察对应的辅助页面，用来补足管理侧与成员侧的日常使用体验。
+
+\subsubsection{成员积分档案页面}
+
+学生端积分档案页对应路由为 \texttt{/user/archive}。页面首先加载当前用户已加入的社团列表，用户选定社团后，再并行请求 \texttt{/clubs/\{id\}/members/me/archive} 和 \texttt{/clubs/\{id\}/members/me/point-records}，分别获取成员摘要信息与积分流水。这样既能展示成员在当前社团中的角色、加入时间、累计积分和月度积分，也能按时间顺序呈现积分增减原因，避免把不同社团的积分信息混在同一视图中。
+
+社团管理员端的成员管理页则采用抽屉式档案查看方式。管理员点击某位成员后，页面并行请求 \texttt{/clubs/\{id\}/members/\{userId\}/archive} 和 \texttt{/clubs/\{id\}/members/\{userId\}/point-records}，在不离开成员列表的前提下直接查看该成员的积分画像与历史流水。相较于重新设计独立管理页面，这种做法更符合高频运营场景下“边看名单、边查档案”的使用习惯。
+
+\subsubsection{统一待办中心与实时运营看板页面}
+
+统一待办中心页面由管理员端和社团管理员端共用一套视图组件，区别仅在于入口路由分别为 \texttt{/admin/todos} 与 \texttt{/clubadmin/todos}。页面本身不再自行拼接多类待审数据，而是直接消费 \texttt{/api/dashboard/todos} 的聚合结果，并按分组展示待办总量、分组数量、代表性条目和对应跳转入口。这样做的实现重点在于将统计口径固定在后端，使同一账号在首页卡片、待办页和跳转目标页之间保持一致。
+
+实时运营看板页面对应 \texttt{/admin/realtime}，在界面呈现上也可理解为管理端实时大屏。前端通过 \texttt{Promise.allSettled} 并发拉取 \texttt{/dashboard/stats} 与 \texttt{/stats/system}，在成功获取业务统计后绘制趋势图、状态分布图、压力仪表盘和实时折线图，并进一步按社团调用统计接口生成活跃排行。该页面展示的是社团数量、签到量、资源待审量、用户增长和社团活跃度等业务指标，用来支持演示和运营观察，而不是替代专门的系统监控平台。
+
 \subsection{AI 聊天接口实现}
 
 AI 聊天功能为用户提供社团知识问答服务，后端通过限流机制保护 AI 服务不被滥用。
 
 \subsubsection{聊天接口限流实现}
 
-系统在控制器层实现了基于 Redis 的滑动窗口限流算法，限制每个用户每分钟最多发送 30 次聊天请求：
+当前版本在单节点原型中没有将聊天限流做成 Redis 共享计数，而是在控制器层采用基于 \texttt{ConcurrentHashMap} 的进程内窗口计数。其设计目标是：在课堂演示与单机容器环境下，以较低实现复杂度为 AI 接口提供基本防滥用保护，并根据用户身份区分限流粒度。具体而言，系统优先使用已认证用户名作为限流键；若当前请求未登录，则退化为 \texttt{sessionId}，再退化为客户端 IP。每个键在 60 秒窗口内最多允许 30 次请求，超过阈值后立即返回 429。
 
-\begin{lstlisting}[language=Java, caption=聊天接口限流逻辑（节选）]
+\begin{lstlisting}[language=Java, caption=聊天接口本地窗口限流逻辑（节选）]
 private static final int MAX_REQUESTS_PER_MINUTE = 30;
-if (isRateLimited(limiterKey)) {
-    return Result.error(429, "请求过于频繁，请稍后再试");
-}
-String response = chatService.chat(message, sessionId);
-\end{lstlisting}
+private static final long RATE_WINDOW_MILLIS = 60_000L;
+private final ConcurrentHashMap<String, RateWindow> rateWindows =
+    new ConcurrentHashMap<>();
 
-\begin{lstlisting}[language=Java, caption=聊天接口限流逻辑（节选）]
-private static final int MAX_REQUESTS_PER_MINUTE = 30;
-private static final Duration RATE_LIMIT_WINDOW = Duration.ofMinutes(1);
-
-@PostMapping("/chat")
-public Result<String> chat(@RequestBody ChatRequest request) {
-    String userId = getCurrentUserId();
-    String limiterKey = "chat:limit:" + userId;
-
-    // 1. 检查限流
+@PostMapping
+public Result<String> chat(@RequestBody Map<String, String> request,
+                           HttpServletRequest httpRequest) {
+    String message = request.get("message");
+    String sessionId = resolveSessionId(request.get("sessionId"));
+    String limiterKey = resolveLimiterKey(sessionId, httpRequest);
     if (isRateLimited(limiterKey)) {
         return Result.error(429, "请求过于频繁，请稍后再试");
     }
-
-    // 2. 记录请求次数
-    recordRequest(limiterKey);
-
-    // 3. 调用AI服务
-    String response = chatService.chat(request.getMessage(),
-        request.getSessionId());
-
-    return Result.success(response);
+    return Result.success(chatService.chat(message, sessionId, buildUserContext()));
 }
 
 private boolean isRateLimited(String key) {
-    Long count = redisTemplate.opsForValue().get(key);
-    return count != null && count >= MAX_REQUESTS_PER_MINUTE;
-}
-
-private void recordRequest(String key) {
-    Long count = redisTemplate.opsForValue().increment(key);
-    if (count == 1) {
-        redisTemplate.expire(key, RATE_LIMIT_WINDOW);
+    long now = System.currentTimeMillis();
+    RateWindow window = rateWindows.computeIfAbsent(key,
+        ignored -> new RateWindow(now));
+    synchronized (window) {
+        if (now - window.windowStartMillis >= RATE_WINDOW_MILLIS) {
+            window.windowStartMillis = now;
+            window.requestCount = 0;
+        }
+        if (window.requestCount >= MAX_REQUESTS_PER_MINUTE) {
+            return true;
+        }
+        window.requestCount++;
+        return false;
     }
 }
 \end{lstlisting}
 
+这种实现能够满足当前单实例部署下的基本限流需求，也与第六章所采用的单节点验证边界保持一致；但其限流状态仅保存在应用进程内，不具备跨实例共享能力。若后续系统扩展为多实例部署，聊天接口更适合迁移到 Redis、网关插件或专门限流组件上统一管理。
+
 \subsection{AI 服务核心实现}
 
-AI 服务使用 Python FastAPI 框架实现，提供知识问答和社团推荐两大核心功能。
+AI 服务使用 Python FastAPI 框架实现，提供知识问答和社团推荐两大核心功能。这里不强调算法有多复杂，而是更关注它怎么接进现有系统、出问题时怎么降级，以及如何和主业务链路配合。
 
 \subsubsection{RAG 知识问答实现}
 
-RAG（检索增强生成）问答服务的实现流程如下：
+RAG（检索增强生成）问答服务的实现思路比较直接：先把“实时事实”和“知识补充”分开处理，再在生成阶段合并：
 
 \begin{enumerate}
   \item \textbf{知识库初始化}：启动时从 \texttt{agent/data/} 目录读取 Markdown 知识文件并构建向量索引；
-  \item \textbf{文档切分}：使用 \texttt{RecursiveCharacterTextSplitter} 对文本进行切分，当前参数为 \texttt{chunk\_size=1000}、\texttt{chunk\_overlap=200}；
-  \item \textbf{向量化与持久化}：通过本地封装的嵌入创建函数生成向量，写入 Chroma 持久目录；
-  \item \textbf{问题路由}：对公告、活动、招新、资源、财务等问题优先匹配业务工具，直接查询实时数据；
-  \item \textbf{Agent 调用}：若问题无法由规则路由直接回答，则调用 LangChain Agent 结合历史上下文与工具链处理；
-  \item \textbf{降级回答}：当 Agent 执行失败时，回退到检索问答链；若知识库也不可用，则返回带边界说明的谨慎回答。
+  \item \textbf{文档切分}：使用 \texttt{RecursiveCharacterTextSplitter} 切分文本，当前参数为 \texttt{chunk\_size=1000}、\texttt{chunk\_overlap=200}；
+  \item \textbf{向量化与持久化}：通过本地封装的嵌入创建函数生成向量，并写入 Chroma 持久目录；
+  \item \textbf{问题路由}：公告、活动、招新、资源、财务等问题优先匹配业务工具，直接查询实时数据；
+  \item \textbf{权限过滤}：基于 \texttt{user\_context} 解析访问上下文，对实时工具调用和知识检索统一按 \texttt{public/authenticated/admin/club\_admin} 规则过滤；
+  \item \textbf{提示词编排与生成}：把实时结果、知识片段和近期会话历史拼接后调用模型生成回答；若模型调用失败，则回退到边界明确的降级回答。
 \end{enumerate}
 
 \begin{lstlisting}[language=Python, caption=RAG 问答核心代码（节选）]
-from langchain_community.vectorstores import Chroma
-from langchain_openai import ChatOpenAI
-from langchain.agents import create_agent
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_core.output_parsers import StrOutputParser
 
-class RAGService:
-    def __init__(self):
-        self.vectorstore = None
-        self.retriever = None
-        self.llm = ChatOpenAI(
-            openai_api_key=os.getenv("DEEPSEEK_API_KEY"),
-            openai_api_base=os.getenv("DEEPSEEK_API_URL", "https://api.deepseek.com"),
-            model="deepseek-chat"
-        )
-        self._build_agent()
+def query(self, question: str, session_id: str = "default",
+          user_context: Optional[dict[str, Any]] = None) -> str:
+    access_context = UserAccessContext.from_payload(user_context)
 
-    def initialize_knowledge_base(self):
-        loader = DirectoryLoader(DATA_DIR, glob="*.md", loader_cls=TextLoader)
-        documents = loader.load()
-        splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-        chunks = splitter.split_documents(documents)
-        embeddings, _ = create_embeddings("all-MiniLM-L6-v2")
-        self.vectorstore = Chroma.from_documents(
-            chunks, embeddings, persist_directory=PERSIST_DIRECTORY
-        )
-        self.retriever = self.vectorstore.as_retriever(search_kwargs={"k": 3})
+    realtime_sections, denied_messages = self._collect_realtime_context(
+        question, access_context
+    )
+    if denied_messages:
+        answer = denied_messages[0]
+        self._append_history(session_id, question.strip(), answer)
+        return answer
 
-    def query(self, question: str, session_id: str = "default"):
-        routed = self._route_intent(question)
-        if routed:
-            return routed
-        try:
-            result = self._agent_executor.invoke({"messages": [HumanMessage(content=question)]})
-            return self._extract_agent_answer(result)
-        except Exception:
-            return self._rag_fallback(question)
+    documents = self._retrieve_documents(question, access_context)
+    answer = self._generate_answer(
+        question=question.strip(),
+        session_id=session_id,
+        realtime_sections=realtime_sections,
+        documents=documents,
+    )
+    self._append_history(session_id, question.strip(), answer)
+    return answer
+
+def _generate_answer(self, question, session_id, realtime_sections, documents):
+    prompt = self._build_answer_prompt()
+    chain = prompt | self.llm | StrOutputParser()
+    try:
+        return chain.invoke({...}).strip()
+    except Exception:
+        return self._fallback_answer(realtime_sections, documents)
 \end{lstlisting}
+
+其中，会话上下文保存在进程内内存（\texttt{\_sessions}）中，默认保留最近 10 轮消息；服务还提供 \texttt{DELETE /chat/session/\{session\_id\}} 接口用来显式清理会话。这个设计在单节点原型里已经够用；如果后续做多实例部署，会话状态就要迁移到共享存储。
 
 \subsubsection{混合推荐算法实现}
 
-推荐服务结合协同过滤和语义内容特征两种算法，并加入归一化与冷启动回退逻辑：
+推荐服务把协同过滤和语义内容特征结合在一起，并加入行为权重、时间衰减、模式切换和冷启动回退逻辑。实现上先保证“推荐可返回”，再追求“推荐更精确”：
 
 \begin{lstlisting}[language=Python, caption=混合推荐算法实现（节选）]
+W_CF = 0.6
+W_CB = 0.4
+VALID_MODES = {"cf", "cb", "hybrid"}
+
+def _load_interactions(self) -> pd.DataFrame:
+    # t_member: 5.0, t_activity_signup: 2.0, t_activity_attendance: 3.0
+    df = pd.read_sql(query, conn)
+    df["score"] = df.apply(
+        lambda r: self._time_decay(r["base_score"], r["action_time"]), axis=1
+    )
+    return df.groupby(["user_id", "club_id"])["score"].sum().reset_index()
+
 from sklearn.decomposition import TruncatedSVD
 from sklearn.preprocessing import MinMaxScaler
 
 class RecommendationService:
-    def _cf_scores(self, user_id: int, df, candidates):
-        matrix = df.pivot(index="user_id", columns="club_id", values="score").fillna(0)
-        svd = TruncatedSVD(n_components=min(20, min(matrix.shape) - 1), random_state=42)
-        reduced = svd.fit_transform(matrix)
-        reconstructed = pd.DataFrame(
-            svd.inverse_transform(reduced), index=matrix.index, columns=matrix.columns
-        )
-        user_row = reconstructed.loc[user_id]
-        return {cid: float(user_row[cid]) for cid in candidates if cid in user_row.index}
-
-    def _normalise(self, scores):
-        vals = np.array(list(scores.values())).reshape(-1, 1)
-        scaled = MinMaxScaler().fit_transform(vals).flatten()
-        return dict(zip(scores.keys(), scaled))
-
-    def get_recommendations(self, user_id: int, top_k: int = 5):
+    def get_recommendations_by_mode(self, user_id: int, top_k: int = 5,
+                                    mode: str = "hybrid") -> list[int]:
+        mode = self._normalise_mode(mode)
         if not has_history(user_id):
             return self._cold_start(df_clubs, top_k)
+
         cf_norm = self._normalise(self._cf_scores(user_id, df_interactions, candidates))
         cb_norm = self._normalise(self._cb_scores(user_id, df_interactions, candidates))
-        ranked = []
-        for cid in candidates:
-            score = 0.6 * cf_norm.get(cid, 0.0) + 0.4 * cb_norm.get(cid, 0.0)
-            ranked.append((cid, score))
-        ranked.sort(key=lambda x: x[1], reverse=True)
+
+        if mode == "cf" and not cf_norm:
+            return self._cold_start(df_clubs, top_k)
+        if mode == "cb" and not cb_norm:
+            return self._cold_start(df_clubs, top_k)
+        if mode == "hybrid" and not cf_norm and not cb_norm:
+            return self._cold_start(df_clubs, top_k)
+
+        ranked = self._rank_scores(candidates, cf_norm, cb_norm, mode)
         return [cid for cid, _ in ranked[:top_k]]
 \end{lstlisting}
 
-这种混合推荐策略结合了协同过滤的群体智慧与语义内容特征，并通过分数归一化减轻不同评分尺度带来的偏差；对于缺乏历史行为的新用户，系统直接按社团热度回退，以保证结果可返回。
+这种混合推荐策略先用成员加入、活动报名、活动签到三类行为信号（5.0/2.0/3.0）和时间衰减构建用户偏好，再融合协同过滤与语义内容得分输出候选排序。对没有历史行为的新用户或单侧得分不可用的场景，系统会按社团热度回退，保证结果不断流；若推荐服务内部异常，当前接口会返回空列表，再由业务侧兜底展示。
 
 \section{系统集成与运行支撑}
 
-本节仅保留“原型如何形成可运行系统”所必需的实现说明，用于解释第六章测试环境的来源。完整的部署手册、参数模板与逐步启动流程属于工程附属材料，不作为本文的核心论证对象。
+这一节仅保留“原型如何形成可运行系统”所必需的实现说明，用来解释第六章测试环境的来源。完整的部署手册、参数模板与逐步启动流程属于工程附属材料，不作为这篇论文的核心论证对象。
 
 \subsection{Docker 容器化部署}
 
-当前原型通过 Docker Compose 编排 Spring Boot 应用、前端、AI 服务及 MySQL、Redis、RabbitMQ、监控组件，以降低复现实验环境的搭建成本。
+当前原型通过 Docker Compose 编排 Spring Boot 应用、前端、AI 服务及 MySQL、Redis、RabbitMQ、监控组件，以降低复现实验环境的搭建成本。这里保留容器化相关内容，主要是为了说明第六章测试所依赖的统一运行底座。
 
 \subsubsection{Docker Compose 配置}
 
-Docker Compose 配置节选主要用于说明系统的服务边界与集成关系：
+Docker Compose 配置节选主要用来说明系统的服务边界与集成关系：
 
 \begin{lstlisting}[language=bash, caption=Docker Compose 核心服务（节选）]
 services:
@@ -1229,7 +1267,7 @@ services:
 
 \subsubsection{服务依赖与启动顺序}
 
-从运行支撑角度看，容器依赖关系可概括为“基础设施先就绪，后端与 AI 服务再启动，前端与监控随后接入”。本文关注的重点不在于逐项启动步骤，而在于这些组件共同构成了可复现的单节点集成环境，为后续功能验证与性能基线提供统一运行底座。
+从运行支撑角度看，容器依赖关系可概括为“基础设施先就绪，后端与 AI 服务再启动，前端与监控随后接入”。这篇论文关注的重点不在于逐项启动步骤，而在于这些组件共同构成了可复现的单节点集成环境，为后续功能验证与性能基线提供统一运行底座。
 
 \subsubsection{数据持久化}
 
@@ -1252,7 +1290,7 @@ services:
 
 \begin{lstlisting}[language=bash, caption=后端 Dockerfile（节选）]
 # 第一阶段：构建
-FROM maven:3.9-eclipse-temurin-17 AS builder
+FROM maven:3.9-eclipse-temurin-21 AS builder
 WORKDIR /app
 COPY pom.xml .
 COPY community-*/pom.xml ./
@@ -1261,7 +1299,7 @@ COPY . .
 RUN mvn clean package -DskipTests -pl community-gateway -am
 
 # 第二阶段：运行
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
 COPY --from=builder /app/community-gateway/target/*.jar app.jar
 EXPOSE 8080
@@ -1320,7 +1358,7 @@ server {
 
 \subsection{部署工件与复现边界}
 
-系统通过环境变量实现配置解耦，仓库保留相应模板用于单节点原型复现；这些配置主要服务于运行支撑，而不是本文的论证重点。
+系统通过环境变量实现配置解耦，仓库保留相应模板用来单节点原型复现；这些配置主要服务于运行支撑，而不是这篇论文的论证重点。
 
 \begin{lstlisting}[caption=环境变量配置示例]
 # 数据库配置
@@ -1347,11 +1385,11 @@ OSS_ACCESS_KEY=your_access_key
 OSS_SECRET_KEY=your_secret_key
 \end{lstlisting}
 
-这些模板说明系统具备跨环境迁移的基本工程基础，但尚不足以推出生产级部署结论。
+这些模板表明系统已经具备跨环境迁移的基本工程基础，但距离生产级部署结论仍有一定距离。
 
 \subsection{复现入口概述}
 
-仓库中保留了对应的复现入口，以下步骤仅用于说明原型如何被统一拉起，而非提供逐项运维手册：
+仓库中保留了对应的复现入口，以下步骤仅用来说明原型如何被统一拉起，而非提供逐项运维手册：
 
 \begin{enumerate}
   \item 配置环境变量文件 \texttt{.env}；
@@ -1365,4 +1403,7 @@ OSS_SECRET_KEY=your_secret_key
 
 基于上述编排，当前版本能够完成单节点环境下的集成运行，为第六章的功能验证与性能基线提供统一运行基础。
 
-本章重点说明了与研究问题直接相关的实现机制：认证与权限、核心业务规则、消息协同、AI 接入以及基本集成支撑。是否达到更高等级的高可用、长稳运行与生产环境适配，仍需在后续测试和工程迭代中进一步验证。
+这一章主要说明了与研究问题直接相关的实现内容，包括认证与权限、核心业务规则、消息协同、AI 接入以及基本集成支撑。至于更高等级的高可用、长稳运行与生产环境适配，还需要在后续测试和工程迭代中继续验证。
+
+
+

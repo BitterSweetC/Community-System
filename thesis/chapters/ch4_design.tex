@@ -1,4 +1,4 @@
-% ============================================================
+﻿% ============================================================
 %  第四章 系统设计
 % ============================================================
 \chapter{系统设计}
@@ -19,7 +19,7 @@
 
 \subsection{模块化单体架构}
 
-系统采用”模块化单体”（Modular Monolith）架构方案，这是介于传统单体架构和微服务架构之间的一种折中方案。各业务模块在代码层面解耦，保持清晰的边界，但在部署层面统一打包为单一应用运行。
+系统采用“模块化单体”（Modular Monolith）架构。各业务模块在代码层面保持清晰边界，在部署层面仍统一打包为单一应用运行。这种做法适合当前项目的业务复杂度和团队规模。
 
 \subsubsection{模块化单体的优势}
 
@@ -33,7 +33,7 @@
   \item \textbf{支持渐进式演进}：通过明确的模块边界，后续可以根据需要将特定模块拆分为独立的微服务。
 \end{enumerate}
 
-相比微服务架构，模块化单体更适合中小型项目和团队，避免了微服务带来的分布式系统复杂性。
+对本课题而言，模块化单体比微服务更容易控制开发、部署和运维复杂度，也更符合当前阶段的实现需求。
 
 \subsubsection{模块划分策略}
 
@@ -43,41 +43,48 @@
 \centering
 \begin{tikzpicture}[
   mod/.style={draw, rectangle, rounded corners, minimum width=2.25cm, minimum height=0.86cm, text width=2.1cm, align=center, font=\small},
-  core/.style={draw, rectangle, rounded corners, minimum width=9.8cm, minimum height=0.9cm, align=center, font=\small, fill=blue!12},
-  entry/.style={draw, rectangle, rounded corners, minimum width=10.0cm, minimum height=0.9cm, align=center, font=\small\bfseries, fill=orange!18},
+  core/.style={draw, rectangle, rounded corners, minimum width=10.2cm, minimum height=0.9cm, align=center, font=\small, fill=blue!12},
+  entry/.style={draw, rectangle, rounded corners, minimum width=10.2cm, minimum height=0.9cm, align=center, font=\small\bfseries, fill=orange!18},
   arr/.style={-Stealth, thick}
 ]
-\node[entry] (gw) at (5.5,6.2) {community-gateway（启动入口 / 认证与看板相关控制器）};
+\node[entry] (gw) at (6.5,6.7) {community-gateway（启动入口 / 认证与看板相关控制器）};
 
-\node[mod] (user)     at (1.5,4.4)  {community-user};
-\node[mod] (club)     at (4.1,4.4)  {community-club};
-\node[mod] (activity) at (6.9,4.4)  {community-activity};
-\node[mod] (recruit)  at (9.5,4.4)  {community-recruit};
-\node[mod] (notice)   at (4.1,2.6)  {community-notice};
-\node[mod] (admin)    at (6.9,2.6)  {community-admin};
+\node[mod] (user)     at (1.8,4.7)  {community-user};
+\node[mod] (club)     at (4.2,4.7)  {community-club};
+\node[mod] (activity) at (8.8,4.7)  {community-activity};
+\node[mod] (recruit)  at (11.2,4.7) {community-recruit};
+\node[mod] (notice)   at (5.4,2.9)  {community-notice};
+\node[mod] (admin)    at (7.8,2.9)  {community-admin};
 
-\node[core] (core)    at (5.5,0.9)  {community-core（Entity / Repository / 通用组件）};
+\node[core] (core)    at (6.5,0.9)  {community-core（Entity / Repository / 通用组件）};
 
-\coordinate (core1) at ($(core.north west)!0.12!(core.north east)$);
-\coordinate (core2) at ($(core.north west)!0.28!(core.north east)$);
-\coordinate (core3) at ($(core.north west)!0.44!(core.north east)$);
-\coordinate (core4) at ($(core.north west)!0.60!(core.north east)$);
-\coordinate (core5) at ($(core.north west)!0.76!(core.north east)$);
-\coordinate (core6) at ($(core.north west)!0.90!(core.north east)$);
+\coordinate (g1) at ($(gw.south west)!0.08!(gw.south east)$);
+\coordinate (g2) at ($(gw.south west)!0.24!(gw.south east)$);
+\coordinate (g3) at ($(gw.south west)!0.40!(gw.south east)$);
+\coordinate (g4) at ($(gw.south west)!0.60!(gw.south east)$);
+\coordinate (g5) at ($(gw.south west)!0.76!(gw.south east)$);
+\coordinate (g6) at ($(gw.south west)!0.92!(gw.south east)$);
 
-\draw[arr] (gw.south west) -- ++(-2.8,-0.2) |- (user.north west);
-\draw[arr] (gw.south) -- (club.north);
-\draw[arr] (gw.south) -- (activity.north);
-\draw[arr] (gw.south east) -- ++(2.8,-0.2) |- (recruit.north east);
-\draw[arr] (gw.south west) -- ++(-1.4,-0.2) |- (notice.north west);
-\draw[arr] (gw.south east) -- ++(1.4,-0.2) |- (admin.north east);
+\coordinate (c1) at ($(core.north west)!0.10!(core.north east)$);
+\coordinate (c2) at ($(core.north west)!0.26!(core.north east)$);
+\coordinate (c3) at ($(core.north west)!0.42!(core.north east)$);
+\coordinate (c4) at ($(core.north west)!0.58!(core.north east)$);
+\coordinate (c5) at ($(core.north west)!0.74!(core.north east)$);
+\coordinate (c6) at ($(core.north west)!0.90!(core.north east)$);
 
-\draw[arr] (user.south) -- (core1);
-\draw[arr] (club.south) -- (core2);
-\draw[arr] (activity.south) -- (core4);
-\draw[arr] (recruit.south) -- (core5);
-\draw[arr] (notice.south) -- (core3);
-\draw[arr] (admin.south) -- (core6);
+\draw[arr] (g1) -- (user.north);
+\draw[arr] (g2) -- (club.north);
+\draw[arr] (g3) -- (notice.north);
+\draw[arr] (g4) -- (admin.north);
+\draw[arr] (g5) -- (activity.north);
+\draw[arr] (g6) -- (recruit.north);
+
+\draw[arr] (user.south) -- (c1);
+\draw[arr] (club.south) -- (c2);
+\draw[arr] (notice.south) -- (c3);
+\draw[arr] (admin.south) -- (c4);
+\draw[arr] (activity.south) -- (c5);
+\draw[arr] (recruit.south) -- (c6);
 \end{tikzpicture}
 \caption{后端模块依赖关系图}
 \label{fig:module-dep}
@@ -130,7 +137,7 @@
 
 \begin{itemize}
   \item \textbf{MySQL 8}：主数据库，存储用户、社团、活动、招新等核心业务数据；
-  \item \textbf{Redis 7}：缓存和会话存储，用于 JWT 令牌管理、登录限流等；
+  \item \textbf{Redis 7}：缓存和会话存储，用来 JWT 令牌管理、登录限流等；
   \item \textbf{RabbitMQ 3.12}：消息队列，实现异步通知分发；
   \item \textbf{Aliyun OSS}：对象存储服务，存储用户头像、活动封面等文件；
   \item \textbf{Chroma DB}：向量数据库，存储社团知识库的向量表示，支持语义检索。
@@ -151,7 +158,7 @@
   box/.style={draw, rectangle, rounded corners, minimum width=2.6cm, minimum height=0.8cm, align=center, font=\small},
   infra/.style={draw, rectangle, rounded corners, minimum width=2.6cm, minimum height=0.8cm, align=center, font=\small, fill=green!14},
   user/.style={draw, rectangle, rounded corners, minimum width=2.6cm, minimum height=0.8cm, align=center, font=\small, fill=yellow!20},
-  arr/.style={-Stealth},
+  arr/.style={-Stealth, semithick},
   lab/.style={font=\tiny, fill=white, inner sep=1pt}
 ]
 \node[user] (browser) at (0,5.6) {Browser};
@@ -159,26 +166,47 @@
 \node[box] (app) at (6.4,5.6) {Spring Boot\\app:8080};
 \node[box] (agent) at (10.4,5.6) {FastAPI\\rag-service:8000};
 
-\node[infra] (redis) at (4.0,3.4) {Redis 7};
-\node[infra] (mq) at (6.8,3.4) {RabbitMQ 3.12};
-\node[infra] (mysql) at (10.4,3.4) {MySQL 8};
-\node[infra] (oss) at (13.2,3.4) {Aliyun OSS};
+\node[infra] (redis) at (3.8,3.3) {Redis 7};
+\node[infra] (mq) at (6.8,3.3) {RabbitMQ 3.12};
+\node[infra] (mysql) at (10.0,3.3) {MySQL 8};
+\node[infra] (oss) at (13.1,3.3) {Aliyun OSS};
 
-\node[infra] (prom) at (5.2,1.4) {Prometheus};
-\node[infra] (grafana) at (7.9,1.4) {Grafana};
-\node[infra] (chroma) at (10.4,1.4) {Chroma DB};
+\node[infra] (prom) at (5.0,1.2) {Prometheus};
+\node[infra] (grafana) at (7.8,1.2) {Grafana};
+\node[infra] (chroma) at (10.4,1.2) {Chroma DB};
 
-\draw[arr] (browser) -- node[above,lab]{HTTP} (nginx);
-\draw[arr] (nginx) -- node[above,lab]{/api 反代} (app);
-\draw[arr] (app) -- node[above,lab]{REST} (agent);
-\draw[arr] (app.south west) -- node[above left,lab]{缓存} (redis.north);
-\draw[arr] (app.south) -- node[right,lab]{消息} (mq.north);
-\draw[arr] (app.south east) -- node[above,lab]{JPA} (mysql.north west);
-\draw[arr] (app.east) -- node[above,lab]{对象存储} (oss.north west);
-\draw[arr] (app.south west) -- ++(-0.2,-0.2) |- node[pos=0.8,above,lab]{/actuator/prometheus} (prom.north);
-\draw[arr] (prom) -- node[above,lab]{指标看板} (grafana);
-\draw[arr] (agent.south) -- node[right,lab]{向量访问} (chroma.north);
-\draw[arr] (agent.south west) -- ++(-0.7,-0.15) |- node[pos=0.34,left,lab]{业务数据查询} (mysql.east);
+\draw[arr] (browser) -- (nginx);
+\node[lab] at (1.5,5.95) {HTTP};
+
+\draw[arr] (nginx) -- (app);
+\node[lab] at (4.7,5.95) {/api 反代};
+
+\draw[arr] (app) -- (agent);
+\node[lab] at (8.4,5.95) {REST};
+
+\draw[arr] (app.south west) -- ++(-0.45,-0.35) -| (redis.north east);
+\node[lab] at (4.8,4.45) {缓存};
+
+\draw[arr] (app.south) -- (mq.north);
+\node[lab] at (7.2,4.45) {消息};
+
+\draw[arr] (app.south east) -- ++(0.35,-0.4) |- (mysql.north west);
+\node[lab] at (8.7,4.45) {JPA};
+
+\draw[arr] (app.north east) -- ++(0.35,0.55) -| (oss.north west);
+\node[lab] at (10.8,6.55) {对象存储};
+
+\draw[arr] (app.south west) -- ++(-0.8,-0.25) |- (prom.north);
+\node[lab] at (4.3,2.35) {/actuator/prometheus};
+
+\draw[arr] (prom) -- (grafana);
+\node[lab] at (6.4,1.55) {指标看板};
+
+\draw[arr] (agent.south) -- (chroma.north);
+\node[lab] at (11.15,2.45) {向量访问};
+
+\draw[arr] (agent.south west) -- ++(-0.35,-0.55) |- (mysql.north east);
+\node[lab] at (11.15,4.15) {业务数据查询};
 \end{tikzpicture}
 \caption{系统部署拓扑图}
 \label{fig:deploy}
@@ -200,78 +228,114 @@
 
 \subsection{核心实体关系}
 
-系统共设计 19 张数据表，其中 18 张为核心业务表，另有 1 张社团标签辅助表（\texttt{t\_club\_tag}），涵盖用户管理、社团管理、活动管理、招新管理、通知管理、资源管理、财务管理等业务领域。核心实体包括：
+当前版本的 \texttt{schema.sql} 共定义 21 张数据表，其中 20 张承担业务与支撑建模，另有 1 张社团标签辅助表（\texttt{t\_club\_tag}）。除用户、社团、活动、招新、公告通知、资源、财务与审计等主链路外，当前实现还补充了 \texttt{t\_user\_role}（用户-角色关联）、\texttt{t\_member\_point\_record}（成员积分流水）与 \texttt{t\_prohibited\_word}（公告违禁词）等支撑表，用来反映授权、成员激励与内容治理等机制。主要实体可归纳如下：
 
 \begin{itemize}
-  \item \textbf{用户与权限}：\texttt{t\_user}（用户表）、\texttt{t\_role}（角色表）、\texttt{t\_user\_role}（用户角色关联表）
-  \item \textbf{社团管理}：\texttt{t\_club}（社团表）、\texttt{t\_member}（成员表）
+  \item \textbf{用户与授权}：\texttt{t\_user}（用户表）、\texttt{t\_role}（角色表）、\texttt{t\_user\_role}（用户角色关联表）
+  \item \textbf{社团与成员}：\texttt{t\_club}（社团表）、\texttt{t\_club\_tag}（社团标签表）、\texttt{t\_member}（成员表）、\texttt{t\_member\_point\_record}（成员积分流水表）
   \item \textbf{活动管理}：\texttt{t\_activity}（活动表）、\texttt{t\_activity\_signup}（活动报名表）、\texttt{t\_activity\_attendance}（活动签到表）
   \item \textbf{招新管理}：\texttt{t\_recruit\_batch}（招新批次表）、\texttt{t\_recruit\_form\_field}（表单字段表）、\texttt{t\_recruit\_application}（招新申请表）
-  \item \textbf{通知管理}：\texttt{t\_notice}（公告表）、\texttt{t\_notice\_read}（公告已读表）、\texttt{t\_notification}（站内通知表）
-  \item \textbf{资源管理}：\texttt{t\_resource}（资源定义表）、\texttt{t\_resource\_application}（资源申请表）
-  \item \textbf{财务管理}：\texttt{t\_club\_finance}（财务流水表）
+  \item \textbf{公告、通知与内容治理}：\texttt{t\_notice}（公告表）、\texttt{t\_notice\_read}（公告已读表）、\texttt{t\_notification}（站内通知表）、\texttt{t\_prohibited\_word}（违禁词表）
+  \item \textbf{资源与财务管理}：\texttt{t\_resource}（资源定义表）、\texttt{t\_resource\_application}（资源申请表）、\texttt{t\_club\_finance}（财务流水表）
   \item \textbf{审计管理}：\texttt{t\_audit\_log}（审计日志表）
 \end{itemize}
+
+图~\ref{fig:er} 仅展示最主要的业务实体与关键关联关系；成员积分流水、违禁词治理等支撑表不在图中逐一展开，但均已在当前 schema 中定义。
 
 实体间的关系遵循以下设计：
 
 \begin{itemize}
   \item 用户与角色是多对多关系，通过中间表 \texttt{t\_user\_role} 关联；
-  \item 用户与社团是多对多关系，通过成员表 \texttt{t\_member} 关联，成员表记录用户在社团中的角色；
-  \item 社团与活动、招新批次、公告、资源申请、财务流水是一对多关系；
+  \item 用户与社团是多对多关系，通过成员表 \texttt{t\_member} 关联，成员表记录用户在社团中的岗位角色；
+  \item 社团与标签、成员积分流水、活动、招新批次、公告、资源申请和财务流水均是一对多关系；
   \item 活动与报名、签到是一对多关系；
-  \item 招新批次与表单字段、招新申请是一对多关系。
+  \item 招新批次与表单字段、招新申请是一对多关系；
+  \item 公告与用户阅读状态通过 \texttt{t\_notice\_read} 形成多对多记录。
 \end{itemize}
 
 \begin{figure}[H]
 \centering
+\resizebox{0.95\textwidth}{!}{%
 \begin{tikzpicture}[
   entity/.style={draw, rectangle, minimum width=2.2cm, minimum height=0.72cm, align=center, font=\small\bfseries, fill=blue!10},
   line/.style={-Stealth, thin},
   rel/.style={font=\tiny, fill=white, inner sep=1pt}
 ]
-\node[entity] (role) at (0,8.2) {t\_role};
-\node[entity] (user) at (0,6.4) {t\_user};
-\node[entity] (notification) at (0,2.8) {t\_notification};
+\node[entity] (role) at (0,7.6) {t\_role};
+\node[entity] (user) at (0,5.8) {t\_user};
+\node[entity] (notification) at (0,1.2) {t\_notification};
 
-\node[entity] (member) at (3.6,6.4) {t\_member};
-\node[entity] (app) at (3.6,4.6) {t\_recruit\_application};
-\node[entity] (notice) at (3.6,2.8) {t\_notice};
+\node[entity] (userRole) at (4.2,7.6) {t\_user\_role};
+\node[entity] (member) at (4.2,5.8) {t\_member};
+\node[entity] (batch) at (4.2,3.8) {t\_recruit\_batch};
+\node[entity] (app) at (4.2,1.9) {t\_recruit\_application};
 
-\node[entity] (club) at (7.2,6.4) {t\_club};
-\node[entity] (batch) at (7.2,4.6) {t\_recruit\_batch};
+\node[entity] (club) at (8.6,5.8) {t\_club};
+\node[entity] (notice) at (8.6,3.8) {t\_notice};
+\node[entity] (finance) at (8.6,1.9) {t\_club\_finance};
 
-\node[entity] (activity) at (10.8,6.4) {t\_activity};
-\node[entity] (attendance) at (10.8,4.6) {t\_activity\_attendance};
-\node[entity] (finance) at (10.8,1.0) {t\_club\_finance};
-\node[entity] (resource) at (10.8,2.8) {t\_resource};
+\node[entity] (activity) at (13.0,5.8) {t\_activity};
+\node[entity] (signup) at (17.2,5.8) {t\_activity\_signup};
+\node[entity] (attendance) at (13.0,3.8) {t\_activity\_attendance};
+\node[entity] (resource) at (13.0,1.9) {t\_resource};
+\node[entity] (resourceApp) at (17.2,1.9) {t\_resource\_application};
 
-\node[entity] (signup) at (14.4,6.4) {t\_activity\_signup};
-\node[entity] (resourceApp) at (14.4,2.8) {t\_resource\_application};
+\draw[line] (role.east) -- (userRole.west);
+\node[rel, above=1pt of $(role.east)!0.5!(userRole.west)$] {1:N};
 
-\draw[line] (role) -- node[left,rel]{1:N} (user);
-\draw[line] (user.east) -- node[above,rel]{1:N} (member.west);
-\draw[line] (club.west) -- node[above,rel]{1:N} (member.east);
-\draw[line] (club.south) -- node[right,rel]{1:N} (batch.north);
-\draw[line] (batch.west) -- node[above,rel]{1:N} (app.east);
-\draw[line] (user.south east) -- ++(0.7,-0.2) |- node[pos=0.74,right,rel]{1:N} (app.north west);
-\draw[line] (user.south) -- node[left,rel]{1:N} (notification.north);
-\draw[line] (club.south west) -- ++(-0.7,-0.4) |- node[pos=0.72,above,rel]{1:N} (notice.north);
-\draw[line] (club.south east) -- ++(0.8,-0.4) |- node[pos=0.74,above,rel]{1:N} (finance.north);
-\draw[line] (club.east) -- node[above,rel]{1:N} (activity.west);
-\draw[line] (activity.south) -- node[right,rel]{1:N} (attendance.north);
-\draw[line] (activity.east) -- node[above,rel]{1:N} (signup.west);
-\draw[line] (resource.east) -- node[above,rel]{1:N} (resourceApp.west);
-\draw[line] (club.east) -- ++(0.9,0) |- node[pos=0.76,right,rel]{1:N} (resourceApp.north west);
-\draw[line] (user.north east) -- ++(0.5,0.9) -| node[pos=0.78,above,rel]{1:N} (attendance.north west);
+\draw[line] (user.north east) -- (userRole.south west);
+\node[rel] at (2.1,6.9) {1:N};
+
+\draw[line] (user.east) -- (member.west);
+\node[rel, above=1pt of $(user.east)!0.5!(member.west)$] {1:N};
+
+\draw[line] (club.west) -- (member.east);
+\node[rel, above=1pt of $(club.west)!0.5!(member.east)$] {1:N};
+
+\draw[line] (batch) -- (app);
+\node[rel, left=1pt of $(batch)!0.5!(app)$] {1:N};
+
+\draw[line] (club) -- (notice);
+\node[rel, left=1pt of $(club)!0.5!(notice)$] {1:N};
+
+\draw[line] (club.south) -- ++(0,-0.25) -- ++(1.4,0) -- (finance.north);
+\node[rel] at (10.0,4.1) {1:N};
+
+\draw[line] (club.east) -- (activity.west);
+\node[rel, above=1pt of $(club.east)!0.5!(activity.west)$] {1:N};
+
+\draw[line] (activity.east) -- (signup.west);
+\node[rel, above=1pt of $(activity.east)!0.5!(signup.west)$] {1:N};
+
+\draw[line] (activity.south) -- (attendance.north);
+\node[rel, right=1pt of $(activity.south)!0.5!(attendance.north)$] {1:N};
+
+\draw[line] (resource.east) -- (resourceApp.west);
+\node[rel, above=1pt of $(resource.east)!0.5!(resourceApp.west)$] {1:N};
+
+\draw[line] (club.west) -- ++(-1.2,0) |- (batch.north);
+\node[rel] at (6.0,4.8) {1:N};
+
+\draw[line] (user.east) -- ++(1.1,0) |- (app.north);
+\node[rel] at (2.1,3.0) {1:N};
+
+\draw[line] (user.south) -- (notification.north);
+\node[rel, left=1pt of $(user.south)!0.5!(notification.north)$] {1:N};
+
+\draw[line] (club.east) -- ++(1.0,0) |- (resourceApp.north);
+\node[rel] at (11.0,2.6) {1:N};
+
+\draw[line] (user.north east) -- ++(0.8,1.0) -| (attendance.north west);
+\node[rel] at (8.8,6.9) {1:N};
 \end{tikzpicture}
-\caption{核心实体关系图}
+}
+\caption{核心实体关系图（主要关系节选）}
 \label{fig:er}
 \end{figure}
 
 \subsection{关键表结构说明}
 
-系统共设计 19 张数据表，其中 18 张为核心业务表，以下主要说明各核心业务表的结构设计。
+当前 schema 共定义 21 张数据表。考虑篇幅，以下选取主要业务表与关键支撑表说明其结构设计。
 
 \subsubsection{用户表（t\_user）}
 
@@ -520,6 +584,7 @@ join\_at & DATETIME & NOT NULL & 加入时间 \\
 \subsubsection{公告表（t\_notice）}
 
 公告表同时存储系统公告与社团公告信息；当公告属于系统级发布时，\texttt{club\_id} 可以为空。
+为支持公告发布前的基础内容治理，系统在设计上引入平台级违禁词配置能力，用来存储管理员维护的自定义违禁词及启停状态。公告业务数据与违禁词规则相互解耦，从而可以在不调整公告表结构的前提下动态维护审核策略。
 
 \begin{table}[H]
 \centering
@@ -732,7 +797,7 @@ created\_at & DATETIME & NOT NULL & 创建时间 \\
 
 系统采用“Spring Security 角色授权 + 业务权限服务”组合模型\cite{rbac_model}：
 \begin{enumerate}
-  \item 方法注解层：\texttt{@PreAuthorize} 用于少量全局角色限制；
+  \item 方法注解层：\texttt{@PreAuthorize} 用来少量全局角色限制；
   \item 业务规则层：\texttt{PermissionService} 校验是否为系统管理员、是否为社团管理员（\texttt{PRESIDENT/MANAGER}）以及社团状态是否允许操作；
   \item 数据权限层：多数写操作要求“当前用户与目标社团关联且角色满足条件”。
 \end{enumerate}
@@ -811,30 +876,40 @@ GET /api/admin/audit-logs &  &  & \checkmark \\
 
 图~\ref{fig:activity-seq} 体现了活动模块中“同步写入 + 实时推送”的组合设计：报名与签到请求均通过 HTTP 进入主业务链路，签到成功后再额外触发 WebSocket 推送，使页面侧无需轮询即可感知人数变化。这种时序安排也与第五章中的实现代码和第六章中的链路验证保持一致。
 
+\subsection{成员积分、待办中心与运营看板交互约定}
+
+除主业务链路外，当前版本还实现了若干面向运营辅助的交互能力，其设计目标不是改变社团创建、招新、活动、审批等核心流程，而是在既有数据之上补充成员激励、待办聚合和运行态观察能力。
+
+成员积分采用“社团内独立核算”的设计。数据上以 \texttt{t\_member.points} 记录成员在某一社团中的当前积分，以 \texttt{t\_member\_point\_record} 记录增减流水、来源类型、来源业务单据和操作人，从而形成“余额 + 流水”双层结构。活动表额外维护 \texttt{reward\_points}、\texttt{need\_attendance}、\texttt{settlement\_status} 与 \texttt{settled\_at} 等字段，用来描述活动奖励额度、结算口径与结算状态。该设计明确约束了积分不跨社团累计，也避免将本应依附成员关系的激励机制误建模为平台统一钱包。
+
+统一待办中心采用“后端聚合、前端渲染”的方式。管理端与社团管理员端统一调用 \texttt{/api/dashboard/todos}，由后端基于当前登录用户角色汇总社团创建审核、解散审批、资源审批、财务审批、招新初审与终审等待办分组，并为每一分组返回待处理数量、代表性条目和跳转路径。这样可以将待办口径收敛到服务端，避免多个前端页面各自拼装统计逻辑而产生不一致。
+
+实时运营看板主要面向管理侧使用。其基础统计由 \texttt{/api/dashboard/stats} 提供，包括活跃社团数、当日签到数、待审资源数和累计报名数；系统级统计由 \texttt{/api/stats/system} 提供，包括社团总量、用户总量、活动总量、状态分布和近七日增长数据；社团活跃排行则基于按社团统计接口进一步组合。该设计强调的是业务运行态可见性，而不是基础设施层面的主机监控。
+
 \section{AI 服务设计}
 
 \subsection{问答链路}
 
-问答模块由 Java 后端 \texttt{/api/club/chat} 转发至 Python \texttt{/chat}。Python 侧通过 LangChain Agent 调用检索与业务工具，优先返回检索增强结果；若检索不可用则回退至降级回答。
+问答模块由 Java 后端 \texttt{/api/club/chat} 转发到 Python \texttt{/chat}。请求里会带 \texttt{sessionId} 和用户上下文（如 \texttt{role\_codes}、\texttt{managed\_club\_ids}）。Python 侧不是黑盒 Agent，而是可控的组件化链路：先按规则判断是否需要调用工具，公告、活动、招新、资源、财务这类问题优先查实时数据；再把知识库片段和近期会话上下文一起用来生成回答。若模型调用或检索不可用，就返回带边界说明的降级结果。
 
 \subsection{推荐链路}
 
-推荐模块由 Java 侧调用 Python \texttt{/recommend}。算法融合协同过滤与语义相似度，若用户无历史行为或推理异常，则回退热门社团列表，保障接口可用性和结果可解释性。
+推荐模块由 Java 侧调用 Python \texttt{/recommend}。算法把协同过滤和语义相似度合在一起，并支持 \texttt{cf/cb/hybrid} 三种模式切换。用户没有历史行为，或者单侧得分不可用时，会回退到热门社团排序，保证结果能返回。若跨服务调用异常，当前实现会先返回空列表，再由业务侧兜底展示。
 
 \subsection{AI 服务架构设计}
 
-AI 服务采用独立部署的微服务架构，与主应用解耦，具有以下设计特点：
+AI 服务与主应用分开部署，原因如下：
 
 \begin{enumerate}
-  \item \textbf{服务隔离}：AI 服务独立运行在 8000 端口，与主应用（8080 端口）物理隔离，避免 AI 推理的高计算负载影响主业务响应性能；
+  \item \textbf{服务隔离}：AI 服务单独运行在 8000 端口，与主应用（8080 端口）物理隔离，避免 AI 推理负载拖慢主业务响应；
 
-  \item \textbf{独立服务调用}：主应用通过 HTTP REST 接口调用 AI 服务。当前版本采用同步请求-响应模式，便于与既有业务接口集成，同时保持 AI 链路与主业务链路的进程隔离；
+  \item \textbf{独立服务调用}：主应用通过 HTTP REST 接口调用 AI 服务。当前版本采用同步请求-响应模式，接入现有业务接口更直接，也能保持 AI 链路与主业务链路的进程隔离；
 
-  \item \textbf{降级策略}：当 AI 服务不可用、向量检索失败或推荐推理异常时，系统分别返回错误提示、谨慎回答或热门社团回退结果，保证核心业务不受影响；
+  \item \textbf{降级策略}：当 AI 服务不可用或向量检索失败时，系统会返回错误提示或谨慎回答；推荐模块在冷启动或单侧得分不可用时回退热门社团，跨服务异常时返回空列表并由业务侧兜底展示，尽量不影响核心业务；
 
-  \item \textbf{独立演进}：由于 AI 服务与主应用解耦，后续可在不改动主要业务模块的前提下调整模型、提示词、检索策略与推荐权重；
+  \item \textbf{独立演进}：由于 AI 服务与主应用解耦，后续可以在不改动主要业务模块的前提下调整模型、提示词、检索策略和推荐权重；
 
-  \item \textbf{边界清晰}：问答、推荐与知识库维护均集中在 Python 服务侧，便于单独测试、补测与留档。
+  \item \textbf{边界清晰}：问答、推荐和知识库维护都集中在 Python 服务侧，便于单独测试、补测和留档。
 \end{enumerate}
 
 \begin{figure}[H]
@@ -860,20 +935,40 @@ AI 服务采用独立部署的微服务架构，与主应用解耦，具有以�
 \label{fig:ai-arch}
 \end{figure}
 
+\subsection{AI 侧访问控制}
+
+AI 问答链路和业务权限是打通的，目的是避免“登录后可以问到所有内容”的越权问题。具体做法如下：
+
+\begin{enumerate}
+  \item \textbf{上下文透传}：Java 在转发 \texttt{/chat} 请求时，会带上 \texttt{authenticated}、\texttt{user\_id}、\texttt{role\_codes}、\texttt{managed\_club\_ids}、\texttt{managed\_club\_names} 等上下文信息；
+
+  \item \textbf{统一访问级别}：Python 侧把工具与知识文档的访问要求统一成 \texttt{public}、\texttt{authenticated}、\texttt{admin}、\texttt{club\_admin} 四类级别；
+
+  \item \textbf{工具与检索双重过滤}：实时工具调用前先做权限判断；向量检索结果再按文档元数据中的 \texttt{visibility}、\texttt{club\_id} 等字段过滤，只保留当前用户能看到的内容；
+
+  \item \textbf{越权响应边界}：当用户触发受限查询时，系统直接返回权限提示，不再拼接后续敏感上下文，避免绕过路由进入生成阶段。
+\end{enumerate}
+
 \subsection{知识库维护机制}
 
-AI 问答服务依赖知识库的可维护性。当前版本采用“启动时初始化 + 手动补充”的方式维护向量库：
+AI 问答服务稳不稳，很大程度取决于知识库能不能持续更新。为此，当前版本采用“启动初始化 + 接口增量 + 数据库同步 + 周期重载”的组合机制：
 
 \begin{enumerate}
   \item \textbf{启动初始化}：AI 服务启动时从 \texttt{agent/data/} 目录加载 Markdown 知识文件，并构建本地 Chroma 向量库；
 
-  \item \textbf{手动补充}：通过 \texttt{/sync} 接口接收新增文本内容与来源标记，将补充材料写入现有向量库，适用于阶段性演示、答辩或小规模内容更新；
+  \item \textbf{接口增量更新}：通过 \texttt{/sync} 接口执行 \texttt{upsert/delete}，支持文档新增、更新和删除，适合小规模人工改动；
 
-  \item \textbf{文档切分}：文本使用 \texttt{RecursiveCharacterTextSplitter} 切分，当前参数为 \texttt{chunk\_size=1000}、\texttt{chunk\_overlap=200}，以平衡检索粒度与上下文完整性；
+  \item \textbf{数据库生成知识文档}：通过 \texttt{sync\_db\_knowledge.py} 从业务库抽取社团、活动、招新、公告、资源等数据生成本地 Markdown 文档，并写入 \texttt{generated\_by=db-sync}、\texttt{visibility} 等元数据；
 
-  \item \textbf{向量化}：嵌入层通过本地封装函数创建，默认使用 \texttt{all-MiniLM-L6-v2}；若句向量依赖不可用，则回退为本地哈希向量表示，以保证离线环境下的基本可运行性；
+  \item \textbf{周期同步}：在 Docker Compose 中由 \texttt{rag-sync} 侧车容器周期执行 \texttt{sync\_db\_loop.py}，按配置间隔增量刷新知识文件，并支持过期文档清理（prune）；
 
-  \item \textbf{持久化}：向量索引保存在 \texttt{agent/chroma\_db/}，便于本地复现与重复加载。
+  \item \textbf{热重载}：同步任务更新文档后可调用 \texttt{/knowledge/reload} 触发向量库重建，避免每次都重启 AI 服务；
+
+  \item \textbf{文档切分}：文本使用 \texttt{RecursiveCharacterTextSplitter} 切分，当前参数为 \texttt{chunk\_size=1000}、\texttt{chunk\_overlap=200}，用来平衡检索粒度与上下文完整性；
+
+  \item \textbf{向量化}：嵌入层通过本地封装函数创建，默认使用 \texttt{all-MiniLM-L6-v2}；若句向量依赖不可用，则回退为本地哈希向量表示，保证离线环境下也能基本运行；
+
+  \item \textbf{持久化}：向量索引保存在 \texttt{agent/chroma\_db/}，便于本地复现和重复加载。
 \end{enumerate}
 
 \section{性能优化设计}
@@ -919,22 +1014,39 @@ AI 问答服务依赖知识库的可维护性。当前版本采用“启动时�
   arr/.style={-Stealth, thick},
   lab/.style={font=\tiny, fill=white, inner sep=1pt}
 ]
-\node[box, fill=blue!15] (browser) at (0,2.8) {浏览器};
-\node[box, fill=green!15] (app) at (3.6,2.8) {Spring Boot\\业务接口};
-\node[box, fill=orange!20] (redis) at (7.2,2.8) {Redis\\热点缓存};
-\node[box, fill=yellow!20] (mysql) at (10.8,2.8) {MySQL\\业务数据};
-\node[box, fill=purple!15] (write) at (3.6,0.6) {写操作\\创建/审批/修改};
-\node[box, fill=gray!15] (invalidate) at (7.2,0.6) {删除相关缓存键\\等待下次重建};
+\node[box, fill=blue!15] (browser) at (0,2.3) {浏览器};
+\node[box, fill=green!15] (app) at (4.4,2.3) {Spring Boot\\业务接口};
+\node[box, fill=orange!20] (redis) at (9.6,2.3) {Redis\\热点缓存};
+\node[box, fill=yellow!20] (mysql) at (15.0,2.3) {MySQL\\业务数据};
+\node[box, fill=purple!15] (write) at (4.4,-0.35) {写操作\\创建/审批/修改};
+\node[box, fill=gray!15] (invalidate) at (9.6,-0.35) {删除相关缓存键\\等待下次重建};
 
-\draw[arr] (browser) -- node[above,lab]{GET 社团/活动列表} (app);
-\draw[arr] (app.north east) -- ++(0,0.45) -| node[pos=0.66,above,lab]{读取缓存} (redis.north west);
-\draw[arr] (redis.south west) -- ++(0,-0.45) -| node[pos=0.34,below,lab]{命中直接返回} (app.south east);
-\draw[arr] (redis.east) -- ++(0.45,0) |- node[pos=0.22,right,lab]{未命中} (mysql.north);
-\draw[arr] (mysql.south west) -- ++(-0.6,-0.45) -| node[pos=0.36,below,lab]{查询结果} (app.south east);
-\draw[arr] (app.south) -- node[left,lab]{写请求} (write.north);
-\draw[arr] (write.south east) -- ++(0.3,-0.35) -| node[pos=0.68,below,lab]{更新数据库} (mysql.south west);
-\draw[arr] (write) -- node[above,lab]{删除缓存} (invalidate);
-\draw[arr] (invalidate.north) -- ++(0,0.45) -| node[pos=0.76,above,lab]{下一次读取重建缓存} (redis.south);
+\draw[arr] (browser) -- (app);
+\node[lab] at (2.2,2.72) {GET 社团/活动列表};
+
+\draw[arr] (app) -- (redis);
+\node[lab] at (7.0,2.72) {读取缓存};
+
+\draw[arr] (redis) -- (mysql);
+\node[lab] at (12.3,2.72) {未命中};
+
+\draw[arr] (mysql.south) -- ++(0,-1.45) -| (app.south east);
+\node[lab] at (11.9,-0.95) {查询结果};
+
+\draw[arr] (redis.south) -- ++(0,-1.05) -| (app.east);
+\node[lab] at (7.9,1.05) {命中直接返回};
+
+\draw[arr] (app.south) -- (write.north);
+\node[lab] at (3.35,0.95) {写请求};
+
+\draw[arr] (write.east) -- (invalidate.west);
+\node[lab] at (7.0,-0.05) {删除缓存};
+
+\draw[arr] (write.south east) -- ++(0.55,-0.95) -| (mysql.south west);
+\node[lab] at (12.2,-1.62) {更新数据库};
+
+\draw[arr] (invalidate.north) -- ++(0,1.15) -- (redis.south);
+\node[lab] at (10.95,1.18) {下一次读取重建缓存};
 \end{tikzpicture}
 \caption{热点数据缓存读写与失效流程图}
 \label{fig:cache-flow}
@@ -966,7 +1078,7 @@ AI 问答服务依赖知识库的可维护性。当前版本采用“启动时�
 系统通过 Spring 的全局异常处理器统一处理各类异常，保证错误响应的一致性：
 
 \begin{enumerate}
-  \item \textbf{业务异常}：自定义 \texttt{BusinessException} 类，包含错误码和错误消息，用于表示可预期的业务错误（如"名额已满"、"权限不足"等）；
+  \item \textbf{业务异常}：自定义 \texttt{BusinessException} 类，包含错误码和错误消息，用来表示可预期的业务错误（如"名额已满"、"权限不足"等）；
 
   \item \textbf{参数校验异常}：使用 JSR-303 Bean Validation 进行参数校验，校验失败时抛出 \texttt{MethodArgumentNotValidException}，全局处理器提取校验错误信息并返回；
 
@@ -986,7 +1098,7 @@ AI 问答服务依赖知识库的可维护性。当前版本采用“启动时�
 
   \item \textbf{WARN 级别}：记录潜在问题和警告信息，如缓存未命中、降级策略触发、配置项缺失使用默认值等，需要关注但不影响核心功能；
 
-  \item \textbf{INFO 级别}：记录关键业务操作，如用户登录、社团创建、活动报名、审批操作等，用于业务审计和问题追溯；
+  \item \textbf{INFO 级别}：记录关键业务操作，如用户登录、社团创建、活动报名、审批操作等，用来业务审计和问题追溯；
 
   \item \textbf{DEBUG 级别}：记录详细的调试信息，如 SQL 语句、方法参数、中间结果等，仅在开发和测试环境启用；
 
@@ -1005,7 +1117,7 @@ AI 问答服务依赖知识库的可维护性。当前版本采用“启动时�
 
   \item \textbf{访问日志}：\texttt{access.log}，记录所有 HTTP 请求，每天滚动一次，保留最近 7 天；
 
-  \item \textbf{审计日志}：审计日志存储在数据库中，不设置自动清理策略，长期保留用于合规审计；
+  \item \textbf{审计日志}：审计日志存储在数据库中，不设置自动清理策略，长期保留用来合规审计；
 
   \item \textbf{日志压缩}：滚动后的日志文件自动压缩为 gzip 格式，节省存储空间。
 \end{enumerate}
@@ -1062,24 +1174,13 @@ AI 问答服务依赖知识库的可维护性。当前版本采用“启动时�
 \end{enumerate}
 
 
-\section{本章小结}
+\section{这一章小结}
 
-本章详细阐述了校园社团管理与招新系统的设计方案，主要包括以下内容：
+这一章从总体架构、部署拓扑、数据模型、安全权限、接口交互、AI 服务、性能优化、异常处理以及监控告警等方面给出了系统设计方案。
 
-首先，在总体架构设计方面，系统采用模块化单体架构，将业务按领域划分为 8 个模块，既保持了单体应用的部署简便性，又具备清晰的模块边界。部署拓扑采用容器化方案，通过 Docker Compose 编排前端、后端、AI 服务、数据库、缓存、消息队列、监控等多个服务容器，实现一键部署。
+综合来看，当前版本以模块化单体为核心组织方式，通过 Docker Compose 构建单节点运行拓扑；数据层面以 21 张数据表支撑授权、社团成员、活动、招新、公告通知、资源财务、审计和内容治理等主要业务场景；在此基础上，系统还完成了混合认证方案、统一响应结构、前后端交互规则、独立 AI 服务链路、缓存与并发控制策略，以及异常处理和监控告警方案设计。
 
-其次，在数据模型设计方面，系统遵循第三范式设计了 19 张数据表，其中 18 张承担核心业务建模，1 张用于社团标签辅助描述，涵盖用户管理、社团管理、活动管理、招新管理、通知管理、资源管理、财务管理、审计管理等业务领域。通过合理的索引设计和唯一约束，保证了查询性能和数据完整性。
+这些设计共同构成了第五章系统实现与第六章测试验证的基础。
 
-第三，在安全与权限设计方面，系统采用 JWT + HttpOnly Cookie + Redis 会话管理的混合认证方案，结合 Spring Security 的角色授权和业务权限服务，实现了细粒度的权限控制。认证时序设计清晰，支持令牌刷新和主动失效。
 
-第四，在接口与前端交互设计方面，系统定义了统一的响应结构，前端通过 Pinia 管理认证状态，路由守卫实现访问控制，Axios 拦截器统一处理错误响应，保证了前后端交互的一致性。
 
-第五，在 AI 服务设计方面，系统采用独立部署的微服务架构，AI 服务与主应用解耦。当前版本的知识库维护以启动初始化和手动补充为主，问答链路采用“业务工具优先 + RAG 补充 + 失败降级”的组合策略，推荐链路融合协同过滤和内容相似度算法。
-
-第六，在性能优化设计方面，系统从数据库查询优化、缓存策略、并发控制三个维度进行优化。数据库层面通过索引优化、分页查询、延迟加载等策略提升查询性能；缓存层面使用 Redis 缓存会话、限流计数、热点数据；并发控制层面采用悲观锁、唯一约束、幂等性设计等机制保证数据一致性。
-
-第七，在异常处理与日志设计方面，系统通过全局异常处理器统一处理各类异常，采用 Logback 实现日志分级和滚动管理，保证了系统的可维护性和可追溯性。
-
-最后，在监控与告警设计方面，系统通过 Prometheus 采集 JVM、HTTP、数据库、缓存、业务等多维度指标，配置告警规则实现异常自动告警，使用 Grafana 构建可视化监控面板，为系统运维提供全面的监控支持。
-
-通过以上设计，系统在架构合理性、数据模型完整性、安全性、性能、可维护性、可监控性等方面均达到了较高水平，为后续的系统实现奠定了坚实基础。

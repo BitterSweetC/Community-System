@@ -87,6 +87,7 @@ services:
 
   rag-service:
     build: ./agent
+    image: community-rag-service
     container_name: community-rag
     volumes:
       - ./agent/data:/app/data
@@ -98,6 +99,32 @@ services:
       - EMBEDDING_PROVIDER=local-hash
     depends_on:
       mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=5)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: always
+
+  rag-sync:
+    image: community-rag-service
+    container_name: community-rag-sync
+    command: ["python", "sync_db_loop.py"]
+    volumes:
+      - ./agent/data:/app/data
+    environment:
+      - DB_URL=mysql+pymysql://root:gyh%23@mysql:3306/community_db
+      - KNOWLEDGE_SYNC_RELOAD_URL=http://rag-service:8000/knowledge/reload
+      - KNOWLEDGE_SYNC_INTERVAL_SECONDS=${KNOWLEDGE_SYNC_INTERVAL_SECONDS:-1800}
+      - KNOWLEDGE_SYNC_RETRY_DELAY_SECONDS=${KNOWLEDGE_SYNC_RETRY_DELAY_SECONDS:-60}
+      - KNOWLEDGE_SYNC_TYPES=${KNOWLEDGE_SYNC_TYPES:-clubs,activities,recruits,notices,resources}
+      - KNOWLEDGE_SYNC_PRUNE=${KNOWLEDGE_SYNC_PRUNE:-true}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rag-service:
         condition: service_healthy
     restart: always
 

@@ -1,4 +1,4 @@
-% ============================================================
+﻿% ============================================================
 %  附录
 % ============================================================
 \chapter{数据库关键表结构（节选）}
@@ -162,13 +162,13 @@ POST & /api/club/chat & AI 问答入口 & 公开（带频控） \\
 
 \chapter{测试工件留档说明}
 
-JMeter 补测的原始汇总文件、\texttt{JTL}、日志、HTML 报告与复现脚本已作为工程补充材料留档。正文仅引用整理后的关键指标，不直接展示本地绝对路径；如需复现实验，可优先查阅项目根目录下的 \texttt{paper\_outputs/jmeter/run-20260313-122447/} 以及 \texttt{scripts/jmeter/run-paper-benchmarks.ps1}。其中，\texttt{summary.md}、\texttt{summary.json} 与 \texttt{benchmark-context.json} 用于说明脚本配置、环境上下文与关键统计结果。
+JMeter 补测的原始汇总文件、\texttt{JTL}、日志、HTML 报告与复现脚本已作为工程补充材料留档。正文仅引用整理后的关键指标，不直接展示本地绝对路径；如需复现实验，可优先查阅项目根目录下的 \texttt{paper\_outputs/jmeter/run-20260323-110850/}、\texttt{paper\_outputs/e2e/live-browser-20260323-163224/}、\texttt{paper\_outputs/export\_checks/export-check-20260323-141419/}、\texttt{paper\_outputs/permission\_checks/permission-check-20260323-162309/}、\texttt{paper\_outputs/stability\_checks/read-stability-20260323-162309/} 以及 \texttt{scripts/jmeter/run-paper-benchmarks.ps1}、\texttt{scripts/eval/export-xlsx-evidence.ps1}、\texttt{scripts/eval/permission-matrix-evidence.ps1}、\texttt{scripts/eval/read-stability-evidence.ps1}。其中，浏览器补测目录中的 \texttt{summary.md} 与 \texttt{summary.json} 用来说明 6 条 Playwright 页面访问与权限重定向用例的执行结果；导出校验目录中的 \texttt{summary.md}、\texttt{summary.json}、\texttt{context.json} 与三份 \texttt{xlsx} 文件用来说明脚本配置、接口快照与导出内容核验结果；权限矩阵目录中的 \texttt{summary.md}、\texttt{summary.json} 与 \texttt{checks.json} 用来说明 20 条角色与接口组合的检查结果；稳定性目录中的 \texttt{summary.md}、\texttt{summary.json} 与 \texttt{records.json} 用来说明 5 轮 35 次关键读链路请求结果。
 
 \input{chapters/appendix_page_screenshots}
 
 \chapter{AI 评估工件与复现入口说明}
 
-为降低正文对工程路径与留档细节的干扰，本文将 AI 评估相关的代码入口、链路工件与说明性清单统一挂载于项目目录。表~\ref{tab:ai-artifacts} 给出当前主要留档位置。
+为降低正文对工程路径与留档细节的干扰，这篇论文将 AI 评估相关的代码入口、链路工件与说明性清单统一挂载于项目目录。表~\ref{tab:ai-artifacts} 给出当前主要留档位置。
 
 \begin{table}[H]
 \centering
@@ -179,11 +179,11 @@ JMeter 补测的原始汇总文件、\texttt{JTL}、日志、HTML 报告与复�
 \toprule
 类别 & 路径（相对项目根目录） & 说明 \\
 \midrule
-主链路压测结果 & \texttt{paper\_outputs/jmeter/}\newline \texttt{run-20260313-122447/} & 包含 AI 问答所在整套 JMeter 补测的 \texttt{summary.md}、\texttt{summary.json}、\texttt{benchmark-context.json}、\texttt{ai-chat.jtl} 与 HTML 报告，用于复现正文中的性能基线。 \\
+主链路压测结果 & \texttt{paper\_outputs/jmeter/}\newline \texttt{run-20260323-110850/} & 包含 AI 问答所在整套 JMeter 补测的 \texttt{summary.md}、\texttt{summary.json}、\texttt{benchmark-context.json}、\texttt{ai-chat.jtl} 与 HTML 报告，用来复现正文中的性能基线。 \\
 \midrule
-低强度在线链路结果 & \texttt{paper\_outputs/jmeter/}\newline \texttt{ai-low-20260313-103422/}\newline \texttt{result.json} & 记录 5 并发、10 次请求条件下的 AI 问答链路结果，用于支撑“低强度下仍存在时延与超时”的观察。 \\
+低强度在线链路结果 & \texttt{paper\_outputs/jmeter/}\newline \texttt{ai-low-20260323-114811/}\newline \texttt{result.json} & 记录 5 并发、10 次请求条件下的 AI 问答链路结果，用来支撑“即使在低强度下仍存在明显时延”的观察。 \\
 \midrule
-推荐模式对比留档 & \texttt{paper\_outputs/ai\_eval\_raw/}\newline \texttt{recommend-compare-20260313-201643/} & 包含 \texttt{compare\_summary.csv/json} 以及 cf、cb、hybrid 子目录下的 \texttt{summary\_records}、\texttt{ranking\_records} 与 \texttt{ranking\_records\_top5}，用于复现正文中的同批 300 用户推荐模式对比；其中 hybrid 原始 \texttt{ranking\_records} 为 1530 行，同口径比较以 \texttt{ranking\_records\_top5} 为准。 \\
+推荐模式对比留档 & \texttt{paper\_outputs/ai\_eval\_raw/}\newline \texttt{recommend-compare-20260323-114405/} & 包含 \texttt{compare\_summary.csv/json} 以及 cf、cb、hybrid 子目录下的 \texttt{summary\_records}、\texttt{ranking\_records} 与 \texttt{ranking\_records\_top5}，用来复现正文中的同批 300 用户推荐模式对比；本轮三种模式的原始 \texttt{ranking\_records} 均为 1500 行，统一保留 \texttt{ranking\_records\_top5} 以固定后续复核口径。 \\
 \midrule
 探索性基准材料 & \texttt{paper\_outputs/benchmarks/}\newline \texttt{paper-benchmark-20260313-091504.json/.md} & 早期 Node.js 基准实验输出，可作为补充背景，不作为正文主表的直接统计来源。 \\
 \midrule
@@ -193,7 +193,7 @@ JMeter 补测的原始汇总文件、\texttt{JTL}、日志、HTML 报告与复�
 \midrule
 知识数据目录 & \texttt{agent/data/} & 存放知识库构建所需的社团、活动等源数据。 \\
 \midrule
-向量库持久目录 & \texttt{agent/chroma\_db/} & 存放 Chroma 向量索引与持久化结果，用于本地问答链路复现。 \\
+向量库持久目录 & \texttt{agent/chroma\_db/} & 存放 Chroma 向量索引与持久化结果，用来本地问答链路复现。 \\
 \midrule
 工件清单文件 & \texttt{paper\_outputs/}\newline \texttt{ai\_artifact\_manifest.md} & 汇总各类 AI 评估工件的用途、边界与归档建议，便于答辩或后续归档时单独查阅。 \\
 \bottomrule
@@ -201,15 +201,15 @@ JMeter 补测的原始汇总文件、\texttt{JTL}、日志、HTML 报告与复�
 }
 \end{table}
 
-上述工件现已同时覆盖“可复现的在线链路与性能结果”“推荐模式对比原始记录”以及“AI 模块代码与数据入口”三类内容。需要说明的是，正文中的 200 题人工核验结果目前仍仅保留聚合统计，仓库内尚未包含逐题判定表与题集原文；但推荐策略对比已经补充留档 \texttt{compare\_summary}、各模式的 \texttt{summary\_records}、\texttt{ranking\_records} 与统一口径的 \texttt{ranking\_records\_top5} 等机器可读原始记录，可复现同批 300 用户的横向比较。由于当前仍缺少推荐相关性标签、点击/转化日志与在线 A/B 实验结果，本文仍将该部分界定为阶段性工程观察，而非可公开复算的标准 benchmark 数据集。
+上述工件现已同时覆盖“可复现的在线链路与性能结果”“推荐模式对比原始记录”以及“AI 模块代码与数据入口”三类内容。正文中的 200 题人工核验结果目前仍仅保留聚合统计，仓库内还没有包含逐题判定表与题集原文；相较之下，推荐策略对比已经补充留档 \texttt{compare\_summary}、各模式的 \texttt{summary\_records}、\texttt{ranking\_records} 与统一口径的 \texttt{ranking\_records\_top5} 等机器可读原始记录，可用来复现同批 300 用户的横向比较。由于当前仍缺少推荐相关性标签、点击/转化日志与在线 A/B 实验结果，这篇论文将该部分结果作为工程观察使用，而不直接视为可公开复算的标准基准测试数据集。
 
 如需在最终答辩或归档阶段进一步增强可审计性，宜补充提交三类材料：一是 200 题题集与逐题人工判定表；二是推荐对比指标的计算脚本、相关性标注口径与必要的数据字典；三是与本附录路径对应的运行环境说明。
 
 \chapter{AI 辅助写作与核验说明}
 
-本文在选题梳理、结构规划、语言润色、引用核对与格式检查阶段使用了 AI 辅助工具。AI 参与范围主要包括：论文结构建议生成、章节修改意见整理、参考文献存在性核验流程支持、摘要与结论口径一致性检查，以及交付阶段的格式与材料清单整理。
+这篇论文在选题梳理、结构规划、语言润色、引用核对与格式检查阶段使用了 AI 辅助工具。AI 参与范围主要包括：论文结构建议生成、章节修改意见整理、参考文献存在性核验流程支持、摘要与结论口径一致性检查，以及交付阶段的格式与材料清单整理。
 
-需要强调的是，本文的研究选题、系统实现、测试执行、结果判断、结论取舍与最终文字责任均由作者本人承担。凡涉及系统功能、实验数据、性能结果、评估边界与学术结论的内容，均以项目代码、测试工件、人工核验结果及作者最终审定为准，而非直接采信 AI 自动生成内容。
+这篇论文的研究选题、系统实现、测试执行、结果判断、结论取舍与最终文字责任均由作者本人承担。凡涉及系统功能、实验数据、性能结果、评估边界与学术结论的内容，均以项目代码、测试工件、人工核验结果及作者最终审定为准，而非直接采信 AI 自动生成内容。
 
 对 AI 输出的使用遵循以下原则：
 \begin{enumerate}
@@ -225,7 +225,7 @@ JMeter 补测的原始汇总文件、\texttt{JTL}、日志、HTML 报告与复�
 \begin{enumerate}
   \item 论文源文件：\texttt{main.tex}、\texttt{chapters/*.tex}、\texttt{references.bib}；
   \item 图像与附录材料：\texttt{chapters/figures/} 目录及附录中提及的关键说明；
-  \item 测试工件：\texttt{paper\_outputs/jmeter/} 下的主链路与低强度链路结果；
+  \item 测试工件：\texttt{paper\_outputs/jmeter/} 下的主链路与低强度链路结果，以及 \texttt{paper\_outputs/e2e/}、\texttt{paper\_outputs/export\_checks/}、\texttt{paper\_outputs/permission\_checks/} 与 \texttt{paper\_outputs/stability\_checks/} 下的浏览器补测、导出校验、权限矩阵与稳定性补测结果；
   \item AI 评估工件：\texttt{paper\_outputs/ai\_eval\_raw/} 下的推荐模式对比记录；
   \item 代码与数据入口说明：\texttt{agent/rag.py}、\texttt{agent/recommendation.py} 与 \texttt{agent/data/}；
   \item 如条件允许，补充提交 200 题题集、逐题人工判定表、推荐相关性标注口径与必要的数据字典。
@@ -238,3 +238,6 @@ JMeter 补测的原始汇总文件、\texttt{JTL}、日志、HTML 报告与复�
   \item 参考文献编号、图表编号与正文引用是否连续且无缺失；
   \item 附录中的 AI 说明、工件路径与最终提交材料是否齐全。
 \end{enumerate}
+
+
+

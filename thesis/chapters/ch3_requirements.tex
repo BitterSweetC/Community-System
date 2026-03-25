@@ -1,4 +1,4 @@
-% ============================================================
+﻿% ============================================================
 %  第三章 系统需求分析
 % ============================================================
 \chapter{系统需求分析}
@@ -7,7 +7,7 @@
 
 \subsection{用户与权限主体}
 
-系统中“账号角色”与“社团内岗位”是两层概念。账号角色用于全局访问控制，决定用户在平台范围内的可访问资源；社团内岗位用于社团内部管理授权，决定成员在具体社团场景下的操作边界。未登录访客仅能浏览公开信息，不参与系统授权判断。为准确反映系统的双层权限结构，本文分别从系统角色与社团内部岗位两个层次进行说明，具体如表~\ref{tab:user-roles} 与表~\ref{tab:club-posts} 所示。
+系统中“账号角色”与“社团内岗位”是两层概念。账号角色用来全局访问控制，决定用户在平台范围内的可访问资源；社团内岗位用来社团内部管理授权，决定成员在具体社团场景下的操作边界。未登录访客仅能浏览公开信息，不参与系统授权判断。为准确反映系统的双层权限结构，这篇论文分别从系统角色与社团内部岗位两个层次进行说明，具体如表~\ref{tab:user-roles} 与表~\ref{tab:club-posts} 所示。
 
 \begin{table}[H]
 \centering
@@ -39,14 +39,14 @@
 \end{tabular}
 \end{table}
 
-从实现机制上看，系统并未采用独立权限点表对每一项社团操作进行按钮级授权，而是采用“岗位角色判断 + 业务规则校验”的方式实现社团内部权限控制。当前实现中，\texttt{PRESIDENT} 与 \texttt{MANAGER} 在大多数业务场景下共享社团管理权限，统一纳入社团管理员能力范围；\texttt{MEMBER} 主要承担参与、查看和申请类操作。与此同时，系统还会结合社团状态、成员身份和具体业务流程对操作进行进一步限制，从而保证社团管理过程的规范性与安全性。
+在具体实现中，系统没有采用独立权限点表对每一项社团操作进行按钮级授权，而是采用“岗位角色判断 + 业务规则校验”的方式实现社团内部权限控制。当前版本中，\texttt{PRESIDENT} 与 \texttt{MANAGER} 在多数业务场景下共享社团管理权限，统一纳入社团管理员能力范围；\texttt{MEMBER} 主要承担参与、查看和申请类操作。除此之外，系统还会结合社团状态、成员身份和具体业务流程对操作作进一步限制，以保证管理过程的规范性与安全性。
 \subsection{系统边界}
 
 本系统覆盖“社团创建与审批、成员管理、活动管理、招新管理、公告与通知、资源申请、财务审批、审计与统计、AI 问答与推荐”等完整流程。系统暂不包含真实支付结算、统一身份平台（CAS/OAuth）对接、移动端原生 App。
 
 \subsection{需求来源与分析方法}
 
-本文的需求分析主要服务于系统设计与实现型论文的工程建模，需求来源并非单一问卷或访谈结果，而是基于以下三类依据进行综合归纳：
+这篇论文的需求分析主要服务于系统设计与实现型论文的工程建模，需求来源不是单一问卷或访谈结果，而是基于以下三类依据进行综合归纳：
 
 \begin{enumerate}
   \item \textbf{典型业务流程}：围绕高校社团管理中较常见的创建审批、活动组织、招新审核、资源申请、财务审批与通知触达等流程，梳理系统需要覆盖的核心环节；
@@ -54,7 +54,7 @@
   \item \textbf{现有系统不足与项目约束}：结合绪论中的现有系统对比分析，以及本项目当前的部署条件、技术栈与实现范围，提炼非功能性需求与 AI 服务边界。
 \end{enumerate}
 
-因此，第三章更强调“面向实现的场景化需求整理”，其作用在于为后续系统设计、模块划分与测试验证提供依据，而不是将其作为独立的人因实验或问卷研究结论。
+因此，这一章更强调面向实现的场景化需求整理，其作用在于为后续系统设计、模块划分与测试验证提供依据，而不是把它写成独立的人因实验或问卷研究结论。
 
 \section{功能性需求}
 
@@ -101,8 +101,19 @@
 \begin{enumerate}
   \item 支持站内通知分页查询、未读统计、单条已读与全部已读；
   \item 社团或系统公告发布后应触发异步通知分发并落库，前端可轮询读取最新通知状态；
+  \item 公告发布链路需具备基础内容治理能力，对标题和正文执行违禁词校验；平台级违禁词由系统管理员统一维护，社团管理员发布公告时自动受该规则约束；
   \item 资源申请需进行时段冲突/库存校验，并由管理员审批；
   \item 财务申请采用“提交-审批”流程，支出申请需校验社团余额。
+\end{enumerate}
+
+\subsection{成员激励与运营辅助需求}
+
+\begin{enumerate}
+  \item 成员积分按“用户-社团成员关系”维度维护，积分账户仅在所属社团内生效，不设计全站统一积分账户；
+  \item 活动应支持配置奖励积分、是否以签到作为结算依据以及奖励结算状态，社团管理员可在活动结束后发起积分结算；
+  \item 普通成员应能够查看本人在不同社团中的积分档案、当前积分与积分流水，社团管理员应能够查看本社团成员档案并执行必要的人工积分调整；
+  \item 系统应按当前登录角色聚合待处理事项，减少管理员在社团审核、资源审批、财务审批和招新审核之间反复切换页面的成本；
+  \item 管理端应提供面向运营观察的统计看板，用来展示活跃社团规模、当日签到、待审资源数量和社团活跃排行等核心指标。
 \end{enumerate}
 
 \subsection{AI 服务需求}
@@ -125,7 +136,7 @@
 \end{enumerate}
 
 \paragraph{验证口径说明}
-第三章提出的是面向实现的目标需求，而不是默认都已经以同等强度完成实证验证。后文对这些需求采用三类口径加以区分：一是已有直接测试证据支持的条目，如认证边界、并发写路径与部分性能基线；二是已有实现与局部观察支持、但尚缺专项实验的条目，如异步通知、可观测性与 AI 问答降级；三是仅完成实现基础、仍待更严格评估的条目，如推荐相关性质量与 AI 模块的外部可推广性。因此，后续章节不会将“已实现”直接表述为“已充分验证”，而是结合证据强度明确给出结论边界。
+第三章提出的是面向实现的目标需求，这并不意味着所有需求都已经以同等强度完成验证。后文会按照证据强弱对这些需求加以区分：一类是已有直接测试证据支持的条目，如认证边界、并发写路径与部分性能基线；一类是已有实现与局部观察支持、但尚缺专项实验的条目，如异步通知、可观测性与 AI 问答降级；还有一类是已经完成实现基础、但仍待更严格评估的条目，如推荐相关性质量与 AI 模块的外部可推广性。也就是说，后续章节不会简单把“已实现”等同于“已充分验证”，而会结合证据强度给出相应判断。
 
 \section{用例分析}
 
@@ -134,30 +145,33 @@
 \begin{figure}[H]
 \centering
 \begin{tikzpicture}[
+  x=0.82cm,
+  y=0.82cm,
   actor/.style={draw, circle, minimum size=0.6cm},
-  usecase/.style={draw, ellipse, minimum width=3cm, minimum height=0.8cm, align=center, font=\small},
+  usecase/.style={draw, ellipse, minimum width=2.8cm, minimum height=0.8cm, align=center, font=\small},
   line/.style={-}
 ]
-\draw[thick] (0,0) rectangle (13.6,9.4);
-\node[above] at (6.8,9.4) {\textbf{校园社团管理系统}};
+\draw[thick] (0,0) rectangle (12.4,9.2);
+\node[above] at (6.2,9.2) {\textbf{校园社团管理系统}};
 
-\node[actor] (visitor) at (-1.8,7.8) {};
-\node[below] at (-1.8,7.4) {\small 访客};
-\node[actor] (user) at (-1.8,4.9) {};
-\node[below] at (-1.8,4.5) {\small USER};
-\node[actor] (clubadmin) at (15.2,4.9) {};
-\node[below] at (15.2,4.5) {\small CLUB\_ADMIN};
-\node[actor] (admin) at (15.2,7.6) {};
-\node[below] at (15.2,7.2) {\small ADMIN};
+\node[actor] (visitor) at (-1.1,7.6) {};
+\node[below] at (-1.1,7.2) {\small 访客};
+\node[actor] (user) at (-1.1,4.9) {};
+\node[below] at (-1.1,4.5) {\small USER};
+\node[actor] (admin) at (13.5,6.9) {};
+\node[below] at (13.5,6.5) {\small ADMIN};
+\node[actor] (clubadmin) at (13.5,3.5) {};
+\node[below] at (13.5,3.1) {\small CLUB\_ADMIN};
 
-\node[usecase] (browse) at (3.2,7.8) {浏览社团/活动/公告};
-\node[usecase] (auth) at (3.2,6.1) {登录/注册/找回密码};
-\node[usecase] (apply) at (3.2,4.3) {活动报名/签到\\提交招新申请};
-\node[usecase] (sysops) at (10.1,7.8) {全局审批与审计\\统计看板};
-\node[usecase] (clubops) at (10.1,6.1) {社团管理\\成员与公告管理};
-\node[usecase] (activityops) at (10.1,4.5) {活动发布\\招新审核};
-\node[usecase] (resourceops) at (10.1,2.9) {资源与财务申请};
-\node[usecase] (aiops) at (6.8,1.3) {AI 问答与推荐};
+\node[usecase] (browse) at (2.9,7.6) {浏览社团/活动/公告};
+\node[usecase] (auth) at (2.9,5.9) {登录/注册/找回密码};
+\node[usecase] (apply) at (2.9,4.2) {活动报名/签到\\提交招新申请};
+\node[usecase] (aiops) at (6.2,1.6) {AI 问答与推荐};
+
+\node[usecase] (sysops) at (9.4,7.0) {全局审批与审计\\统计看板};
+\node[usecase] (clubops) at (9.4,5.5) {社团管理\\成员与公告管理};
+\node[usecase] (activityops) at (9.4,4.0) {活动发布\\招新审核};
+\node[usecase] (resourceops) at (9.4,2.5) {资源与财务申请};
 
 \draw[line] (visitor) -- (browse.west);
 \draw[line] (visitor) -- (auth.north west);
@@ -165,14 +179,14 @@
 \draw[line] (user) -- (apply.west);
 \draw[line] (user) -- ++(0.8,0) |- (aiops.west);
 
-\draw[line] (clubadmin) -- (activityops.east);
-\draw[line] (clubadmin) -- ++(-0.8,0) |- (clubops.east);
-\draw[line] (clubadmin) -- ++(-1.2,0) |- (resourceops.east);
-\draw[line] (clubadmin) -- ++(-1.6,0) |- (aiops.east);
-
 \draw[line] (admin) -- (sysops.east);
-\draw[line] (admin) -- ++(-4.0,0) |- (clubops.north east);
-\draw[line] (admin) -- ++(-4.4,0) |- (resourceops.north east);
+\draw[line] (admin) -- ++(-0.9,0) |- (clubops.north east);
+\draw[line] (admin) -- ++(-1.5,0) |- (resourceops.north east);
+
+\draw[line] (clubadmin) -- (resourceops.east);
+\draw[line] (clubadmin) -- ++(-0.8,0) |- (activityops.east);
+\draw[line] (clubadmin) -- ++(-1.4,0) |- (clubops.east);
+\draw[line] (clubadmin) -- ++(-2.0,0) |- (aiops.east);
 \end{tikzpicture}
 \caption{系统总用例图}
 \label{fig:usecase}
@@ -239,3 +253,6 @@
 \end{figure}
 
 图~\ref{fig:activity-checkin-flow} 对应了表格用例中的主成功场景与异常分支：系统先校验报名状态和时间窗口，再校验签到码，最后在防重条件下完成签到记录写入与 WebSocket 广播。这一流程图有助于将“业务规则约束”与后续设计章节中的接口时序、并发控制和实时推送设计对应起来。
+
+
+

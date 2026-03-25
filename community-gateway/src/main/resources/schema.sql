@@ -4,6 +4,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- Drop tables if they exist
 DROP TABLE IF EXISTS `t_notification`;
 DROP TABLE IF EXISTS `t_audit_log`;
+DROP TABLE IF EXISTS `t_prohibited_word`;
 DROP TABLE IF EXISTS `t_notice_read`;
 DROP TABLE IF EXISTS `t_notice`;
 DROP TABLE IF EXISTS `t_club_finance`;
@@ -261,6 +262,15 @@ CREATE TABLE `t_notice` (
   PRIMARY KEY (`id`),
   KEY `idx_notice_published_by` (`published_by`),
   CONSTRAINT `fk_notice_publisher` FOREIGN KEY (`published_by`) REFERENCES `t_user` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+CREATE TABLE `t_prohibited_word` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `created_at` datetime(6) NOT NULL,
+  `updated_at` datetime(6) NOT NULL,
+  `word` varchar(100) NOT NULL,
+  `enabled` bit(1) NOT NULL DEFAULT b'1',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_prohibited_word_word` (`word`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE `t_notice_read` (
   `id` bigint NOT NULL AUTO_INCREMENT,

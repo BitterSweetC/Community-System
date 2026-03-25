@@ -11,6 +11,7 @@ import com.cloud.community.core.repository.UserRepository;
 import com.cloud.community.user.service.PermissionService;
 import com.cloud.community.core.model.dto.NotificationMessageDTO;
 import com.cloud.community.core.constant.RabbitConstants;
+import com.cloud.community.notice.service.NoticeModerationService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -41,6 +42,7 @@ public class NoticeController {
     private final UserRepository userRepository;
     private final PermissionService permissionService;
     private final RabbitTemplate rabbitTemplate;
+    private final NoticeModerationService noticeModerationService;
 
     private User getCurrentUser() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -95,6 +97,7 @@ public class NoticeController {
         } else {
             permissionService.checkSystemAdmin(user.getId());
         }
+        noticeModerationService.validateForPublish(notice);
         notice.setPublishedBy(user.getId());
         notice.setStatus("PUBLISHED"); // Default to published for simplicity
         notice.setPublishedAt(java.time.LocalDateTime.now());
