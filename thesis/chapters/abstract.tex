@@ -4,7 +4,25 @@
 \chapter*{摘\quad 要}
 \addcontentsline{toc}{chapter}{摘要}
 
-随着高校社团数量和活动规模持续增长，纸质表单、线下审批和人工通知这套传统管理方式逐渐暴露出流程分散、效率偏低、数据难追溯等问题。围绕这个现实问题，这篇论文设计并实现了一套基于 Spring Boot 的校园社团管理系统。系统采用模块化单体架构，以 Spring Boot 3.x、Vue 3、MySQL 8、Redis 与 RabbitMQ 为核心技术栈，覆盖用户认证、社团生命周期管理、招新、活动、公告通知、资源、财务，以及 AI 辅助问答与推荐等模块；在主业务流程之外，还补充了社团范围内的成员积分档案、按角色聚合的统一待办中心和面向管理侧的实时运营看板（实时大屏），用来支撑成员激励与日常运营观察。在实现上，系统结合 JWT 与 HttpOnly Cookie 完成认证控制，利用 WebSocket 和异步通知提升关键消息触达效率，并引入基于 RAG 的知识库问答能力增强信息查询。当前单节点环境下的回归复跑、浏览器补测、接口验证和并发脚本结果表明，系统已经能够支撑登录、社团列表、活动报名与签到等核心链路，成员积分档案、统一待办中心与实时运营看板（实时大屏）等辅助功能页面也能和接口对应运行，且本轮测试中关键非 AI 接口未出现错误。整体看，该系统已经覆盖高校社团管理的主要业务流程，有较好的工程实现基础，并在当前场景下体现出原型系统的验证价值；后续还需要继续补充长期稳定性验证、AI 评估完善和更大规模部署测试。
+随着高校社团数量和活动规模持续增长，
+纸质表单、线下审批和人工通知这类传统管理社团方法逐渐暴露出流程分散、
+效率偏低等问题。围绕这类问题，这篇论文设计并实现了一套基于 Spring Boot 
+的校园社团管理系统。系统采用模块化单体架构，
+以 Spring Boot 3.x、Vue 3、MySQL 8、Redis 与 RabbitMQ 为核心技术栈，
+覆盖用户认证、社团生命周期管理、招新、活动、公告通知、资源、财务，以及 AI 辅助问答与推荐等模块；
+在主业务流程之外，为了激励社团成员与观察日常运行，
+额外补充了社团范围内的成员积分档案、
+按角色聚合的统一待办中心和面向管理侧的实时运营看板。
+实现方面，系统结合 JWT 与 HttpOnly Cookie 完成认证控制，
+利用 WebSocket 和异步通知提升关键消息触达效率。
+并且引入基于 RAG 的知识库问答能力增强信息查询。
+当前单节点环境下的回归复跑、浏览器补测、接口验证和并发脚本结果表明，
+系统已经能够支撑起日常登录、社团列表、活动报名与签到等核心链路。
+同时，成员积分档案、统一待办中心等辅助功能页面也能流畅运行。
+在测试中关键非 AI 接口未出现错误。
+整体看，该系统已经覆盖高校社团管理的主要业务流程，
+在当前场景下体现出原型系统的验证价值；
+后续还需要继续补充长期稳定性验证以及更多辅助模块开发。
 
 \vspace{1em}
 \noindent\textbf{关键词：}Spring Boot；社团管理系统；JWT 认证；实时通知；RAG 问答
@@ -17,16 +35,33 @@
 \chapter*{ABSTRACT}
 \addcontentsline{toc}{chapter}{ABSTRACT}
 
-With the growth of student clubs and campus activities, traditional club management methods based on paper forms, offline approvals, and manual notifications have become increasingly inefficient and difficult to trace. To address this problem, this thesis designs and implements a campus club management system based on Spring Boot. The system adopts a modular monolithic architecture and uses Spring Boot 3.x, Vue 3, MySQL 8, Redis, and RabbitMQ as its core technology stack. It provides user authentication, club lifecycle management, recruitment, activity management, announcements and notifications, resource management, finance management, as well as AI-assisted question answering and recommendation modules. Beyond the main business flows, the current version also includes club-scoped member point archives, a role-based unified todo center, and an admin-facing real-time operations dashboard to support member incentives and day-to-day operations.
-
-In implementation, the system combines JWT and HttpOnly cookies for authentication control, uses WebSocket and asynchronous notifications to improve message delivery, and introduces a RAG-based knowledge Q\&A capability to enhance information access. In the current single-node environment, reruns, browser-level checks, interface verification, and concurrency scripts show that the system can support core request paths such as login, club listing, activity registration, and check-in. The auxiliary pages for member archives, the unified todo center, and the real-time operations dashboard can also reach their corresponding interfaces, while the main non-AI paths maintained relatively low response times and showed no interface errors in the current round of tests.
-
-Overall, the system is able to cover the major business processes of university club management, demonstrating solid engineering feasibility as a prototype system in terms of functional completeness, authentication, real-time interaction, and auxiliary intelligence. Further work is still needed on long-term stability verification, more rigorous AI evaluation, and larger-scale deployment validation.
+As student clubs and campus activities continue to expand, 
+traditional club management approaches based on paper forms,
+offline approvals, and manual notifications have become increasingly 
+inefficient and difficult to audit. To address these issues, 
+this thesis designs and implements a Spring Boot--based campus club 
+management system. The system follows a modular monolithic architecture 
+and is built on Spring Boot 3.x, Vue 3, MySQL 8, Redis, and RabbitMQ. 
+It supports user authentication, club lifecycle management, recruitment, 
+activity management, announcements and notifications, resource management,
+finance management, as well as AI-assisted question answering and 
+recommendations. In addition to the core workflows, 
+the current prototype includes club-scoped member points records, 
+a role-based unified to-do center, and an administrator-facing real-time 
+operations dashboard to support member incentives and day-to-day operations.
+In implementation, the system combines JWT with HttpOnly cookies for 
+access control, uses WebSocket and asynchronous notifications to improve 
+message delivery, and integrates a retrieval-augmented generation (RAG) knowledge-base Q\&A module to enhance information access. Under a single-node deployment, regression runs, browser-based checks, API verification, and concurrency tests indicate that the system supports key request paths such as login, club browsing, activity registration, and check-in. The auxiliary modules (member points records, the unified to-do center, and the real-time operations dashboard) are also accessible and function as expected, while the main non-AI endpoints maintain relatively low latency and show no UI-level errors in the current test round.
+Overall, the system covers the major business processes of university 
+club management and demonstrates the engineering feasibility of 
+a prototype in terms of functional completeness, authentication, 
+real-time interaction, and auxiliary intelligence. 
+Future work includes longer-term stability evaluation, 
+more rigorous assessment of the AI components, 
+and validation under larger-scale deployments.
 
 \vspace{1em}
-\noindent\textbf{Keywords:} Spring Boot; Club Management System; JWT Authentication; Real-time Notification; RAG Q\&A
+\noindent\textbf{Keywords:} Spring Boot; Club Management System; JWT Authentication; Real-time Notifications; RAG-based Q\&A
 
 \newpage
-
-
 

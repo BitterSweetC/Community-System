@@ -44,9 +44,9 @@ public class NotificationServiceImpl implements NotificationService {
     @Transactional
     public void markAsRead(Long id, Long userId) {
         Notification notification = notificationRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Notification not found"));
+                .orElseThrow(() -> new RuntimeException("未找到通知"));
         if (!notification.getUserId().equals(userId)) {
-            throw new RuntimeException("Unauthorized");
+            throw new RuntimeException("未授权");
         }
         notification.setIsRead(true);
         notificationRepository.save(notification);

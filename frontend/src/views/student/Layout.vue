@@ -8,10 +8,12 @@
 
         <div class="nav">
           <router-link to="/home" class="nav-item">探索</router-link>
+          <router-link to="/home/clubs" class="nav-item">加入社团</router-link>
+          <router-link to="/home/activities" class="nav-item">近期活动</router-link>
+          <router-link to="/user/create-club" class="nav-item">创建社团</router-link>
+          <router-link to="/home/notices" class="nav-item">公告通知</router-link>
 
           <template v-if="authStore.token">
-            <router-link to="/user/create-club" class="nav-item">新建社团</router-link>
-
             <router-link to="/user/notifications" class="nav-icon" aria-label="消息通知">
               <el-badge
                 :value="notificationStore.unreadCount"
@@ -184,10 +186,10 @@ onUnmounted(() => {
 }
 
 .header {
-  background: rgba(255, 255, 255, 0.72);
-  color: #12263a;
+  background: rgba(255, 255, 255, 0.96);
+  color: #111111;
   backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(15, 28, 42, 0.08);
+  border-bottom: 1px solid rgba(22, 22, 22, 0.12);
   padding: 0;
   height: 76px !important;
   position: fixed;
@@ -197,9 +199,19 @@ onUnmounted(() => {
   transition: all 0.25s ease;
 }
 
+.header::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 3px;
+  background: #111111;
+}
+
 .header.scrolled {
-  background: rgba(255, 255, 255, 0.86);
-  box-shadow: 0 8px 18px rgba(15, 28, 42, 0.08);
+  background: rgba(255, 255, 255, 0.99);
+  box-shadow: 0 8px 18px rgba(22, 22, 22, 0.07);
   height: 70px !important;
 }
 
@@ -218,33 +230,38 @@ onUnmounted(() => {
   font-size: 1.36rem;
   font-weight: 800;
   letter-spacing: 0.02em;
-  color: #0f1c2a;
+  color: #111111;
 }
 
 .nav {
   display: flex;
   align-items: center;
-  gap: 1.8rem;
+  gap: 1.2rem;
 }
 
 .nav-item {
-  color: inherit;
+  color: #111111;
   text-decoration: none;
   font-weight: 600;
-  font-size: 0.92rem;
+  font-size: 0.88rem;
   position: relative;
-  transition: opacity 0.2s;
+  transition: color 0.2s ease;
+  white-space: nowrap;
 }
 
 .nav-item:hover {
-  opacity: 0.7;
+  color: #d54a1f;
+}
+
+.nav-item.router-link-active {
+  color: #d54a1f;
 }
 
 .nav-btn {
-  background: linear-gradient(135deg, #c2410c 0%, #9a3412 100%);
+  background: #d54a1f;
   color: white;
   padding: 9px 20px;
-  border-radius: 999px;
+  border-radius: 2px;
   text-decoration: none;
   font-weight: 700;
   font-size: 0.82rem;
@@ -260,7 +277,7 @@ onUnmounted(() => {
   font-size: 1.05rem;
   display: flex;
   align-items: center;
-  color: #1f3348;
+  color: #111111;
 }
 
 .bell-wrap {
@@ -289,7 +306,7 @@ onUnmounted(() => {
 }
 
 .user-info-link:hover {
-  color: #0f5f59;
+  color: #d54a1f;
 }
 
 .main-content {
@@ -325,7 +342,7 @@ onUnmounted(() => {
 }
 
 .user-avatar {
-  border: 2px solid rgba(15, 28, 42, 0.14);
+  border: 2px solid rgba(31, 36, 42, 0.18);
   transition: all 0.3s;
 }
 
@@ -336,7 +353,7 @@ onUnmounted(() => {
 }
 
 .dropdown-trigger:hover {
-  background: rgba(15, 28, 42, 0.06);
+  background: rgba(18, 18, 18, 0.06);
 }
 
 :deep(.el-dropdown-menu) {
@@ -354,8 +371,8 @@ onUnmounted(() => {
 }
 
 :deep(.el-dropdown-menu__item:hover) {
-  background: var(--color-bg-secondary);
-  color: var(--color-primary);
+  background: #f3f3f3;
+  color: #111111;
 }
 
 @media (max-width: 768px) {
@@ -364,11 +381,11 @@ onUnmounted(() => {
   }
 
   .nav {
-    gap: 0.9rem;
+    gap: 0.7rem;
   }
 
   .nav-item {
-    font-size: 0.84rem;
+    font-size: 0.8rem;
   }
 
   .user-info {

@@ -1,5 +1,6 @@
 package com.cloud.community.recruit.controller;
 
+import com.cloud.community.core.common.PageResult;
 import com.cloud.community.core.common.Result;
 import com.cloud.community.core.entity.RecruitApplication;
 import com.cloud.community.core.entity.RecruitBatch;
@@ -49,6 +50,13 @@ public class RecruitController {
     public Result<List<RecruitBatch>> getBatches(@RequestParam Long clubId) {
         return Result.success(recruitService.getBatchesByClub(clubId));
     }
+
+    @GetMapping("/batches/page")
+    public Result<PageResult<RecruitBatch>> getBatchesPage(@RequestParam Long clubId,
+                                                           @RequestParam(defaultValue = "0") int page,
+                                                           @RequestParam(defaultValue = "10") int size) {
+        return Result.success(PageResult.of(recruitService.getBatchesByClub(clubId, page, size)));
+    }
     
     @GetMapping("/batches/{id}")
     public Result<RecruitBatch> getBatch(@PathVariable Long id) {
@@ -82,6 +90,14 @@ public class RecruitController {
             return Result.success(recruitService.getApplicationsByBatch(batchId, user.getId()));
         }
         return Result.success(recruitService.getMyApplications(user.getId()));
+    }
+
+    @GetMapping("/applications/page")
+    public Result<PageResult<RecruitApplication>> getApplicationsPage(@RequestParam Long batchId,
+                                                                      @RequestParam(defaultValue = "0") int page,
+                                                                      @RequestParam(defaultValue = "10") int size) {
+        User user = getCurrentUser();
+        return Result.success(PageResult.of(recruitService.getApplicationsByBatch(batchId, user.getId(), page, size)));
     }
 
     @PostMapping("/applications/{id}/first-review")

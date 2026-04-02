@@ -25,12 +25,12 @@ public class UserServiceImpl implements UserService {
     public User register(User user) {
         // Password encoding is handled by PasswordEncoder bean, which is now NoOp
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-        
+
         // Assign default role USER
         Role userRole = roleRepository.findByCode("USER")
-                .orElseThrow(() -> new RuntimeException("Default role USER not found"));
+                .orElseThrow(() -> new RuntimeException("未发现用户角色"));
         user.getRoles().add(userRole);
-        
+
         return userRepository.save(user);
     }
 
@@ -42,7 +42,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public User findById(Long id) {
         return userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new RuntimeException("未发现用户"));
     }
 
     @Override

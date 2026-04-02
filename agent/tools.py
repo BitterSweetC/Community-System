@@ -77,7 +77,7 @@ def search_clubs(keyword: str) -> str:
 
 @tool
 def get_upcoming_activities(days: int = 7) -> str:
-    """Get upcoming published or ongoing activities in the next N days."""
+    """Get ongoing or upcoming activities within the next N days."""
     try:
         with get_engine().connect() as conn:
             rows = conn.execute(
@@ -89,11 +89,13 @@ def get_upcoming_activities(days: int = 7) -> str:
                     FROM t_activity a
                     JOIN t_club c ON c.id = a.club_id
                     LEFT JOIN t_activity_signup s ON s.activity_id = a.id
-                    WHERE a.start_time BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL :days DAY)
-                      AND a.status IN ('PUBLISHED', 'ONGOING')
+                    WHERE a.end_time >= NOW()
+                      AND a.start_time <= DATE_ADD(NOW(), INTERVAL :days DAY)
+                      AND a.status IN ('PUBLISHED', 'IN_PROGRESS', 'ONGOING')
                     GROUP BY a.id, a.title, a.location, a.start_time, a.end_time,
                              a.max_participants, c.name
-                    ORDER BY a.start_time ASC
+                    ORDER BY CASE WHEN a.start_time <= NOW() THEN 0 ELSE 1 END,
+                             a.start_time ASC
                     LIMIT 10
                     """
                 ),

@@ -26,7 +26,7 @@ public class ChatServiceImpl implements ChatService {
     @Override
     public String chat(String message, String sessionId, Map<String, Object> userContext) {
         if (message == null || message.trim().isEmpty()) {
-            return "Please enter a message.";
+            return "请输入消息内容。";
         }
 
         // Build headers
@@ -49,7 +49,7 @@ public class ChatServiceImpl implements ChatService {
             // Call RAG Agent
             String url = ragServiceUrl + "/chat";
             ResponseEntity<Map> response = restTemplate.postForEntity(url, request, Map.class);
-            
+
             if (response.getBody() != null && response.getBody().containsKey("response")) {
                 return (String) response.getBody().get("response");
             }
@@ -62,7 +62,8 @@ public class ChatServiceImpl implements ChatService {
 
     @Override
     public java.util.List<Long> getRecommendations(Long userId, String mode) {
-        if (userId == null) return java.util.Collections.emptyList();
+        if (userId == null)
+            return java.util.Collections.emptyList();
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);

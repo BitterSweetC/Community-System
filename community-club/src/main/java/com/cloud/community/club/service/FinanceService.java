@@ -1,6 +1,7 @@
 package com.cloud.community.club.service;
 
 import com.cloud.community.core.entity.ClubFinance;
+import org.springframework.data.domain.Page;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -16,5 +17,6 @@ public interface FinanceService {
     void approveTransaction(Long transactionId, Long approverId);
     void rejectTransaction(Long transactionId, Long approverId);
     List<ClubFinance> getClubTransactions(Long clubId);
+    Page<ClubFinance> getClubTransactions(Long clubId, int page, int size);
     BigDecimal getClubBalance(Long clubId);
 }

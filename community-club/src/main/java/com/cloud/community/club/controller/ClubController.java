@@ -136,11 +136,12 @@ public class ClubController {
     }
 
     @GetMapping("/{id}/members")
-    public Result<List<Member>> getClubMembers(@PathVariable Long id) {
-        // Member entity might also need VO, but for now user asked for "PO, DTO, VO" logic which I applied to Club.
-        // I will leave Member as is for now or wrap it if I had MemberVO.
-        // Given time constraints, I focus on Club and Activity main flows.
-        return Result.success(clubService.getClubMembers(id));
+    public Result<PageResult<Member>> getClubMembers(@PathVariable Long id,
+                                                     @RequestParam(defaultValue = "0") int page,
+                                                     @RequestParam(defaultValue = "10") int size) {
+        User user = getCurrentUser();
+        permissionService.checkClubAdmin(user.getId(), id);
+        return Result.success(PageResult.of(clubService.getClubMembers(id, page, size)));
     }
 
     @GetMapping("/{id}/members/export")

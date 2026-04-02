@@ -16,7 +16,7 @@
     <section class="content-container">
       <div class="filter-panel">
         <el-form :inline="true" class="search-form" @submit.prevent="handleSearch">
-          <el-form-item label="活动名称">
+          <el-form-item label="活动名称" class="search-item keyword-item">
             <el-input
               v-model="searchKeyword"
               placeholder="请输入活动名称"
@@ -30,7 +30,7 @@
             </el-input>
           </el-form-item>
 
-          <el-form-item label="举办社团">
+          <el-form-item label="举办社团" class="search-item club-item">
             <el-input
               v-model="searchClub"
               placeholder="请输入社团名称"
@@ -44,7 +44,7 @@
             </el-input>
           </el-form-item>
 
-          <el-form-item label="日期范围">
+          <el-form-item label="日期范围" class="search-item date-range-item">
             <el-date-picker
               v-model="dateRange"
               type="daterange"
@@ -98,7 +98,11 @@
           </el-table-column>
 
           <el-table-column prop="clubName" label="主办单位" width="170" />
-          <el-table-column prop="location" label="地点" width="150" />
+          <el-table-column label="地点" width="150">
+            <template #default="scope">
+              {{ scope.row.location || '待定' }}
+            </template>
+          </el-table-column>
 
           <el-table-column prop="startTime" label="开始时间" width="186">
             <template #default="scope">
@@ -558,11 +562,53 @@ onMounted(() => {
 
 .search-form {
   display: flex;
-  flex-wrap: wrap;
+  align-items: flex-end;
+  flex-wrap: nowrap;
+  gap: 0 18px;
+}
+
+:deep(.search-form > .el-form-item) {
+  margin-right: 0;
+  margin-bottom: 14px;
+}
+
+:deep(.search-form .search-item) {
+  flex: 0 0 auto;
+}
+
+:deep(.search-form .date-range-item) {
+  flex: 1 1 420px;
+  min-width: 0;
+}
+
+:deep(.search-form .date-range-item .el-form-item__content) {
+  width: 100%;
+  min-width: 0;
+}
+
+:deep(.search-form .date-range-item .el-date-editor) {
+  width: 100%;
+  min-width: 320px;
+  max-width: 100%;
 }
 
 .action-group {
+  flex: 0 0 auto;
   margin-left: auto;
+  padding-left: 40px;
+  white-space: nowrap;
+}
+
+:deep(.action-group .el-form-item__content) {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: nowrap;
+}
+
+:deep(.action-group .el-button + .el-button) {
+  margin-left: 0;
 }
 
 .btn-primary {
@@ -664,6 +710,24 @@ onMounted(() => {
   color: var(--muted);
 }
 
+@media (max-width: 1200px) {
+  .search-form {
+    flex-wrap: wrap;
+  }
+
+  :deep(.search-form .date-range-item) {
+    flex: 1 1 100%;
+  }
+
+  :deep(.search-form .date-range-item .el-date-editor) {
+    min-width: 0;
+  }
+
+  .action-group {
+    margin-left: 0;
+  }
+}
+
 @media (max-width: 900px) {
   .hero-section {
     padding-top: 90px;
@@ -679,6 +743,23 @@ onMounted(() => {
 
   :deep(.el-form-item) {
     margin-right: 8px;
+  }
+
+  :deep(.search-form .search-item),
+  :deep(.search-form .date-range-item),
+  :deep(.search-form .action-group) {
+    flex: 1 1 100%;
+  }
+
+  :deep(.search-form .search-item .el-form-item__content),
+  :deep(.search-form .date-range-item .el-form-item__content) {
+    width: 100%;
+  }
+
+  :deep(.search-form .search-item .el-input),
+  :deep(.search-form .date-range-item .el-date-editor) {
+    width: 100% !important;
+    min-width: 0;
   }
 }
 </style>

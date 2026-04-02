@@ -3,6 +3,8 @@ package com.cloud.community.core.repository;
 import com.cloud.community.core.entity.Club;
 import com.cloud.community.core.entity.RecruitBatch;
 import jakarta.persistence.LockModeType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -14,8 +16,9 @@ import java.util.Optional;
 
 public interface RecruitBatchRepository extends JpaRepository<RecruitBatch, Long> {
     List<RecruitBatch> findByClubIdOrderByStartTimeDesc(Long clubId);
+    Page<RecruitBatch> findByClubIdOrderByCreatedAtDesc(Long clubId, Pageable pageable);
 
-    @Query("SELECT DISTINCT b.club FROM RecruitBatch b WHERE b.startTime <= :now AND b.endTime >= :now")
+    @Query("SELECT DISTINCT b.club FROM RecruitBatch b WHERE b.status = 'ACTIVE' AND b.startTime <= :now AND b.endTime >= :now")
     List<Club> findClubsWithActiveRecruitment(@Param("now") LocalDateTime now);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

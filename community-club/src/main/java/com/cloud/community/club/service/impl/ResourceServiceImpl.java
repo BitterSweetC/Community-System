@@ -12,10 +12,14 @@ import com.cloud.community.core.repository.ResourceRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -38,7 +42,7 @@ public class ResourceServiceImpl implements ResourceService {
 
         // Lock resource row to serialize availability checks for the same resource.
         Resource resource = resourceDefinitionRepository.findByIdForUpdate(application.getResourceId())
-                .orElseThrow(() -> new RuntimeException("Resource not found"));
+                .orElseThrow(() -> new RuntimeException("未发现资源"));
         application.setResource(resource);
 
         int requested = normalizeRequestedQuantity(application.getQuantity());
@@ -55,7 +59,7 @@ public class ResourceServiceImpl implements ResourceService {
     public void approveResource(Long applicationId, Long approverId) {
         // Lock application row to prevent double approval/rejection.
         ResourceApplication application = resourceRepository.findByIdForUpdate(applicationId)
-                .orElseThrow(() -> new RuntimeException("Application not found"));
+                .orElseThrow(() -> new RuntimeException("未发现资源申请"));
 
         if (!"PENDING".equals(application.getStatus())) {
             throw new BusinessException(40941, "该资源申请已处理，请勿重复审批");
@@ -63,7 +67,7 @@ public class ResourceServiceImpl implements ResourceService {
 
         // Lock resource row and re-check availability during approval.
         Resource resource = resourceDefinitionRepository.findByIdForUpdate(application.getResourceId())
-                .orElseThrow(() -> new RuntimeException("Resource not found"));
+                .orElseThrow(() -> new RuntimeException("未发现资源"));
         int requested = normalizeRequestedQuantity(application.getQuantity());
         validateAvailability(resource, application.getStartTime(), application.getEndTime(), requested);
         application.setQuantity(requested);
@@ -79,8 +83,7 @@ public class ResourceServiceImpl implements ResourceService {
         sendResourceNotification(
                 application.getApplicantId(),
                 "资源申请已通过",
-                "您申请的资源【" + resourceName + "】已审批通过。"
-        );
+                "您申请的资源【" + resourceName + "】已审批通过。");
         pushPendingCount();
     }
 
@@ -88,7 +91,7 @@ public class ResourceServiceImpl implements ResourceService {
     @Transactional
     public void rejectResource(Long applicationId, Long approverId) {
         ResourceApplication application = resourceRepository.findByIdForUpdate(applicationId)
-                .orElseThrow(() -> new RuntimeException("Application not found"));
+                .orElseThrow(() -> new RuntimeException("未发现资源申请"));
 
         if (!"PENDING".equals(application.getStatus())) {
             throw new BusinessException(40941, "该资源申请已处理，请勿重复审批");
@@ -105,8 +108,7 @@ public class ResourceServiceImpl implements ResourceService {
         sendResourceNotification(
                 application.getApplicantId(),
                 "资源申请未通过",
-                "您申请的资源【" + resourceName + "】未通过审批，请联系管理员了解详情。"
-        );
+                "您申请的资源【" + resourceName + "】未通过审批，请联系管理员了解详情。");
         pushPendingCount();
     }
 
@@ -119,7 +121,7 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     private void validateAvailability(Resource resource, java.time.LocalDateTime startTime,
-                                      java.time.LocalDateTime endTime, int requested) {
+            java.time.LocalDateTime endTime, int requested) {
         if ("MATERIAL".equals(resource.getType())) {
             if (resource.getTotalQuantity() != null && requested > resource.getTotalQuantity()) {
                 throw new BusinessException(40942, "申请数量超过资源总库存");
@@ -157,8 +159,7 @@ public class ResourceServiceImpl implements ResourceService {
             rabbitTemplate.convertAndSend(
                     RabbitConstants.NOTIFICATION_EXCHANGE,
                     RabbitConstants.COMMON_NOTIFICATION_ROUTING_KEY,
-                    message
-            );
+                    message);
         } catch (Exception e) {
             log.error("Failed to send resource notification to user {}", userId, e);
         }
@@ -170,13 +171,34 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
+    public Page<ResourceApplication> getClubResources(Long clubId, int page, int size) {
+        return resourceRepository.findByClubIdOrderByCreatedAtDesc(clubId, PageRequest.of(page, size));
+    }
+
+    @Override
     public List<ResourceApplication> getPendingResources() {
         return resourceRepository.findByStatus("PENDING");
     }
 
     @Override
+    public Page<ResourceApplication> getPendingResources(int page, int size) {
+        return resourceRepository.findByStatusOrderByCreatedAtDesc("PENDING", PageRequest.of(page, size));
+    }
+
+    @Override
+    public List<ResourceApplication> getBindableVenueApplications(Long clubId, Long activityId) {
+        return resourceRepository.findBindableVenueApplications(clubId, LocalDateTime.now(), activityId);
+    }
+
+    @Override
     public List<Resource> getAllResources() {
         return resourceDefinitionRepository.findAll();
+    }
+
+    @Override
+    public Page<Resource> getAllResources(int page, int size) {
+        return resourceDefinitionRepository.findAllByOrderByCreatedAtDesc(
+                PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt")));
     }
 
     @Override
@@ -194,7 +216,7 @@ public class ResourceServiceImpl implements ResourceService {
     @Transactional
     public Resource updateResource(Resource resource) {
         if (resource.getId() == null || !resourceDefinitionRepository.existsById(resource.getId())) {
-            throw new RuntimeException("Resource not found");
+            throw new RuntimeException("未发现资源");
         }
         return resourceDefinitionRepository.save(resource);
     }

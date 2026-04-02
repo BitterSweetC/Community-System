@@ -51,10 +51,12 @@ public class SecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/clubs", "/api/clubs/**").permitAll() // Allow public access to club info
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/recruit/batches", "/api/recruit/batches/**").permitAll() // Allow public access to recruit batches
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/recruit/fields", "/api/recruit/fields/**").permitAll() // Allow public access to form fields
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/recruit/active-clubs", "/api/recruit/active-clubs/**").permitAll() // Allow public access to active recruiting clubs
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/activities", "/api/activities/**").permitAll() // Allow public access to activities
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/notices", "/api/notices/**").permitAll() // Allow public access to notices
                         .requestMatchers("/api/club/chat").permitAll() // Allow chat endpoint (assuming it handles its own auth or is public)
                         .requestMatchers("/actuator/health").permitAll()
+                        .requestMatchers("/actuator/prometheus").permitAll()
                         .requestMatchers("/actuator/**").hasRole("ADMIN")
                         .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/error").permitAll()

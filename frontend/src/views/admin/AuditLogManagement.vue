@@ -24,9 +24,9 @@
         <el-table-column prop="username" label="用户名" width="120" />
         <el-table-column prop="realName" label="真实姓名" width="120" />
         <el-table-column prop="action" label="操作行为" width="150">
-           <template #default="scope">
-             <el-tag>{{ scope.row.action }}</el-tag>
-           </template>
+          <template #default="scope">
+            <el-tag>{{ scope.row.action }}</el-tag>
+          </template>
         </el-table-column>
         <el-table-column prop="resourceType" label="资源类型" width="150" />
         <el-table-column prop="resourceId" label="资源编号" width="120" />
@@ -43,10 +43,12 @@
     <div class="pagination-wrapper" v-if="total > 0">
       <el-pagination
         background
-        layout="prev, pager, next"
+        layout="total, sizes, prev, pager, next"
         :total="total"
         :page-size="pageSize"
+        :page-sizes="[10, 20, 50]"
         v-model:current-page="currentPage"
+        @size-change="handleSizeChange"
         @current-change="load"
       />
     </div>
@@ -61,7 +63,7 @@ import { ElMessage } from 'element-plus'
 const logs = ref([])
 const loading = ref(false)
 const currentPage = ref(1)
-const pageSize = ref(15)
+const pageSize = ref(10)
 const total = ref(0)
 
 const searchForm = ref({
@@ -84,16 +86,26 @@ const load = async () => {
       resourceType: searchForm.value.resourceType || undefined
     }
     const res = await getAuditLogs(params)
-    logs.value = res.list
-    total.value = res.total
+    logs.value = res?.list || []
+    total.value = Number(res?.total || 0)
+    if (currentPage.value > 1 && logs.value.length === 0 && total.value > 0) {
+      currentPage.value -= 1
+      await load()
+    }
   } catch (error) {
-    ElMessage.error('加载日志失败')
+    ElMessage.error(error.message || '加载日志失败')
   } finally {
     loading.value = false
   }
 }
 
 const handleSearch = () => {
+  currentPage.value = 1
+  load()
+}
+
+const handleSizeChange = (size) => {
+  pageSize.value = size
   currentPage.value = 1
   load()
 }

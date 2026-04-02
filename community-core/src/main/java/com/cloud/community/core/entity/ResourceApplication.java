@@ -57,4 +57,7 @@ public class ResourceApplication extends BaseEntity {
 
     @Column(name = "approver_id")
     private Long approverId;
+
+    @Transient
+    private String clubName;
 }

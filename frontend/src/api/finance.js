@@ -1,9 +1,10 @@
 import request from './axios'
 
-export function getClubTransactions(clubId) {
+export function getClubTransactions(clubId, params) {
   return request({
     url: `/finance/clubs/${clubId}/transactions`,
-    method: 'get'
+    method: 'get',
+    params
   })
 }
 

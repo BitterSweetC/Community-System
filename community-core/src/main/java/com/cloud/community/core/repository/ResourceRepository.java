@@ -2,6 +2,8 @@ package com.cloud.community.core.repository;
 
 import com.cloud.community.core.entity.Resource;
 import jakarta.persistence.LockModeType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -12,6 +14,7 @@ import java.util.List;
 
 public interface ResourceRepository extends JpaRepository<Resource, Long> {
     List<Resource> findByStatus(String status);
+    Page<Resource> findAllByOrderByCreatedAtDesc(Pageable pageable);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT r FROM Resource r WHERE r.id = :id")

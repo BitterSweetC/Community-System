@@ -10,40 +10,53 @@
 
     <div class="table-panel">
       <el-table :data="applications" class="table-shell" v-loading="loading">
-      <el-table-column prop="id" label="编号" width="80" />
-      <el-table-column label="资源" min-width="170">
-        <template #default="scope">
-          <div class="resource-cell">
-            <div class="resource-name">{{ scope.row.resource ? scope.row.resource.name : '-' }}</div>
-            <div class="resource-meta">
-              {{ scope.row.resource ? (scope.row.resource.type === 'VENUE' ? scope.row.resource.location : '物资') : '' }}
+        <el-table-column prop="id" label="编号" width="80" />
+        <el-table-column label="资源" min-width="170">
+          <template #default="scope">
+            <div class="resource-cell">
+              <div class="resource-name">{{ scope.row.resource ? scope.row.resource.name : '-' }}</div>
+              <div class="resource-meta">
+                {{ scope.row.resource ? (scope.row.resource.type === 'VENUE' ? scope.row.resource.location : '物资') : '' }}
+              </div>
             </div>
-          </div>
-        </template>
-      </el-table-column>
-      <el-table-column label="类型" width="110">
-        <template #default="scope">
-          <el-tag>{{ scope.row.resource ? getResourceTypeLabel(scope.row.resource.type) : '-' }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="关联活动" min-width="150">
-        <template #default="scope">
-          {{ scope.row.activity ? scope.row.activity.title : '-' }}
-        </template>
-      </el-table-column>
-      <el-table-column prop="quantity" label="数量" width="80" />
-      <el-table-column label="使用时间" min-width="260">
-        <template #default="scope">
-          {{ formatTime(scope.row.startTime) }} - {{ formatTime(scope.row.endTime) }}
-        </template>
-      </el-table-column>
-      <el-table-column prop="status" label="状态" width="100">
-        <template #default="scope">
-          <el-tag :type="getStatusType(scope.row.status)">{{ getStatusLabel(scope.row.status) }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="description" label="备注" min-width="150" />
+          </template>
+        </el-table-column>
+        <el-table-column label="类型" width="110">
+          <template #default="scope">
+            <el-tag>{{ scope.row.resource ? getResourceTypeLabel(scope.row.resource.type) : '-' }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="关联活动" min-width="150">
+          <template #default="scope">
+            {{ scope.row.activity ? scope.row.activity.title : '-' }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="quantity" label="数量" width="80" />
+        <el-table-column label="使用时间" min-width="260">
+          <template #default="scope">
+            {{ formatTime(scope.row.startTime) }} - {{ formatTime(scope.row.endTime) }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="status" label="状态" width="100">
+          <template #default="scope">
+            <el-tag :type="getStatusType(scope.row.status)">{{ getStatusLabel(scope.row.status) }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="description" label="备注" min-width="150" />
       </el-table>
+    </div>
+
+    <div class="pagination-wrapper" v-if="total > 0">
+      <el-pagination
+        background
+        layout="total, sizes, prev, pager, next"
+        :total="total"
+        :page-size="pageSize"
+        :page-sizes="[10, 20, 50]"
+        v-model:current-page="currentPage"
+        @size-change="handleSizeChange"
+        @current-change="load"
+      />
     </div>
 
     <el-dialog v-model="dialogVisible" title="申请资源" width="560px">
@@ -105,9 +118,12 @@ const resources = ref([])
 const loading = ref(false)
 const dialogVisible = ref(false)
 const timeRange = ref([])
+const currentPage = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
 
 const form = ref({
-  clubId: clubId,
+  clubId,
   resourceId: null,
   quantity: 1,
   description: ''
@@ -139,8 +155,18 @@ const loadResources = async () => {
 const load = async () => {
   loading.value = true
   try {
-    const res = await axios.get(`/resources/clubs/${clubId}/applications`)
-    applications.value = res
+    const res = await axios.get(`/resources/clubs/${clubId}/applications`, {
+      params: {
+        page: currentPage.value - 1,
+        size: pageSize.value
+      }
+    })
+    applications.value = res?.list || []
+    total.value = Number(res?.total || 0)
+    if (currentPage.value > 1 && applications.value.length === 0 && total.value > 0) {
+      currentPage.value -= 1
+      await load()
+    }
   } catch (error) {
     ElMessage.error('获取申请列表失败')
   } finally {
@@ -150,7 +176,7 @@ const load = async () => {
 
 const showApplyDialog = () => {
   form.value = {
-    clubId: clubId,
+    clubId,
     resourceId: null,
     quantity: 1,
     description: ''
@@ -173,10 +199,17 @@ const submitApply = async () => {
     await axios.post('/resources/applications', payload)
     ElMessage.success('申请提交成功')
     dialogVisible.value = false
-    load()
+    currentPage.value = 1
+    await load()
   } catch (error) {
     ElMessage.error(error.response?.data?.message || '申请提交失败')
   }
+}
+
+const handleSizeChange = (size) => {
+  pageSize.value = size
+  currentPage.value = 1
+  load()
 }
 
 const getStatusType = (status) => {
@@ -190,7 +223,7 @@ const getStatusType = (status) => {
 
 const getStatusLabel = (status) => {
   const map = {
-    PENDING: '待审批',
+    PENDING: '待审核',
     APPROVED: '已通过',
     REJECTED: '已拒绝'
   }
@@ -237,6 +270,12 @@ onMounted(() => {
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.8);
   box-shadow: 0 10px 24px rgba(17, 46, 77, 0.08);
+}
+
+.pagination-wrapper {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .resource-cell {

@@ -4,6 +4,12 @@
     <div class="ambient ambient-right"></div>
     <div class="grid-overlay"></div>
 
+    <div class="horse-hero" aria-hidden="true">
+      <div class="horse-banner">
+        <img class="horse-svg horse-image" :src="horseSilhouette" alt="" />
+      </div>
+    </div>
+
     <div class="auth-layout">
       <section class="intro-panel">
         <p class="kicker">Campus Orbit</p>
@@ -32,8 +38,21 @@
         </div>
 
         <div class="notice-box">
-          <h3><el-icon><Warning /></el-icon> 系统通知</h3>
-          <ul>
+          <div class="notice-head">
+            <h3><el-icon><Warning /></el-icon> 系统通知</h3>
+            <button
+              type="button"
+              class="notice-toggle"
+              :aria-expanded="noticeExpanded"
+              @click="noticeExpanded = !noticeExpanded"
+            >
+              {{ noticeExpanded ? '收起' : '展开' }}
+            </button>
+          </div>
+          <p v-if="!noticeExpanded" class="notice-summary">
+            {{ noticeSummary }}
+          </p>
+          <ul v-else>
             <li>新生社团招新将于 9 月 1 日正式启动。</li>
             <li>系统维护时间为每周日 02:00 - 04:00。</li>
           </ul>
@@ -42,9 +61,6 @@
 
       <el-card class="auth-card" shadow="never">
         <div class="auth-header">
-          <div class="logo-badge">
-            <el-icon :size="28"><School /></el-icon>
-          </div>
           <h2>校园社团管理系统</h2>
           <p>统一身份认证登录</p>
         </div>
@@ -93,15 +109,18 @@
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Bell, Calendar, Lock, School, Search, User, Warning } from '@element-plus/icons-vue'
+import { Bell, Calendar, Lock, Search, User, Warning } from '@element-plus/icons-vue'
 import axios from '@/api/axios'
 import { useAuthStore } from '@/stores/auth'
+import horseSilhouette from '@/assets/horse-silhouette.svg'
 
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 
 const loading = ref(false)
+const noticeExpanded = ref(false)
+const noticeSummary = '新生社团招新将于 9 月 1 日启动，系统每周日 02:00 - 04:00 维护。'
 const form = ref({
   username: '',
   password: ''
@@ -159,6 +178,7 @@ onMounted(() => {
 
 .auth-shell {
   --ink: #0f1c2a;
+  --headline: #1f3652;
   --muted: #516276;
   --surface: rgba(255, 255, 255, 0.82);
   --border: rgba(15, 28, 42, 0.14);
@@ -167,10 +187,11 @@ onMounted(() => {
 
   position: relative;
   min-height: 100vh;
-  padding: 32px;
+  padding: 24px clamp(16px, 3vw, 38px) 30px;
   overflow: hidden;
-  background: radial-gradient(circle at 8% 12%, rgba(15, 118, 110, 0.16), transparent 30%),
-    radial-gradient(circle at 92% 88%, rgba(194, 65, 12, 0.16), transparent 34%),
+  isolation: isolate;
+  background: radial-gradient(circle at 8% 12%, rgba(15, 118, 110, 0.12), transparent 30%),
+    radial-gradient(circle at 92% 88%, rgba(194, 65, 12, 0.12), transparent 34%),
     linear-gradient(170deg, #f8f4ea 0%, #efe8da 52%, #e5ece9 100%);
   font-family: 'Outfit', sans-serif;
   color: var(--ink);
@@ -179,7 +200,7 @@ onMounted(() => {
 .ambient {
   position: absolute;
   border-radius: 999px;
-  filter: blur(60px);
+  filter: blur(48px);
   pointer-events: none;
 }
 
@@ -188,7 +209,7 @@ onMounted(() => {
   height: 320px;
   top: -110px;
   left: -60px;
-  background: rgba(15, 118, 110, 0.2);
+  background: rgba(15, 118, 110, 0.14);
 }
 
 .ambient-right {
@@ -196,32 +217,74 @@ onMounted(() => {
   height: 260px;
   right: -60px;
   bottom: -100px;
-  background: rgba(194, 65, 12, 0.2);
+  background: rgba(194, 65, 12, 0.14);
 }
 
 .grid-overlay {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background-image: linear-gradient(rgba(15, 28, 42, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(15, 28, 42, 0.03) 1px, transparent 1px);
+  background-image: linear-gradient(rgba(15, 28, 42, 0.012) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 28, 42, 0.012) 1px, transparent 1px);
   background-size: 34px 34px;
+}
+
+.horse-hero {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  top: clamp(10px, 2.2vh, 26px);
+  transform: translateX(-50%);
+  width: min(1040px, 88vw);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+}
+
+.horse-banner {
+  position: relative;
+  width: min(660px, 62vw);
+}
+
+.horse-banner::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 60%;
+  width: 76%;
+  height: 46%;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(15, 118, 110, 0.18) 0%, rgba(15, 118, 110, 0.07) 56%, transparent 100%);
+  filter: blur(16px);
+}
+
+.horse-svg {
+  width: 100%;
+  display: block;
+  filter: drop-shadow(0 10px 20px rgba(15, 28, 42, 0.16));
+}
+
+.horse-image {
+  opacity: 0.9;
 }
 
 .auth-layout {
   position: relative;
-  z-index: 1;
+  z-index: 3;
   max-width: 1120px;
   margin: 0 auto;
-  min-height: calc(100vh - 64px);
+  min-height: calc(100vh - 56px);
+  padding-top: clamp(170px, 20vh, 220px);
   display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
-  gap: 26px;
-  align-items: center;
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+  gap: clamp(20px, 2vw, 28px);
+  align-items: start;
 }
 
 .intro-panel {
-  padding: 26px 8px;
+  padding: 8px 8px 0;
 }
 
 .kicker {
@@ -236,30 +299,35 @@ onMounted(() => {
 .intro-panel h1 {
   margin: 0;
   font-family: 'Noto Serif SC', serif;
-  font-size: clamp(2rem, 4vw, 3.2rem);
-  line-height: 1.2;
+  color: var(--headline);
+  max-width: 10.6ch;
+  font-size: clamp(2.15rem, 4.1vw, 3.3rem);
+  line-height: 1.14;
+  letter-spacing: 0;
+  text-wrap: balance;
 }
 
 .intro-desc {
-  margin: 14px 0 28px;
+  margin: 16px 0 22px;
   color: var(--muted);
-  font-size: 1.05rem;
-  max-width: 540px;
+  font-size: clamp(1rem, 1.14vw, 1.12rem);
+  max-width: 36ch;
 }
 
 .links-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
 }
 
 .link-card {
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.68);
+  border: 1px solid rgba(15, 28, 42, 0.14);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.76);
   backdrop-filter: blur(6px);
-  min-height: 92px;
+  min-height: 96px;
+  padding: 14px 12px;
   color: var(--ink);
   display: flex;
   flex-direction: column;
@@ -267,9 +335,10 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   font-family: inherit;
-  font-size: 0.92rem;
+  font-size: 0.94rem;
   font-weight: 600;
   cursor: pointer;
+  box-shadow: 0 6px 12px rgba(15, 28, 42, 0.05);
   transition: all 0.2s ease;
 }
 
@@ -279,25 +348,54 @@ onMounted(() => {
 
 .link-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(15, 118, 110, 0.42);
+  border-color: rgba(15, 118, 110, 0.5);
   color: var(--teal);
 }
 
 .notice-box {
   border-radius: 18px;
   border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.62);
+  background: rgba(255, 255, 255, 0.72);
   backdrop-filter: blur(6px);
   padding: 16px 18px;
 }
 
+.notice-head {
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
 .notice-box h3 {
-  margin: 0 0 10px;
+  margin: 0;
   display: flex;
   align-items: center;
   gap: 8px;
   color: var(--orange);
-  font-size: 1rem;
+  font-size: 0.98rem;
+}
+
+.notice-toggle {
+  border: 0;
+  padding: 4px 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.notice-toggle:hover {
+  color: var(--teal);
+}
+
+.notice-summary {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+  font-size: 0.96rem;
 }
 
 .notice-box ul {
@@ -308,34 +406,27 @@ onMounted(() => {
 }
 
 .auth-card {
+  align-self: start;
+  justify-self: end;
+  width: min(100%, 560px);
+  transform: translate(-24px, 75px);
   border-radius: 22px;
-  border: 1px solid var(--border);
-  background: var(--surface);
+  border: 1px solid rgba(15, 28, 42, 0.14);
+  background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(12px);
-  box-shadow: 0 20px 40px rgba(15, 28, 42, 0.12);
+  box-shadow: 0 18px 32px rgba(15, 28, 42, 0.12);
 }
 
 .auth-header {
   text-align: center;
-  margin-bottom: 20px;
-}
-
-.logo-badge {
-  width: 58px;
-  height: 58px;
-  margin: 0 auto 12px;
-  border-radius: 50%;
-  color: #fff;
-  background: linear-gradient(135deg, #0f766e, #115e59);
-  display: grid;
-  place-items: center;
-  box-shadow: 0 12px 24px rgba(15, 118, 110, 0.3);
+  margin-bottom: 24px;
 }
 
 .auth-header h2 {
   margin: 0;
   font-family: 'Noto Serif SC', serif;
-  font-size: 1.52rem;
+  color: var(--headline);
+  font-size: 1.46rem;
 }
 
 .auth-header p {
@@ -362,11 +453,11 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 :deep(.el-card__body) {
-  padding: 28px;
+  padding: 30px;
 }
 
 :deep(.el-form-item__label) {
@@ -385,39 +476,115 @@ onMounted(() => {
 }
 
 @media (max-width: 992px) {
+  .auth-shell {
+    padding: 18px 14px 22px;
+  }
+
+  .horse-hero {
+    top: 10px;
+    width: min(760px, 92vw);
+  }
+
+  .horse-banner {
+    width: min(500px, 74vw);
+  }
+
   .auth-layout {
     grid-template-columns: 1fr;
     align-items: start;
-    padding-top: 36px;
-    padding-bottom: 28px;
+    min-height: auto;
+    padding-top: clamp(132px, 24vw, 180px);
+    padding-bottom: 18px;
+    gap: 16px;
   }
 
   .intro-panel {
     order: 2;
-    padding-top: 10px;
+    padding-top: 0;
   }
 
   .auth-card {
     order: 1;
+    transform: translateY(4px);
+  }
+
+  .intro-panel h1 {
+    max-width: 13ch;
+    font-size: clamp(2rem, 5.3vw, 2.9rem);
+    line-height: 1.16;
   }
 }
 
 @media (max-width: 640px) {
   .auth-shell {
-    padding: 14px;
+    padding: 12px 12px 18px;
+  }
+
+  .horse-hero {
+    top: 10px;
+    width: 100%;
+  }
+
+  .horse-banner {
+    width: min(340px, 80vw);
+  }
+
+  .horse-banner::before {
+    width: 82%;
+    height: 50%;
+    filter: blur(12px);
   }
 
   .auth-layout {
-    gap: 16px;
+    gap: 12px;
     min-height: auto;
+    padding-top: 102px;
   }
 
   .links-grid {
     grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .link-card {
+    min-height: 94px;
+    border-radius: 16px;
+    font-size: 0.9rem;
+  }
+
+  .intro-panel h1 {
+    max-width: none;
+    font-size: clamp(1.8rem, 8.8vw, 2.24rem);
+    line-height: 1.2;
+  }
+
+  .intro-desc {
+    margin: 12px 0 16px;
+  }
+
+  .notice-box {
+    padding: 14px 16px;
+  }
+
+  .notice-summary {
+    font-size: 0.94rem;
+  }
+
+  .notice-toggle {
+    font-size: 0.82rem;
+  }
+
+  .auth-card {
+    transform: none;
   }
 
   .auth-header h2 {
     font-size: 1.36rem;
+  }
+
+  .auth-footer {
+    flex-wrap: wrap;
+    gap: 4px;
   }
 
   :deep(.el-card__body) {

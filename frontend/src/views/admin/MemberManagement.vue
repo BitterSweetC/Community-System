@@ -59,6 +59,19 @@
       </el-table>
     </div>
 
+    <div class="pagination-wrapper" v-if="total > 0">
+      <el-pagination
+        background
+        layout="total, sizes, prev, pager, next"
+        :total="total"
+        :page-size="pageSize"
+        :page-sizes="[10, 20, 50]"
+        v-model:current-page="currentPage"
+        @size-change="handleSizeChange"
+        @current-change="loadMembers"
+      />
+    </div>
+
     <el-dialog v-model="roleDialogVisible" title="修改成员角色" width="460px">
       <el-form label-width="104px">
         <el-form-item label="成员">
@@ -166,6 +179,9 @@ const clubId = route.params.clubId
 
 const members = ref([])
 const loading = ref(false)
+const currentPage = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
 
 const roleDialogVisible = ref(false)
 const updating = ref(false)
@@ -181,7 +197,19 @@ const pointRecords = ref([])
 const loadMembers = async () => {
   loading.value = true
   try {
-    members.value = await axios.get(`/clubs/${clubId}/members`)
+    const res = await axios.get(`/clubs/${clubId}/members`, {
+      params: {
+        page: currentPage.value - 1,
+        size: pageSize.value
+      }
+    })
+    members.value = res?.list || []
+    total.value = Number(res?.total || 0)
+
+    if (currentPage.value > 1 && members.value.length === 0 && total.value > 0) {
+      currentPage.value -= 1
+      await loadMembers()
+    }
   } catch (error) {
     ElMessage.error(error.message || '加载成员列表失败')
   } finally {
@@ -206,7 +234,7 @@ const updateMemberRole = async () => {
     })
     ElMessage.success('角色更新成功')
     roleDialogVisible.value = false
-    loadMembers()
+    await loadMembers()
   } catch (error) {
     ElMessage.error(error.message || '更新失败')
   } finally {
@@ -255,10 +283,16 @@ const removeMember = async (userId) => {
   try {
     await axios.delete(`/clubs/${clubId}/members/${userId}`)
     ElMessage.success('移除成功')
-    loadMembers()
+    await loadMembers()
   } catch (error) {
     ElMessage.error(error.message || '移除失败')
   }
+}
+
+const handleSizeChange = (size) => {
+  pageSize.value = size
+  currentPage.value = 1
+  loadMembers()
 }
 
 const getRoleType = (role) => {
@@ -352,6 +386,12 @@ onMounted(loadMembers)
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.8);
   box-shadow: 0 10px 24px rgba(17, 46, 77, 0.08);
+}
+
+.pagination-wrapper {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .action-buttons {

@@ -24,7 +24,7 @@ public class PermissionServiceImpl implements PermissionService {
     @Transactional(readOnly = true)
     public void checkClubAdmin(Long userId, Long clubId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new RuntimeException("未发现用户"));
 
         // 1. Global Admin check
         boolean isGlobalAdmin = user.getRoles().stream()
@@ -33,12 +33,22 @@ public class PermissionServiceImpl implements PermissionService {
             return;
         }
 
+        Club club = clubRepository.findById(clubId)
+                .orElseThrow(() -> new RuntimeException("未发现社团"));
+        if (!Club.STATUS_ACTIVE.equals(club.getStatus())) {
+            throw new AccessDeniedException("操作被拒绝: 社团未激活。");
+        }
+
         // 2. Club Admin check
         Member member = memberRepository.findByClubIdAndUserId(clubId, userId)
-                .orElseThrow(() -> new AccessDeniedException("You are not a member of this club"));
+                .orElseThrow(() -> new AccessDeniedException("您不是该社团的成员"));
+
+        if (!"ACTIVE".equals(member.getStatus())) {
+            throw new AccessDeniedException("操作被拒绝: 您的成员资格未激活。");
+        }
 
         if (!"PRESIDENT".equals(member.getRoleCode()) && !"MANAGER".equals(member.getRoleCode())) {
-            throw new AccessDeniedException("Insufficient permissions: You must be a PRESIDENT or MANAGER of this club.");
+            throw new AccessDeniedException("操作被拒绝: 您必须是该社团的主席或管理员。");
         }
     }
 
@@ -46,12 +56,12 @@ public class PermissionServiceImpl implements PermissionService {
     @Transactional(readOnly = true)
     public void checkSystemAdmin(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        
+                .orElseThrow(() -> new RuntimeException("未发现用户"));
+
         boolean isGlobalAdmin = user.getRoles().stream()
                 .anyMatch(r -> "ADMIN".equals(r.getCode()));
         if (!isGlobalAdmin) {
-            throw new AccessDeniedException("Insufficient permissions: System Admin required.");
+            throw new AccessDeniedException("操作被拒绝: 需要系统管理员权限。");
         }
     }
 
@@ -59,14 +69,14 @@ public class PermissionServiceImpl implements PermissionService {
     @Transactional(readOnly = true)
     public void checkClubActive(Long clubId) {
         Club club = clubRepository.findById(clubId)
-                .orElseThrow(() -> new RuntimeException("Club not found"));
-        
+                .orElseThrow(() -> new RuntimeException("未发现社团"));
+
         if (Club.STATUS_DISSOLVED.equals(club.getStatus()) || Club.STATUS_DISSOLVING.equals(club.getStatus())) {
-            throw new RuntimeException("Operation denied: Club is dissolved or in dissolution process.");
+            throw new RuntimeException("操作被拒绝: 社团已解散或正在解散过程中。");
         }
-        
+
         if (!Club.STATUS_ACTIVE.equals(club.getStatus())) {
-            throw new RuntimeException("Operation denied: Club is not active.");
+            throw new RuntimeException("操作被拒绝: 社团未激活。");
         }
     }
 }

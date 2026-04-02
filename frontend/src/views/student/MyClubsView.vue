@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="profile-page">
     <section class="profile-panel">
       <div class="panel-header">
@@ -43,7 +43,12 @@
               <el-button type="primary" plain size="small" @click="$router.push(`/home/clubs/${club.id}`)">
                 查看详情
               </el-button>
-              <el-popconfirm title="确定要退出该社团吗？" @confirm="leave(club.id)">
+              <el-popconfirm
+                title="确定要退出该社团吗？"
+                confirm-button-text="确定"
+                cancel-button-text="取消"
+                @confirm="leave(club.id)"
+              >
                 <template #reference>
                   <el-button size="small" type="danger" plain :disabled="club.myRole === 'PRESIDENT'">
                     退出社团
@@ -318,3 +323,5 @@ onMounted(load)
   }
 }
 </style>
+
+

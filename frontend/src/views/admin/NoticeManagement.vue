@@ -10,22 +10,35 @@
 
     <div class="table-panel">
       <el-table :data="notices" class="table-shell" v-loading="loading">
-      <el-table-column prop="title" label="标题" min-width="220" />
-      <el-table-column prop="publishedAt" label="发布时间" min-width="180">
-        <template #default="scope">
-          {{ formatDate(scope.row.publishedAt) }}
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" align="center" width="120">
-        <template #default="scope">
-          <el-popconfirm title="确定删除这条公告吗？" @confirm="deleteNotice(scope.row.id)">
-            <template #reference>
-              <el-button type="danger" size="small">删除</el-button>
-            </template>
-          </el-popconfirm>
-        </template>
-      </el-table-column>
+        <el-table-column prop="title" label="标题" min-width="220" />
+        <el-table-column prop="publishedAt" label="发布时间" min-width="180">
+          <template #default="scope">
+            {{ formatDate(scope.row.publishedAt) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" align="center" width="120">
+          <template #default="scope">
+            <el-popconfirm title="确定删除这条公告吗？" @confirm="deleteNotice(scope.row.id)">
+              <template #reference>
+                <el-button type="danger" size="small">删除</el-button>
+              </template>
+            </el-popconfirm>
+          </template>
+        </el-table-column>
       </el-table>
+    </div>
+
+    <div class="pagination-wrapper" v-if="total > 0">
+      <el-pagination
+        background
+        layout="total, sizes, prev, pager, next"
+        :total="total"
+        :page-size="pageSize"
+        :page-sizes="[10, 20, 50]"
+        v-model:current-page="currentPage"
+        @size-change="handleSizeChange"
+        @current-change="loadNotices"
+      />
     </div>
 
     <el-dialog v-model="dialogVisible" title="发布新公告" width="640px">
@@ -64,6 +77,9 @@ const clubId = route.params.clubId
 const notices = ref([])
 const loading = ref(false)
 const dialogVisible = ref(false)
+const currentPage = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
 
 const form = ref({
   title: '',
@@ -75,13 +91,20 @@ const form = ref({
 const loadNotices = async () => {
   loading.value = true
   try {
-    const params = {}
+    const params = {
+      page: currentPage.value - 1,
+      size: pageSize.value
+    }
     if (clubId) params.clubId = clubId
     const res = await axios.get('/notices', { params })
-    if (res.list) notices.value = res.list
-    else notices.value = res
+    notices.value = res?.list || []
+    total.value = Number(res?.total || 0)
+    if (currentPage.value > 1 && notices.value.length === 0 && total.value > 0) {
+      currentPage.value -= 1
+      await loadNotices()
+    }
   } catch (error) {
-    console.error(error)
+    ElMessage.error(error.message || '加载公告失败')
   } finally {
     loading.value = false
   }
@@ -95,14 +118,15 @@ const submitNotice = async () => {
 
   try {
     const payload = { ...form.value }
-    if (clubId) payload.clubId = clubId
+    if (clubId) payload.clubId = Number(clubId)
 
     await axios.post('/notices', payload)
     ElMessage.success('发布成功')
     dialogVisible.value = false
     form.value.title = ''
     form.value.content = ''
-    loadNotices()
+    currentPage.value = 1
+    await loadNotices()
   } catch (error) {
     ElMessage.error(error.message || '发布失败')
   }
@@ -112,10 +136,16 @@ const deleteNotice = async (id) => {
   try {
     await axios.delete(`/notices/${id}`)
     ElMessage.success('删除成功')
-    loadNotices()
+    await loadNotices()
   } catch (error) {
-    ElMessage.error('删除失败')
+    ElMessage.error(error.message || '删除失败')
   }
+}
+
+const handleSizeChange = (size) => {
+  pageSize.value = size
+  currentPage.value = 1
+  loadNotices()
 }
 
 const formatDate = (dateStr) => {
@@ -155,5 +185,11 @@ onMounted(loadNotices)
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.8);
   box-shadow: 0 10px 24px rgba(17, 46, 77, 0.08);
+}
+
+.pagination-wrapper {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
 }
 </style>

@@ -2,6 +2,8 @@ package com.cloud.community.core.repository;
 
 import com.cloud.community.core.entity.Member;
 import jakarta.persistence.LockModeType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -13,6 +15,7 @@ import java.util.Optional;
 
 public interface MemberRepository extends JpaRepository<Member, Long> {
     List<Member> findByClubId(Long clubId);
+    Page<Member> findByClubIdOrderByJoinAtDesc(Long clubId, Pageable pageable);
     List<Member> findByUserId(Long userId);
     Optional<Member> findByClubIdAndUserId(Long clubId, Long userId);
 

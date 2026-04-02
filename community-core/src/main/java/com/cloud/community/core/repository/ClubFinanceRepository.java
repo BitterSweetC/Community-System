@@ -2,6 +2,8 @@ package com.cloud.community.core.repository;
 
 import com.cloud.community.core.entity.ClubFinance;
 import jakarta.persistence.LockModeType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -12,6 +14,7 @@ import java.util.Optional;
 
 public interface ClubFinanceRepository extends JpaRepository<ClubFinance, Long> {
     List<ClubFinance> findByClubId(Long clubId);
+    Page<ClubFinance> findByClubIdOrderByCreatedAtDesc(Long clubId, Pageable pageable);
     List<ClubFinance> findByClubIdAndStatus(Long clubId, String status);
     List<ClubFinance> findByStatusOrderByCreatedAtDesc(String status);
     List<ClubFinance> findByClubIdInAndStatusOrderByCreatedAtDesc(java.util.Collection<Long> clubIds, String status);

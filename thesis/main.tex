@@ -4,6 +4,9 @@
 % ============================================================
 \documentclass[12pt, a4paper, zihao=-4]{ctexrep}
 
+% English text uses the required Times New Roman family under XeLaTeX.
+\setmainfont{Times New Roman}
+
 % —— 页面布局 ——
 \usepackage[
   top=30mm, bottom=25mm,
@@ -29,8 +32,9 @@
 \ctexset{
   chapter = {
     format     = \centering\sanhao\bfseries\heiti,
-    name       = {第,章},
-    number     = \chinese{chapter},
+    name       = {,},
+    number     = 第\chinese{chapter}章,
+    aftername  = \quad,
     beforeskip = 0pt,
     afterskip  = 18pt,
   },
@@ -54,15 +58,13 @@
 }
 
 % —— 编号与目录层级（按学校规范到三级标题）——
-\setcounter{secnumdepth}{2}
+\setcounter{secnumdepth}{3}
 \setcounter{tocdepth}{2}
 
 % —— 目录 ——
 \usepackage{tocloft}
 \renewcommand{\contentsname}{\centering 目\quad 录}
-\renewcommand{\cftchappresnum}{第}
-\renewcommand{\cftchapaftersnum}{章}
-\setlength{\cftchapnumwidth}{4em}
+\setlength{\cftchapnumwidth}{4.5em}
 
 % —— 图表 ——
 \usepackage{graphicx}
@@ -125,10 +127,6 @@
 % 中文参考文献采用 GB/T 7714 数字顺序制样式（如：[12] 作者. 题名[J]. 刊名, 年, 卷(期): 页码）
 \bibliographystyle{gbt7714-numerical}
 % 若本地 TeX 发行版缺少该样式，可改用：\bibliographystyle{GBT7714-2005NLang}
-
-% —— TikZ ——
-\usepackage{tikz}
-\usetikzlibrary{shapes.geometric, arrows.meta, positioning, fit, backgrounds, calc}
 
 % —— 枚举 ——
 \usepackage{enumitem}

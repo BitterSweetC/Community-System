@@ -1,6 +1,7 @@
 package com.cloud.community.admin.controller;
 
 import com.cloud.community.core.annotation.AuditLog;
+import com.cloud.community.core.common.PageResult;
 import com.cloud.community.core.common.Result;
 import com.cloud.community.core.entity.User;
 import com.cloud.community.core.repository.UserRepository;
@@ -14,8 +15,6 @@ import org.springframework.web.bind.annotation.*;
 
 import com.cloud.community.core.model.vo.ClubVO;
 import com.cloud.community.core.entity.Club;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -38,19 +37,21 @@ public class AdminController {
     }
 
     @GetMapping("/clubs/pending")
-    public Result<List<ClubVO>> getPendingClubs() {
+    public Result<PageResult<ClubVO>> getPendingClubs(@RequestParam(defaultValue = "0") int page,
+                                                      @RequestParam(defaultValue = "10") int size) {
         User user = getCurrentUser();
         permissionService.checkSystemAdmin(user.getId());
-        List<Club> clubs = clubService.getPendingClubs();
-        return Result.success(clubs.stream().map(ClubVO::from).collect(Collectors.toList()));
+        PageResult<Club> result = PageResult.of(clubService.getPendingClubs(page, size));
+        return Result.success(result.map(ClubVO::from));
     }
 
     @GetMapping("/clubs/dissolving")
-    public Result<List<ClubVO>> getDissolvingClubs() {
+    public Result<PageResult<ClubVO>> getDissolvingClubs(@RequestParam(defaultValue = "0") int page,
+                                                         @RequestParam(defaultValue = "10") int size) {
         User user = getCurrentUser();
         permissionService.checkSystemAdmin(user.getId());
-        List<Club> clubs = clubService.getDissolvingClubs();
-        return Result.success(clubs.stream().map(ClubVO::from).collect(Collectors.toList()));
+        PageResult<Club> result = PageResult.of(clubService.getDissolvingClubs(page, size));
+        return Result.success(result.map(ClubVO::from));
     }
 
     @AuditLog(action = "APPROVE_CLUB", resourceType = "CLUB", resourceId = "#id")

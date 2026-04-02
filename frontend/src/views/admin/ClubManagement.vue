@@ -65,13 +65,15 @@
     </el-table>
     </div>
 
-    <div class="pagination-wrapper" v-if="activeTab === 'all' && total > 0">
+    <div class="pagination-wrapper" v-if="total > 0">
       <el-pagination
         background
-        layout="prev, pager, next"
+        layout="total, sizes, prev, pager, next"
         :total="total"
         :page-size="pageSize"
+        :page-sizes="[10, 20, 50]"
         v-model:current-page="currentPage"
+        @size-change="handleSizeChange"
         @current-change="load"
       />
     </div>
@@ -92,8 +94,8 @@
         <el-descriptions-item label="社团简介">
           <div style="white-space: pre-wrap;">{{ currentClub.description || '暂无简介' }}</div>
         </el-descriptions-item>
-        <el-descriptions-item label="创建时间">{{ formatDate(currentClub.createdAt) }}</el-descriptions-item>
-        <el-descriptions-item label="更新时间">{{ formatDate(currentClub.updatedAt) }}</el-descriptions-item>
+        <el-descriptions-item label="创建时间">{{ formatDate(currentClub.createdAt || currentClub.createTime) }}</el-descriptions-item>
+        <el-descriptions-item label="更新时间">{{ formatDate(currentClub.updatedAt || currentClub.updateTime) }}</el-descriptions-item>
       </el-descriptions>
     </el-dialog>
   </div>
@@ -114,6 +116,19 @@ const loading = ref(false)
 const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
+
+const normalizePageData = (res) => {
+  if (res?.list) {
+    return { list: res.list, total: Number(res.total || 0) }
+  }
+  if (res?.content) {
+    return { list: res.content, total: Number(res.totalElements || 0) }
+  }
+  if (Array.isArray(res)) {
+    return { list: res, total: res.length }
+  }
+  return { list: [], total: 0 }
+}
 
 const detailDialogVisible = ref(false)
 const currentClub = ref(null)
@@ -137,30 +152,31 @@ const formatDate = (dateStr) => {
 const load = async () => {
   loading.value = true
   try {
+    const params = {
+      page: currentPage.value - 1,
+      size: pageSize.value
+    }
+
     if (activeTab.value === 'pending') {
-      const res = await axios.get('/admin/clubs/pending')
-      clubs.value = res
-      total.value = res.length
+      const res = await axios.get('/admin/clubs/pending', { params })
+      const pageData = normalizePageData(res)
+      clubs.value = pageData.list
+      total.value = pageData.total
     } else if (activeTab.value === 'dissolving') {
-      const res = await axios.get('/admin/clubs/dissolving')
-      clubs.value = Array.isArray(res) ? res : (res.list || res.content || [])
-      total.value = clubs.value.length
+      const res = await axios.get('/admin/clubs/dissolving', { params })
+      const pageData = normalizePageData(res)
+      clubs.value = pageData.list
+      total.value = pageData.total
     } else {
-      const params = {
-        page: currentPage.value - 1,
-        size: pageSize.value
-      }
       const res = await axios.get('/clubs', { params })
-      if (res.list) {
-        clubs.value = res.list
-        total.value = res.total
-      } else if (res.content) {
-        clubs.value = res.content
-        total.value = res.totalElements
-      } else {
-        clubs.value = res
-        total.value = res.length
-      }
+      const pageData = normalizePageData(res)
+      clubs.value = pageData.list
+      total.value = pageData.total
+    }
+
+    if (currentPage.value > 1 && clubs.value.length === 0 && total.value > 0) {
+      currentPage.value -= 1
+      await load()
     }
   } catch (error) {
     console.error(error)
@@ -176,8 +192,15 @@ const syncTabFromQuery = () => {
 
 const handleTabChange = () => {
   currentPage.value = 1
+  pageSize.value = 10
   const query = activeTab.value === 'all' ? {} : { tab: activeTab.value }
   router.replace({ query })
+  load()
+}
+
+const handleSizeChange = (size) => {
+  pageSize.value = size
+  currentPage.value = 1
   load()
 }
 

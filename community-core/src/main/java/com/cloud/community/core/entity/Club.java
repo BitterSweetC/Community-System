@@ -62,6 +62,9 @@ public class Club extends BaseEntity {
     @Transient
     private Long activityCount = 0L;
 
+    @Transient
+    private String presidentName;
+
     @ElementCollection
     @CollectionTable(name = "t_club_tag", joinColumns = @JoinColumn(name = "club_id"))
     @Column(name = "tag")

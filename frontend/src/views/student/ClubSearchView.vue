@@ -82,8 +82,8 @@
 
           <el-table-column prop="status" label="状态" width="110" align="center">
             <template #default="scope">
-              <el-tag :type="getStatusTag(scope.row.status)">
-                {{ getStatusText(scope.row.status) }}
+              <el-tag :type="getStatusTag(scope.row)">
+                {{ getStatusText(scope.row) }}
               </el-tag>
             </template>
           </el-table-column>
@@ -164,6 +164,7 @@ const selectedCategory = ref('')
 
 const dialogVisible = ref(false)
 const currentClub = ref({})
+const recruitingClubIds = ref(new Set())
 
 const categories = ref(['学术科技', '文化艺术', '体育竞技', '公益志愿', '实践创新', '其他'])
 
@@ -203,8 +204,12 @@ const fetchClubs = async () => {
       params.category = selectedCategory.value
     }
 
-    const res = await axios.get('/clubs', { params })
+    const [res, activeRecruitClubs] = await Promise.all([
+      axios.get('/clubs', { params }),
+      axios.get('/recruit/active-clubs').catch(() => [])
+    ])
     const list = normalizeList(res)
+    recruitingClubIds.value = new Set(normalizeList(activeRecruitClubs).map((club) => Number(club.id)))
 
     if (Array.isArray(res?.list)) {
       total.value = res.total ?? list.length
@@ -217,7 +222,8 @@ const fetchClubs = async () => {
     clubs.value = list.map((club) => ({
       ...club,
       presidentName: club.presidentName || '未设置',
-      memberCount: club.memberCount ?? Math.floor(Math.random() * 40) + 20
+      memberCount: club.memberCount ?? Math.floor(Math.random() * 40) + 20,
+      isRecruiting: recruitingClubIds.value.has(Number(club.id))
     }))
 
     const dynamicCategories = [...new Set(list.map((item) => item.category).filter(Boolean))]
@@ -232,24 +238,30 @@ const fetchClubs = async () => {
   }
 }
 
-const getStatusTag = (status) => {
-  if (status === 'ACTIVE') {
+const getStatusTag = (club) => {
+  if (club?.isRecruiting) {
     return 'success'
   }
-  if (status === 'INACTIVE') {
+  if (club?.status === 'ACTIVE') {
+    return 'primary'
+  }
+  if (club?.status === 'INACTIVE') {
     return 'info'
   }
   return 'warning'
 }
 
-const getStatusText = (status) => {
-  if (status === 'ACTIVE') {
+const getStatusText = (club) => {
+  if (club?.isRecruiting) {
     return '招新中'
   }
-  if (status === 'INACTIVE') {
+  if (club?.status === 'ACTIVE') {
+    return '活跃中'
+  }
+  if (club?.status === 'INACTIVE') {
     return '已暂停'
   }
-  return status || '筹备中'
+  return club?.status || '筹备中'
 }
 
 const viewClub = (club) => {

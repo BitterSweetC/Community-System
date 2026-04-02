@@ -1,6 +1,7 @@
 package com.cloud.community.club.controller;
 
 import com.cloud.community.club.service.FinanceService;
+import com.cloud.community.core.common.PageResult;
 import com.cloud.community.core.common.Result;
 import com.cloud.community.core.entity.ClubFinance;
 import com.cloud.community.core.entity.User;
@@ -11,7 +12,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/finance")
@@ -44,10 +44,12 @@ public class FinanceController {
     }
 
     @GetMapping("/clubs/{clubId}/transactions")
-    public Result<List<ClubFinance>> getClubTransactions(@PathVariable Long clubId) {
+    public Result<PageResult<ClubFinance>> getClubTransactions(@PathVariable Long clubId,
+                                                               @RequestParam(defaultValue = "0") int page,
+                                                               @RequestParam(defaultValue = "10") int size) {
         User user = getCurrentUser();
         permissionService.checkClubAdmin(user.getId(), clubId);
-        return Result.success(financeService.getClubTransactions(clubId));
+        return Result.success(PageResult.of(financeService.getClubTransactions(clubId, page, size)));
     }
 
     @GetMapping("/clubs/{clubId}/balance")

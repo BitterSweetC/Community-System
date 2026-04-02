@@ -9,7 +9,11 @@
 
     <div class="table-panel">
       <el-table :data="applications" class="table-shell" v-loading="loading">
-        <el-table-column prop="club.name" label="申请社团" width="150" />
+        <el-table-column label="申请社团" width="150">
+          <template #default="scope">
+            {{ scope.row.clubName || scope.row.club?.name || '-' }}
+          </template>
+        </el-table-column>
         <el-table-column label="类型" width="100">
           <template #default="scope">
             <el-tag>{{ scope.row.resource ? getResourceTypeLabel(scope.row.resource.type) : '-' }}</el-tag>
@@ -42,6 +46,19 @@
         </el-table-column>
       </el-table>
     </div>
+
+    <div class="pagination-wrapper" v-if="total > 0">
+      <el-pagination
+        background
+        layout="total, sizes, prev, pager, next"
+        :total="total"
+        :page-size="pageSize"
+        :page-sizes="[10, 20, 50]"
+        v-model:current-page="currentPage"
+        @size-change="handleSizeChange"
+        @current-change="load"
+      />
+    </div>
   </div>
 </template>
 
@@ -52,14 +69,27 @@ import { ElMessage } from 'element-plus'
 
 const applications = ref([])
 const loading = ref(false)
+const currentPage = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
 
 const load = async () => {
   loading.value = true
   try {
-    const res = await axios.get('/resources/applications/pending')
-    applications.value = res
+    const res = await axios.get('/resources/applications/pending', {
+      params: {
+        page: currentPage.value - 1,
+        size: pageSize.value
+      }
+    })
+    applications.value = res?.list || []
+    total.value = Number(res?.total || 0)
+    if (currentPage.value > 1 && applications.value.length === 0 && total.value > 0) {
+      currentPage.value -= 1
+      await load()
+    }
   } catch (error) {
-    ElMessage.error('获取列表失败')
+    ElMessage.error(error.message || '获取列表失败')
   } finally {
     loading.value = false
   }
@@ -69,9 +99,9 @@ const approve = async (id) => {
   try {
     await axios.post(`/resources/applications/${id}/approve`)
     ElMessage.success('操作成功')
-    load()
+    await load()
   } catch (error) {
-    ElMessage.error('操作失败')
+    ElMessage.error(error.message || '操作失败')
   }
 }
 
@@ -79,10 +109,16 @@ const reject = async (id) => {
   try {
     await axios.post(`/resources/applications/${id}/reject`)
     ElMessage.success('操作成功')
-    load()
+    await load()
   } catch (error) {
-    ElMessage.error('操作失败')
+    ElMessage.error(error.message || '操作失败')
   }
+}
+
+const handleSizeChange = (size) => {
+  pageSize.value = size
+  currentPage.value = 1
+  load()
 }
 
 const getResourceTypeLabel = (type) => {
@@ -126,6 +162,12 @@ onMounted(load)
 
 .table-shell {
   width: 100%;
+}
+
+.pagination-wrapper {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .action-buttons {

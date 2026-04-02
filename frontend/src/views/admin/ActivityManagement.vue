@@ -3,7 +3,7 @@
     <div class="page-head">
       <div>
         <h2>活动管理</h2>
-        <p class="subtext">管理活动发布、资源申请，以及积分结算。</p>
+        <p class="subtext">管理活动发布、场地绑定以及积分结算。</p>
       </div>
       <el-button type="primary" @click="openCreateDialog">发布活动</el-button>
     </div>
@@ -33,11 +33,22 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="location" label="地点" width="150" show-overflow-tooltip />
+        <el-table-column prop="location" label="地点" width="170" show-overflow-tooltip>
+          <template #default="{ row }">
+            {{ row.location || '线上活动' }}
+          </template>
+        </el-table-column>
         <el-table-column label="操作" min-width="220" align="center" class-name="action-column">
           <template #default="{ row }">
             <div class="row-actions">
-              <el-button type="primary" size="small" class="row-btn" @click="editActivity(row)">
+              <el-button
+                type="primary"
+                size="small"
+                class="row-btn"
+                :disabled="!canEditActivity(row)"
+                :title="getEditDisabledReason(row)"
+                @click="editActivity(row)"
+              >
                 编辑
               </el-button>
               <el-dropdown
@@ -51,7 +62,6 @@
                 <template #dropdown>
                   <el-dropdown-menu>
                     <el-dropdown-item command="export">导出签到</el-dropdown-item>
-                    <el-dropdown-item command="resource">申请资源</el-dropdown-item>
                     <el-dropdown-item
                       command="settle"
                       :disabled="row.status !== 'ENDED' || settlingId === row.id"
@@ -68,8 +78,21 @@
       </el-table>
     </div>
 
+    <div class="pagination-wrapper" v-if="total > 0">
+      <el-pagination
+        background
+        layout="total, sizes, prev, pager, next"
+        :total="total"
+        :page-size="pageSize"
+        :page-sizes="[10, 20, 50]"
+        v-model:current-page="currentPage"
+        @size-change="handleSizeChange"
+        @current-change="loadActivities"
+      />
+    </div>
+
     <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑活动' : '发布活动'" width="760px">
-      <el-form :model="form" label-width="110px">
+      <el-form :model="form" label-width="110px" v-loading="dialogLoading">
         <el-form-item label="活动标题">
           <el-input v-model="form.title" placeholder="请输入活动标题" />
         </el-form-item>
@@ -80,30 +103,75 @@
           <el-input v-model="form.description" type="textarea" rows="4" placeholder="请输入活动描述" />
         </el-form-item>
         <el-form-item label="活动类型">
-          <el-select v-model="form.type" placeholder="请选择活动类型" style="width: 100%">
+          <el-select v-model="form.type" placeholder="请选择活动类型" style="width: 100%" @change="handleTypeChange">
             <el-option label="线下活动" value="Offline" />
             <el-option label="线上活动" value="Online" />
           </el-select>
         </el-form-item>
-        <el-form-item label="开始时间">
-          <el-date-picker
-            v-model="form.startTime"
-            type="datetime"
-            placeholder="选择开始时间"
-            style="width: 100%"
-          />
-        </el-form-item>
-        <el-form-item label="结束时间">
-          <el-date-picker
-            v-model="form.endTime"
-            type="datetime"
-            placeholder="选择结束时间"
-            style="width: 100%"
-          />
-        </el-form-item>
-        <el-form-item label="活动地点">
-          <el-input v-model="form.location" placeholder="请输入活动地点" />
-        </el-form-item>
+
+        <template v-if="isOfflineActivity">
+          <el-form-item label="已批准场地资源" required>
+            <el-select
+              v-model="form.resourceApplicationId"
+              placeholder="请选择本社团已批准的场地资源"
+              style="width: 100%"
+              clearable
+              filterable
+              :loading="bindableResourcesLoading"
+              @change="handleVenueApplicationChange"
+            >
+              <el-option
+                v-for="item in bindableVenueApplications"
+                :key="item.id"
+                :label="formatBindableVenueLabel(item)"
+                :value="item.id"
+              />
+            </el-select>
+            <div class="form-tip">仅展示本社团已批准且当前可绑定的场地资源申请。</div>
+          </el-form-item>
+          <el-form-item label="开始时间">
+            <el-date-picker
+              v-model="form.startTime"
+              type="datetime"
+              disabled
+              style="width: 100%"
+            />
+          </el-form-item>
+          <el-form-item label="结束时间">
+            <el-date-picker
+              v-model="form.endTime"
+              type="datetime"
+              disabled
+              style="width: 100%"
+            />
+          </el-form-item>
+          <el-form-item label="活动地点">
+            <el-input :model-value="form.location || '请选择场地资源'" disabled />
+          </el-form-item>
+        </template>
+
+        <template v-else>
+          <el-form-item label="开始时间">
+            <el-date-picker
+              v-model="form.startTime"
+              type="datetime"
+              placeholder="选择开始时间"
+              style="width: 100%"
+            />
+          </el-form-item>
+          <el-form-item label="结束时间">
+            <el-date-picker
+              v-model="form.endTime"
+              type="datetime"
+              placeholder="选择结束时间"
+              style="width: 100%"
+            />
+          </el-form-item>
+          <el-form-item label="活动地点">
+            <el-input model-value="线上活动" disabled />
+          </el-form-item>
+        </template>
+
         <el-form-item label="封面图片">
           <el-upload
             class="cover-uploader"
@@ -140,57 +208,6 @@
         </span>
       </template>
     </el-dialog>
-
-    <el-dialog v-model="resourceDialogVisible" title="申请活动资源" width="580px">
-      <el-form :model="resourceForm" label-width="92px">
-        <el-form-item label="资源">
-          <el-select
-            v-model="resourceForm.resource.id"
-            placeholder="请选择资源"
-            @change="handleResourceChange"
-            style="width: 100%"
-          >
-            <el-option
-              v-for="item in resources"
-              :key="item.id"
-              :label="item.name + (item.type === 'VENUE' ? ` (${item.location})` : '')"
-              :value="item.id"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="类型" v-if="selectedResource">
-          <el-tag>{{ getResourceTypeLabel(selectedResource.type) }}</el-tag>
-        </el-form-item>
-        <el-form-item label="数量">
-          <el-input-number
-            v-model="resourceForm.quantity"
-            :min="1"
-            :max="selectedResource ? (selectedResource.type === 'VENUE' ? 1 : selectedResource.totalQuantity) : 999"
-          />
-        </el-form-item>
-        <el-form-item label="时间范围">
-          <el-date-picker
-            v-model="resourceTimeRange"
-            type="datetimerange"
-            range-separator="至"
-            start-placeholder="开始时间"
-            end-placeholder="结束时间"
-            disabled
-            style="width: 100%"
-          />
-          <div class="form-tip">时间已锁定为活动时间。</div>
-        </el-form-item>
-        <el-form-item label="备注">
-          <el-input v-model="resourceForm.description" type="textarea" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="resourceDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="submitResourceApply">提交</el-button>
-        </span>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
@@ -202,31 +219,27 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowDown, Plus } from '@element-plus/icons-vue'
 
 const route = useRoute()
-const clubId = route.params.clubId
+const clubId = Number(route.params.clubId)
 
 const activities = ref([])
-const resources = ref([])
 const loading = ref(false)
+const currentPage = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
 const dialogVisible = ref(false)
+const dialogLoading = ref(false)
 const isEdit = ref(false)
 const currentActivityId = ref(null)
 const settlingId = ref(null)
-
-const resourceDialogVisible = ref(false)
-const resourceTimeRange = ref([])
-const resourceForm = ref({
-  club: { id: null },
-  activity: { id: null },
-  resource: { id: null },
-  quantity: 1,
-  description: ''
-})
+const bindableResourcesLoading = ref(false)
+const bindableVenueApplications = ref([])
 
 const form = ref(createDefaultForm())
 
-const selectedResource = computed(() => {
-  return resources.value.find((item) => item.id === resourceForm.value.resource.id)
-})
+const isOfflineActivity = computed(() => form.value.type === 'Offline')
+const selectedVenueApplication = computed(() =>
+  bindableVenueApplications.value.find((item) => item.id === form.value.resourceApplicationId) || null
+)
 
 function createDefaultForm() {
   return {
@@ -241,14 +254,28 @@ function createDefaultForm() {
     coverUrl: '',
     needAttendance: false,
     rewardPoints: 0,
-    clubId: clubId ? Number(clubId) : null
+    clubId,
+    resourceApplicationId: null
   }
 }
+
+const normalizeActivityType = (type) => (type === 'Online' ? 'Online' : 'Offline')
 
 const loadActivities = async () => {
   loading.value = true
   try {
-    activities.value = await axios.get(`/activities/club/${clubId}`)
+    const res = await axios.get(`/activities/club/${clubId}`, {
+      params: {
+        page: currentPage.value - 1,
+        size: pageSize.value
+      }
+    })
+    activities.value = res?.list || []
+    total.value = Number(res?.total || 0)
+    if (currentPage.value > 1 && activities.value.length === 0 && total.value > 0) {
+      currentPage.value -= 1
+      await loadActivities()
+    }
   } catch (error) {
     ElMessage.error(error.message || '获取活动列表失败')
   } finally {
@@ -256,56 +283,140 @@ const loadActivities = async () => {
   }
 }
 
-const loadResources = async () => {
+const fetchBindableVenueApplications = async (activityId = null) => {
+  bindableResourcesLoading.value = true
   try {
-    resources.value = await axios.get('/resources/list')
+    const params = {}
+    if (activityId) {
+      params.activityId = activityId
+    }
+    bindableVenueApplications.value = await axios.get(`/resources/clubs/${clubId}/activity-bindable-applications`, { params })
   } catch (error) {
-    ElMessage.error(error.message || '获取资源列表失败')
+    bindableVenueApplications.value = []
+    ElMessage.error(error.message || '获取可绑定场地资源失败')
+  } finally {
+    bindableResourcesLoading.value = false
   }
 }
 
-const openCreateDialog = () => {
+const syncLocationFromSelection = () => {
+  if (!selectedVenueApplication.value) {
+    form.value.location = ''
+    return
+  }
+
+  form.value.startTime = selectedVenueApplication.value.startTime
+  form.value.endTime = selectedVenueApplication.value.endTime
+  form.value.location = selectedVenueApplication.value.resource?.location || ''
+}
+
+const handleVenueApplicationChange = () => {
+  syncLocationFromSelection()
+}
+
+const handleTypeChange = async () => {
+  if (isOfflineActivity.value) {
+    await fetchBindableVenueApplications(currentActivityId.value)
+    const currentBinding = bindableVenueApplications.value.find((item) => item.activityId === currentActivityId.value)
+    form.value.resourceApplicationId = currentBinding?.id || null
+    syncLocationFromSelection()
+    return
+  }
+
+  form.value.resourceApplicationId = null
+  bindableVenueApplications.value = []
+  form.value.location = ''
+}
+
+const canEditActivity = (activity) => {
+  if (!activity?.startTime) {
+    return false
+  }
+  return new Date(activity.startTime).getTime() > Date.now()
+}
+
+const getEditDisabledReason = (activity) => {
+  return canEditActivity(activity) ? '仅活动开始前可编辑' : '活动开始后不可修改'
+}
+
+const openCreateDialog = async () => {
   isEdit.value = false
   currentActivityId.value = null
   form.value = createDefaultForm()
   dialogVisible.value = true
+  dialogLoading.value = true
+  await fetchBindableVenueApplications()
+  dialogLoading.value = false
 }
 
-const editActivity = (activity) => {
+const editActivity = async (activity) => {
+  if (!canEditActivity(activity)) {
+    ElMessage.warning('活动开始后不可修改')
+    return
+  }
+
   isEdit.value = true
   currentActivityId.value = activity.id
   form.value = {
     title: activity.title,
     description: activity.description,
-    type: activity.type,
+    type: normalizeActivityType(activity.type),
     startTime: activity.startTime,
     endTime: activity.endTime,
-    location: activity.location,
+    location: activity.location || '',
     maxParticipants: activity.maxParticipants,
     checkinCode: activity.checkinCode || '',
     coverUrl: activity.coverUrl,
     needAttendance: Boolean(activity.needAttendance),
     rewardPoints: Number(activity.rewardPoints ?? 0),
-    clubId: clubId ? Number(clubId) : null
+    clubId,
+    resourceApplicationId: null
   }
   dialogVisible.value = true
+  dialogLoading.value = true
+
+  if (isOfflineActivity.value) {
+    await fetchBindableVenueApplications(activity.id)
+    const currentBinding = bindableVenueApplications.value.find((item) => item.activityId === activity.id)
+    form.value.resourceApplicationId = currentBinding?.id || null
+    syncLocationFromSelection()
+  } else {
+    bindableVenueApplications.value = []
+  }
+
+  dialogLoading.value = false
 }
 
 const closeDialog = () => {
   dialogVisible.value = false
+  dialogLoading.value = false
+  bindableResourcesLoading.value = false
+  bindableVenueApplications.value = []
   form.value = createDefaultForm()
 }
 
 const submitActivity = async () => {
-  if (!form.value.title || !form.value.startTime || !form.value.endTime) {
-    ElMessage.warning('请填写完整活动信息')
+  if (!form.value.title) {
+    ElMessage.warning('请填写活动标题')
+    return
+  }
+
+  if (isOfflineActivity.value) {
+    if (!form.value.resourceApplicationId) {
+      ElMessage.warning('线下活动必须选择已批准的场地资源')
+      return
+    }
+  } else if (!form.value.startTime || !form.value.endTime) {
+    ElMessage.warning('请填写完整活动时间')
     return
   }
 
   try {
     const payload = {
       ...form.value,
-      clubId: clubId ? Number(clubId) : form.value.clubId
+      clubId,
+      location: null,
+      resourceApplicationId: isOfflineActivity.value ? form.value.resourceApplicationId : null
     }
 
     if (isEdit.value) {
@@ -317,7 +428,7 @@ const submitActivity = async () => {
     }
 
     closeDialog()
-    loadActivities()
+    await loadActivities()
   } catch (error) {
     ElMessage.error(error.message || (isEdit.value ? '活动修改失败' : '活动发布失败'))
   }
@@ -328,7 +439,7 @@ const settleRewards = async (activity) => {
   try {
     const res = await axios.post(`/activities/${activity.id}/settle-rewards`)
     ElMessage.success(`结算完成，${res.beneficiaryCount || 0} 人，发放 ${res.grantedPointsTotal || 0} 积分`)
-    loadActivities()
+    await loadActivities()
   } catch (error) {
     ElMessage.error(error.message || '奖励结算失败')
   } finally {
@@ -340,9 +451,6 @@ const handleActivityCommand = async (command, activity) => {
   switch (command) {
     case 'export':
       await exportCheckIns(activity.id)
-      break
-    case 'resource':
-      showResourceDialog(activity)
       break
     case 'settle':
       if (activity.status === 'ENDED' && settlingId.value !== activity.id) {
@@ -368,7 +476,7 @@ const deleteActivity = async (id) => {
   try {
     await axios.delete(`/activities/${id}`)
     ElMessage.success('活动删除成功')
-    loadActivities()
+    await loadActivities()
   } catch (error) {
     ElMessage.error(error.message || '活动删除失败')
   }
@@ -406,51 +514,6 @@ const uploadCover = async ({ file }) => {
   }
 }
 
-const showResourceDialog = (activity) => {
-  resourceForm.value = {
-    club: { id: Number(clubId) },
-    activity: { id: activity.id },
-    resource: { id: null },
-    quantity: 1,
-    description: `活动资源申请：${activity.title}`
-  }
-  resourceTimeRange.value = [activity.startTime, activity.endTime]
-  loadResources()
-  resourceDialogVisible.value = true
-}
-
-const handleResourceChange = () => {
-  if (selectedResource.value?.type === 'VENUE') {
-    resourceForm.value.quantity = 1
-  }
-}
-
-const submitResourceApply = async () => {
-  if (!resourceForm.value.resource.id) {
-    ElMessage.warning('请选择资源')
-    return
-  }
-  if (!resourceTimeRange.value || resourceTimeRange.value.length !== 2) {
-    ElMessage.warning('活动时间缺失')
-    return
-  }
-
-  try {
-    await axios.post('/resources/applications', {
-      ...resourceForm.value,
-      clubId: Number(clubId),
-      resourceId: resourceForm.value.resource.id,
-      activityId: resourceForm.value.activity.id,
-      startTime: resourceTimeRange.value[0],
-      endTime: resourceTimeRange.value[1]
-    })
-    ElMessage.success('资源申请提交成功')
-    resourceDialogVisible.value = false
-  } catch (error) {
-    ElMessage.error(error.message || '资源申请提交失败')
-  }
-}
-
 const exportCheckIns = async (activityId) => {
   try {
     const res = await axios.get(`/activities/${activityId}/checkins/export`, {
@@ -466,12 +529,6 @@ const exportCheckIns = async (activityId) => {
   } catch (error) {
     ElMessage.error(error.message || '签到导出失败')
   }
-}
-
-const getResourceTypeLabel = (type) => {
-  if (type === 'VENUE') return '场地'
-  if (type === 'MATERIAL') return '物资'
-  return type
 }
 
 const getSettlementLabel = (status) => {
@@ -494,9 +551,20 @@ const formatDate = (dateStr) => {
   return new Date(dateStr).toLocaleString()
 }
 
+const formatBindableVenueLabel = (application) => {
+  const resourceName = application?.resource?.name || '未命名场地'
+  const location = application?.resource?.location || '地点待定'
+  return `${resourceName} (${location})`
+}
+
+const handleSizeChange = (size) => {
+  pageSize.value = size
+  currentPage.value = 1
+  loadActivities()
+}
+
 onMounted(() => {
   loadActivities()
-  loadResources()
 })
 </script>
 
@@ -521,6 +589,12 @@ onMounted(() => {
 
 .table-shell {
   width: 100%;
+}
+
+.pagination-wrapper {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .table-panel {
@@ -558,7 +632,6 @@ onMounted(() => {
 .more-btn {
   border-color: rgba(14, 55, 94, 0.16);
 }
-
 
 :deep(.row-btn.el-button--small) {
   padding: 6px 8px;

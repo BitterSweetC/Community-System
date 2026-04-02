@@ -428,7 +428,7 @@ const cancelDissolve = async (clubId) => {
       type: 'info'
     })
 
-    await axios.post(`/clubs/${clubId}/cancel-dissolve`)
+    await axios.post(`/clubs/${clubId}/dissolve/withdraw`)
     ElMessage.success('已撤销解散申请')
 
     const res = await axios.get('/clubs/my')
@@ -450,7 +450,8 @@ const handleResize = () => {
 
 <style scoped>
 .club-admin-dashboard {
-  padding: 4px 0 8px;
+  padding: 4px 0 10px;
+  color: var(--text-main, #14314a);
 }
 
 .dashboard-head {
@@ -458,12 +459,12 @@ const handleResize = () => {
   justify-content: space-between;
   align-items: flex-start;
   gap: 12px;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 
 .welcome-text {
-  margin: 6px 0 0;
-  color: #5f7289;
+  margin: 8px 0 0;
+  color: var(--text-muted, #5f7289);
 }
 
 .head-pill {
@@ -473,11 +474,14 @@ const handleResize = () => {
 .dashboard-grid {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 20px;
 }
 
 .todo-overview-card {
-  border-radius: 14px;
+  border-radius: 16px;
+  border: 1px solid var(--panel-border, rgba(14, 55, 94, 0.14));
+  background: var(--panel-bg, rgba(255, 255, 255, 0.84));
+  box-shadow: var(--panel-shadow, 0 14px 34px rgba(17, 46, 77, 0.1));
 }
 
 .todo-head {
@@ -489,18 +493,19 @@ const handleResize = () => {
 
 .todo-subtext {
   margin: 6px 0 0;
-  color: #60748c;
+  color: var(--text-muted, #60748c);
 }
 
 .todo-summary-row {
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 
 .todo-summary-box {
-  min-height: 90px;
+  min-height: 92px;
   border-radius: 12px;
   padding: 16px;
-  background: linear-gradient(135deg, rgba(29, 95, 159, 0.12), rgba(35, 160, 137, 0.08));
+  border: 1px solid rgba(20, 83, 138, 0.1);
+  background: linear-gradient(135deg, var(--accent-soft, rgba(29, 95, 159, 0.12)), rgba(255, 255, 255, 0.28));
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -508,12 +513,12 @@ const handleResize = () => {
 }
 
 .todo-summary-label {
-  color: #5f7289;
+  color: var(--text-muted, #5f7289);
 }
 
 .todo-summary-value {
-  font-size: 26px;
-  color: #173551;
+  font-size: clamp(1.4rem, 2.5vw, 1.8rem);
+  color: var(--text-main, #173551);
 }
 
 .todo-preview-list {
@@ -524,9 +529,9 @@ const handleResize = () => {
 
 .todo-preview-item {
   width: 100%;
-  border: 1px solid rgba(16, 63, 105, 0.12);
+  border: 1px solid var(--panel-border, rgba(16, 63, 105, 0.14));
   border-radius: 12px;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.92);
   padding: 14px 16px;
   text-align: left;
   cursor: pointer;
@@ -538,37 +543,38 @@ const handleResize = () => {
 
 .todo-preview-item:hover {
   transform: translateY(-2px);
-  border-color: rgba(29, 95, 159, 0.28);
+  border-color: rgba(29, 95, 159, 0.34);
   box-shadow: 0 8px 18px rgba(15, 61, 104, 0.1);
 }
 
 .todo-preview-title {
   font-weight: 600;
-  color: #183650;
+  color: var(--text-main, #183650);
 }
 
 .todo-preview-meta {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #60748c;
+  color: var(--text-muted, #60748c);
 }
 
 .my-clubs-section {
   display: grid;
-  gap: 18px;
+  gap: 16px;
 }
 
 .section-title {
   margin: 0;
-  font-size: 1.02rem;
-  color: #1d3750;
+  font-size: 1.14rem;
+  color: var(--text-main, #1d3750);
+  letter-spacing: 0.01em;
 }
 
 .club-dashboard-card {
   cursor: pointer;
   border: 2px solid transparent;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
   min-height: 162px;
 }
 
@@ -578,8 +584,8 @@ const handleResize = () => {
 }
 
 .active-card {
-  border-color: #1f76b6;
-  background: linear-gradient(180deg, rgba(31, 118, 182, 0.08), rgba(31, 118, 182, 0.02));
+  border-color: var(--accent, #1f76b6);
+  background: linear-gradient(180deg, var(--accent-soft, rgba(31, 118, 182, 0.12)), rgba(255, 255, 255, 0.14));
 }
 
 .card-header {
@@ -595,10 +601,14 @@ const handleResize = () => {
 }
 
 .stats-section {
-  margin-top: 6px;
+  margin-top: 2px;
   padding: 18px 18px 16px;
   display: grid;
   gap: 16px;
+  border: 1px solid var(--panel-border, rgba(14, 55, 94, 0.14));
+  border-radius: 16px;
+  background: var(--panel-bg, rgba(255, 255, 255, 0.84));
+  box-shadow: var(--panel-shadow, 0 14px 34px rgba(17, 46, 77, 0.1));
 }
 
 .stats-section .section-title {
@@ -612,18 +622,20 @@ const handleResize = () => {
 
 .stats-card :deep(.el-card__header) {
   font-weight: 600;
-  color: #3a5168;
+  color: var(--text-muted, #3a5168);
+  background: linear-gradient(180deg, #f7fbff 0%, #eef5fd 100%);
+  border-bottom: 1px solid rgba(17, 64, 106, 0.1);
 }
 
 .stats-value {
-  font-size: 24px;
+  font-size: clamp(1.65rem, 2.8vw, 2rem);
   font-weight: 700;
   text-align: center;
-  color: #20384f;
+  color: var(--text-main, #20384f);
 }
 
 .text-primary {
-  color: #1f76b6;
+  color: var(--accent, #1f76b6);
 }
 
 .text-info {
@@ -634,10 +646,94 @@ const handleResize = () => {
   padding-top: 10px;
 }
 
+.chart-card {
+  border: 1px solid var(--panel-border, rgba(14, 55, 94, 0.14));
+  border-radius: 14px;
+  box-shadow: var(--panel-shadow, 0 14px 34px rgba(17, 46, 77, 0.1));
+}
+
+.chart-card :deep(.el-card__header) {
+  background: linear-gradient(180deg, #f7fbff 0%, #eef5fd 100%);
+  color: var(--text-main, #123b61);
+  font-weight: 600;
+}
+
 .no-clubs {
   display: flex;
   justify-content: center;
   padding: 30px 0;
+}
+
+/* Light-gray dashboard visual alignment */
+.dashboard-head {
+  margin-bottom: 18px;
+}
+
+.todo-overview-card {
+  border-radius: 12px;
+  border: 1px solid var(--panel-border, #e5e7eb);
+  background: var(--panel-bg, #fff);
+  box-shadow: var(--panel-shadow, 0 2px 8px rgba(17, 24, 39, 0.06));
+}
+
+.todo-summary-box {
+  min-height: 88px;
+  border: 1px solid var(--panel-border, #e5e7eb);
+  background: #f9fafb;
+}
+
+.todo-preview-item {
+  border: 1px solid var(--panel-border, #e5e7eb);
+  background: #fff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.todo-preview-item:hover {
+  transform: none;
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 8px rgba(17, 24, 39, 0.08);
+}
+
+.club-dashboard-card {
+  border: 1px solid var(--panel-border, #e5e7eb);
+  border-radius: 12px;
+  min-height: 156px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.club-dashboard-card:hover {
+  transform: none;
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 8px rgba(17, 24, 39, 0.08);
+}
+
+.active-card {
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
+
+.stats-section {
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--panel-border, #e5e7eb);
+  background: var(--panel-bg, #fff);
+  box-shadow: var(--panel-shadow, 0 2px 8px rgba(17, 24, 39, 0.06));
+}
+
+.stats-card :deep(.el-card__header) {
+  background: #f9fafb;
+  border-bottom: 1px solid var(--panel-border, #e5e7eb);
+}
+
+.chart-card {
+  border: 1px solid var(--panel-border, #e5e7eb);
+  border-radius: 12px;
+  box-shadow: var(--panel-shadow, 0 2px 8px rgba(17, 24, 39, 0.06));
+}
+
+.chart-card :deep(.el-card__header) {
+  background: #f9fafb;
+  color: var(--text-main, #111827);
 }
 
 @media (max-width: 980px) {
@@ -652,6 +748,20 @@ const handleResize = () => {
     max-width: 100%;
     flex: 0 0 100%;
     margin-bottom: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .todo-preview-item,
+  .club-dashboard-card,
+  .stats-card,
+  .chart-card {
+    transition: none !important;
+  }
+
+  .todo-preview-item:hover,
+  .club-dashboard-card:hover {
+    transform: none !important;
   }
 }
 </style>

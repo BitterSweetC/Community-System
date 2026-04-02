@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Page;
 
 @Service
 @RequiredArgsConstructor
@@ -49,16 +50,19 @@ public class ClubServiceImpl implements ClubService {
         club.setCreatedBy(userId);
         club.setStatus("PENDING");
         Club savedClub = clubRepository.save(club);
-        
-        // Add creator as member (PRESIDENT)
-        addMember(savedClub.getId(), userId, "PRESIDENT");
-        
+
+        // Clean up legacy CLUB_ADMIN leakage for users who only submitted pending
+        // clubs.
+        checkAndRemoveClubAdminRole(userId);
+
         return savedClub;
     }
 
     @Override
     public List<Club> getAllClubs() {
-        return clubRepository.findAll();
+        List<Club> clubs = clubRepository.findAll();
+        populateClubStats(clubs);
+        return clubs;
     }
 
     @Override
@@ -79,7 +83,7 @@ public class ClubServiceImpl implements ClubService {
     public Club getClubById(Long id) {
         clubRepository.incrementVisitCount(id);
         Club club = clubRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Club not found"));
+                .orElseThrow(() -> new RuntimeException("未发现社团"));
         populateClubStats(club);
         return club;
     }
@@ -99,7 +103,8 @@ public class ClubServiceImpl implements ClubService {
                         orderedClubs.add(clubMap.get(id));
                     }
                 }
-                if (!orderedClubs.isEmpty()) return orderedClubs;
+                if (!orderedClubs.isEmpty())
+                    return orderedClubs;
             }
         } catch (Exception e) {
             // Continue to fallback strategies if AI recommendation fails
@@ -113,7 +118,7 @@ public class ClubServiceImpl implements ClubService {
                 List<String> interests = Arrays.asList(user.getInterests().split("[,\\uFF0C\\s]+"));
                 // Filter empty strings
                 interests = interests.stream().filter(s -> !s.trim().isEmpty()).collect(Collectors.toList());
-                
+
                 if (!interests.isEmpty()) {
                     List<Club> byInterest = clubRepository.findByInterests("ACTIVE", interests);
                     if (!byInterest.isEmpty()) {
@@ -122,18 +127,18 @@ public class ClubServiceImpl implements ClubService {
                 }
             }
         }
-        
+
         // 2. Fallback to popular (top 10 by visit count)
-        List<Club> popular = clubRepository.findByStatus("ACTIVE", 
-            PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "visitCount"))).getContent();
-            
+        List<Club> popular = clubRepository.findByStatus("ACTIVE",
+                PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "visitCount"))).getContent();
+
         if (!popular.isEmpty()) {
             return popular;
         }
-        
+
         // 3. Last resort: Just return newest active clubs
-        return clubRepository.findByStatus("ACTIVE", 
-            PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "createTime"))).getContent();
+        return clubRepository.findByStatus("ACTIVE",
+                PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "createdAt"))).getContent();
     }
 
     @Override
@@ -158,34 +163,43 @@ public class ClubServiceImpl implements ClubService {
 
     @Override
     public List<Club> searchClubs(String keyword) {
-        return clubRepository.findByNameContainingIgnoreCase(keyword);
+        List<Club> clubs = clubRepository.findByNameContainingIgnoreCase(keyword);
+        populateClubStats(clubs);
+        return clubs;
     }
 
     @Override
     public List<Club> searchClubs(String keyword, String category) {
+        List<Club> clubs;
         if (keyword != null && !keyword.isEmpty() && category != null && !category.isEmpty()) {
-            return clubRepository.findByNameContainingIgnoreCaseAndCategoryAndStatus(keyword, category, "ACTIVE");
+            clubs = clubRepository.findByNameContainingIgnoreCaseAndCategoryAndStatus(keyword, category, "ACTIVE");
         } else if (keyword != null && !keyword.isEmpty()) {
-            return clubRepository.findByNameContainingIgnoreCaseAndStatus(keyword, "ACTIVE");
+            clubs = clubRepository.findByNameContainingIgnoreCaseAndStatus(keyword, "ACTIVE");
         } else if (category != null && !category.isEmpty()) {
-            return clubRepository.findByCategoryAndStatus(category, "ACTIVE");
+            clubs = clubRepository.findByCategoryAndStatus(category, "ACTIVE");
         } else {
-            return clubRepository.findByStatus("ACTIVE");
+            clubs = clubRepository.findByStatus("ACTIVE");
         }
+        populateClubStats(clubs);
+        return clubs;
     }
 
     @Override
     public org.springframework.data.domain.Page<Club> searchClubs(String keyword, String category, int page, int size) {
         org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
+        org.springframework.data.domain.Page<Club> result;
         if (keyword != null && !keyword.isEmpty() && category != null && !category.isEmpty()) {
-            return clubRepository.findByNameContainingIgnoreCaseAndCategoryAndStatus(keyword, category, "ACTIVE", pageable);
+            result = clubRepository.findByNameContainingIgnoreCaseAndCategoryAndStatus(keyword, category, "ACTIVE",
+                    pageable);
         } else if (keyword != null && !keyword.isEmpty()) {
-            return clubRepository.findByNameContainingIgnoreCaseAndStatus(keyword, "ACTIVE", pageable);
+            result = clubRepository.findByNameContainingIgnoreCaseAndStatus(keyword, "ACTIVE", pageable);
         } else if (category != null && !category.isEmpty()) {
-            return clubRepository.findByCategoryAndStatus(category, "ACTIVE", pageable);
+            result = clubRepository.findByCategoryAndStatus(category, "ACTIVE", pageable);
         } else {
-            return clubRepository.findByStatus("ACTIVE", pageable);
+            result = clubRepository.findByStatus("ACTIVE", pageable);
         }
+        populateClubStats(result.getContent());
+        return result;
     }
 
     @Override
@@ -194,8 +208,20 @@ public class ClubServiceImpl implements ClubService {
     }
 
     @Override
+    public org.springframework.data.domain.Page<Club> getPendingClubs(int page, int size) {
+        return clubRepository.findByStatus("PENDING",
+                PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt")));
+    }
+
+    @Override
     public List<Club> getDissolvingClubs() {
         return clubRepository.findByStatus("DISSOLVING");
+    }
+
+    @Override
+    public org.springframework.data.domain.Page<Club> getDissolvingClubs(int page, int size) {
+        return clubRepository.findByStatus("DISSOLVING",
+                PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt")));
     }
 
     @Override
@@ -208,11 +234,13 @@ public class ClubServiceImpl implements ClubService {
     @Transactional
     public void approveClub(Long clubId) {
         Club club = clubRepository.findByIdForUpdate(clubId)
-                .orElseThrow(() -> new RuntimeException("Club not found"));
+                .orElseThrow(() -> new RuntimeException("未找到社团"));
         club.setStatus(Club.STATUS_ACTIVE);
         clubRepository.save(club);
 
-        // Re-check managers and presidents after dissolution/recovery.
+        ensureCreatorMembershipAfterApproval(club);
+
+        // Grant CLUB_ADMIN only after the club becomes ACTIVE.
         List<Member> members = memberRepository.findByClubId(clubId);
         members.stream()
                 .filter(m -> "MANAGER".equals(m.getRoleCode()) || "PRESIDENT".equals(m.getRoleCode()))
@@ -222,10 +250,11 @@ public class ClubServiceImpl implements ClubService {
         try {
             NotificationMessageDTO message = new NotificationMessageDTO();
             message.setUserId(club.getCreatedBy());
-            message.setTitle("Club Creation Approved");
-            message.setContent("Your club creation application for " + club.getName() + " has been approved!");
+            message.setTitle("社团创建审批通过");
+            message.setContent("您的社团 " + club.getName() + " 已通过审批！");
             message.setType("SYSTEM");
-            rabbitTemplate.convertAndSend(RabbitConstants.NOTIFICATION_EXCHANGE, RabbitConstants.COMMON_NOTIFICATION_ROUTING_KEY, message);
+            rabbitTemplate.convertAndSend(RabbitConstants.NOTIFICATION_EXCHANGE,
+                    RabbitConstants.COMMON_NOTIFICATION_ROUTING_KEY, message);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -236,14 +265,14 @@ public class ClubServiceImpl implements ClubService {
     public void addMember(Long clubId, Long userId, String role) {
         // Lock club to serialize member additions
         Club club = clubRepository.findByIdForUpdate(clubId)
-                .orElseThrow(() -> new RuntimeException("Club not found"));
+                .orElseThrow(() -> new RuntimeException("未找到社团"));
 
         if (memberRepository.findByClubIdAndUserId(clubId, userId).isPresent()) {
             throw new BusinessException(40921, "该用户已是社团成员，请勿重复添加");
         }
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new RuntimeException("未找到用户"));
 
         Member member = new Member();
         member.setClub(club);
@@ -265,6 +294,39 @@ public class ClubServiceImpl implements ClubService {
         return memberRepository.findByClubId(clubId);
     }
 
+    @Override
+    public Page<Member> getClubMembers(Long clubId, int page, int size) {
+        return memberRepository.findByClubIdOrderByJoinAtDesc(clubId, PageRequest.of(page, size));
+    }
+
+    private void ensureCreatorMembershipAfterApproval(Club club) {
+        if (club == null || club.getId() == null || club.getCreatedBy() == null) {
+            return;
+        }
+
+        User creator = userRepository.findById(club.getCreatedBy())
+                .orElseThrow(() -> new RuntimeException("未找到用户"));
+
+        Member creatorMember = memberRepository.findByClubIdAndUserIdForUpdate(club.getId(), creator.getId())
+                .orElse(null);
+
+        if (creatorMember == null) {
+            creatorMember = new Member();
+            creatorMember.setClub(club);
+            creatorMember.setUser(creator);
+            creatorMember.setJoinAt(LocalDateTime.now());
+        }
+
+        creatorMember.setClub(club);
+        creatorMember.setUser(creator);
+        creatorMember.setRoleCode("PRESIDENT");
+        creatorMember.setStatus("ACTIVE");
+        if (creatorMember.getJoinAt() == null) {
+            creatorMember.setJoinAt(LocalDateTime.now());
+        }
+        memberRepository.save(creatorMember);
+    }
+
     private static final Set<String> VALID_ROLES = Set.of("PRESIDENT", "MANAGER", "MEMBER");
 
     @Override
@@ -274,14 +336,14 @@ public class ClubServiceImpl implements ClubService {
             throw new RuntimeException("Invalid role. Allowed values: " + VALID_ROLES);
         }
         Member member = memberRepository.findByClubIdAndUserId(clubId, userId)
-                .orElseThrow(() -> new RuntimeException("Member not found"));
+                .orElseThrow(() -> new RuntimeException("未找到成员"));
         member.setRoleCode(role);
         memberRepository.save(member);
 
         // Grant CLUB_ADMIN for PRESIDENT/MANAGER roles.
         if ("MANAGER".equals(role) || "PRESIDENT".equals(role)) {
             User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
+                    .orElseThrow(() -> new RuntimeException("未找到用户"));
             grantClubAdminRole(user);
         } else if ("MEMBER".equals(role)) {
             // Re-check whether CLUB_ADMIN should be removed.
@@ -293,7 +355,7 @@ public class ClubServiceImpl implements ClubService {
     @Transactional
     public void removeMember(Long clubId, Long userId) {
         Member member = memberRepository.findByClubIdAndUserId(clubId, userId)
-                .orElseThrow(() -> new RuntimeException("Member not found"));
+                .orElseThrow(() -> new RuntimeException("未找到成员"));
         // SRS FR-MEMBER-05: status change record traceable. We mark as LEFT/REMOVED.
         member.setStatus("LEFT");
         memberRepository.save(member);
@@ -307,17 +369,18 @@ public class ClubServiceImpl implements ClubService {
     public void applyDissolution(Long clubId, Long userId, String reason) {
         // Lock club to ensure consistent state check
         Club club = clubRepository.findByIdForUpdate(clubId)
-                .orElseThrow(() -> new RuntimeException("Club not found"));
+                .orElseThrow(() -> new RuntimeException("未找到社团"));
 
         if (financeService.hasPendingTransactions(clubId)) {
-            throw new RuntimeException("Cannot dissolve: Pending financial transactions");
+            throw new RuntimeException("无法解散：存在未结算的财务交易");
         }
 
         // Check for active activities
-        // Assuming statuses: PUBLISHED, ONGOING, SIGNUP. Adjust as per actual Activity statuses if known.
+        // Assuming statuses: PUBLISHED, ONGOING, SIGNUP. Adjust as per actual Activity
+        // statuses if known.
         // Based on common sense, these are likely candidates.
         if (activityRepository.existsByClubIdAndStatusIn(clubId, Arrays.asList("PUBLISHED", "ONGOING", "SIGNUP"))) {
-            throw new RuntimeException("Cannot dissolve: Ongoing activities exist");
+            throw new RuntimeException("无法解散：存在进行中的活动");
         }
 
         club.setStatus(Club.STATUS_DISSOLVING);
@@ -325,15 +388,15 @@ public class ClubServiceImpl implements ClubService {
         club.setDissolutionDate(LocalDateTime.now());
         clubRepository.save(club);
 
-        notificationService.notifyClubMembers(clubId, "Club Dissolution Notice", 
-                "The club is entering dissolution cooling-off period (7 days). Reason: " + reason);
+        notificationService.notifyClubMembers(clubId, "社团解散通知",
+                "社团进入解散冷却期. 原因: " + reason);
     }
 
     @Override
     @Transactional
     public void withdrawDissolution(Long clubId, Long userId) {
         Club club = clubRepository.findByIdForUpdate(clubId)
-                .orElseThrow(() -> new RuntimeException("Club not found"));
+                .orElseThrow(() -> new RuntimeException("未找到社团"));
         if (!Club.STATUS_DISSOLVING.equals(club.getStatus())) {
             throw new BusinessException(40922, "社团当前不在解散流程中");
         }
@@ -343,14 +406,15 @@ public class ClubServiceImpl implements ClubService {
         club.setDissolutionDate(null);
         clubRepository.save(club);
 
-        notificationService.notifyClubMembers(clubId, "Dissolution Withdrawn", "The dissolution request has been withdrawn.");
+        notificationService.notifyClubMembers(clubId, "解散申请已撤回",
+                "解散申请已撤回。");
     }
 
     @Override
     @Transactional
     public void approveDissolution(Long clubId, Long adminId) {
         Club club = clubRepository.findByIdForUpdate(clubId)
-                .orElseThrow(() -> new RuntimeException("Club not found"));
+                .orElseThrow(() -> new RuntimeException("未找到社团"));
         if (!Club.STATUS_DISSOLVING.equals(club.getStatus())) {
             throw new BusinessException(40922, "社团当前不在解散流程中");
         }
@@ -371,7 +435,7 @@ public class ClubServiceImpl implements ClubService {
     @Transactional
     public void rejectDissolution(Long clubId, Long adminId) {
         Club club = clubRepository.findByIdForUpdate(clubId)
-                .orElseThrow(() -> new RuntimeException("Club not found"));
+                .orElseThrow(() -> new RuntimeException("未找到社团"));
         if (!Club.STATUS_DISSOLVING.equals(club.getStatus())) {
             throw new BusinessException(40922, "社团当前不在解散流程中");
         }
@@ -385,13 +449,14 @@ public class ClubServiceImpl implements ClubService {
     @Transactional
     public void forceDissolve(Long clubId, Long adminId, String reason) {
         Club club = clubRepository.findByIdForUpdate(clubId)
-                .orElseThrow(() -> new RuntimeException("Club not found"));
+                .orElseThrow(() -> new RuntimeException("未找到社团"));
         club.setStatus(Club.STATUS_DISSOLVED);
         club.setDissolutionReason("Forced by Admin: " + reason);
         club.setDissolutionDate(LocalDateTime.now());
         clubRepository.save(club);
 
-        notificationService.notifyClubMembers(clubId, "Club Dissolved", "The club has been dissolved by system administrator. Reason: " + reason);
+        notificationService.notifyClubMembers(clubId, "社团已解散",
+                "社团已被系统管理员解散。原因: " + reason);
 
         // Re-check managers and presidents after dissolution/recovery.
         List<Member> members = memberRepository.findByClubId(clubId);
@@ -404,9 +469,9 @@ public class ClubServiceImpl implements ClubService {
     @Transactional
     public void recoverClub(Long clubId, Long adminId) {
         Club club = clubRepository.findByIdForUpdate(clubId)
-                .orElseThrow(() -> new RuntimeException("Club not found"));
+                .orElseThrow(() -> new RuntimeException("未找到社团"));
         if (!Club.STATUS_DISSOLVED.equals(club.getStatus())) {
-             throw new BusinessException(40923, "社团当前不是已解散状态，无法恢复");
+            throw new BusinessException(40923, "社团当前不是已解散状态，无法恢复");
         }
         club.setStatus(Club.STATUS_ACTIVE);
         club.setDissolutionReason(null);
@@ -420,7 +485,8 @@ public class ClubServiceImpl implements ClubService {
                 .forEach(m -> grantClubAdminRole(m.getUser()));
     }
 
-    // Preserve USER role when promoting to CLUB_ADMIN so users retain student capabilities.
+    // Preserve USER role when promoting to CLUB_ADMIN so users retain student
+    // capabilities.
     private void grantClubAdminRole(User user) {
         if (user == null || user.getId() == null) {
             return;
@@ -485,16 +551,36 @@ public class ClubServiceImpl implements ClubService {
     }
 
     private void populateClubStats(Club club) {
-        if (club == null) return;
-        club.setMemberCount(memberRepository.countByClubId(club.getId()));
+        if (club == null)
+            return;
+        List<Member> members = memberRepository.findByClubId(club.getId());
+        club.setMemberCount(members.stream()
+                .filter(member -> "ACTIVE".equals(member.getStatus()))
+                .count());
         club.setActivityCount(activityRepository.countByClubId(club.getId()));
+        club.setPresidentName(members.stream()
+                .filter(member -> "ACTIVE".equals(member.getStatus()))
+                .filter(member -> "PRESIDENT".equals(member.getRoleCode()))
+                .map(Member::getUser)
+                .filter(java.util.Objects::nonNull)
+                .map(user -> user.getRealName() != null && !user.getRealName().isBlank() ? user.getRealName()
+                        : user.getUsername())
+                .findFirst()
+                .orElse(null));
+    }
+
+    private void populateClubStats(List<Club> clubs) {
+        if (clubs == null || clubs.isEmpty()) {
+            return;
+        }
+        clubs.forEach(this::populateClubStats);
     }
 
     @Override
     @Transactional
     public int cleanupOrphanedClubAdminRoles() {
         Role clubAdminRole = roleRepository.findByCode("CLUB_ADMIN")
-                .orElseThrow(() -> new RuntimeException("Role CLUB_ADMIN not found"));
+                .orElseThrow(() -> new RuntimeException("未找到角色社团管理员"));
         Role userRole = roleRepository.findByCode("USER").orElse(null);
 
         List<User> usersWithClubAdmin = userRepository.findAll().stream()
@@ -544,4 +630,3 @@ public class ClubServiceImpl implements ClubService {
         return count;
     }
 }
-

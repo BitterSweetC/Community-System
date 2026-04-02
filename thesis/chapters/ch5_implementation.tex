@@ -339,38 +339,15 @@ public void approveClub(Long clubId) {
   \item \textbf{申请阶段}：社长提交解散申请，填写解散原因，社团状态变更为 \texttt{DISSOLVING}；
   \item \textbf{冷静期}：系统设置 7 天冷静期，期间社长可以撤回解散申请；
   \item \textbf{审批阶段}：冷静期结束后或社长确认解散，提交给系统管理员审批；
-  \item \textbf{完成阶段}：管理员审批通过后，社团状态变更为 \texttt{DISSOLVED}，所有成员的 \texttt{CLUB\_ADMIN} 角色被移除。
+  \item \textbf{完成阶段}：管理员审批通过后，社团状态变更为 \texttt{DISSOLVED}；
+  同时移除所有成员的 \texttt{CLUB\_ADMIN} 角色。
 \end{enumerate}
 
 这里补充说明两点实现细节：其一，“管理员删除社团”接口复用了强制解散逻辑，因此删除后的社团记录仍可被查询，但状态会变为 \texttt{DISSOLVED}；其二，成员移除与用户退社采用软删除策略，通过将 \texttt{t\_member.status} 标记为 \texttt{LEFT} 保留历史成员关系，便于审计追踪与统计分析。
 
 \begin{figure}[H]
 \centering
-\begin{tikzpicture}[
-  state/.style={draw, rectangle, rounded corners, minimum width=2.2cm, minimum height=0.8cm, align=center, font=\small},
-  arr/.style={-Stealth, thick},
-  lab/.style={font=\tiny, fill=white, inner sep=1pt}
-]
-\node[state, fill=yellow!20] (pending) at (0,0) {PENDING};
-\node[state, fill=green!20] (active) at (4.6,0) {ACTIVE};
-\node[state, fill=orange!20] (dissolving) at (9.2,0) {DISSOLVING};
-\node[state, fill=red!20] (dissolved) at (13.8,0) {DISSOLVED};
-
-\draw[arr] (pending) -- (active);
-\node[lab] at (2.3,0.42) {管理员审批通过};
-
-\draw[arr] (active) -- (dissolving);
-\node[lab] at (6.9,0.42) {申请解散};
-
-\draw[arr] (dissolving) -- (dissolved);
-\node[lab] at (11.5,0.42) {通过解散审批 / 冷静期结束};
-
-\draw[arr] (dissolving.south) .. controls (9.2,-1.5) and (5.0,-1.5) .. (active.south);
-\node[lab] at (7.1,-1.25) {撤回 / 驳回};
-
-\draw[arr] (dissolved.south) .. controls (13.8,-2.4) and (5.4,-2.4) .. (active.south east);
-\node[lab] at (10.0,-2.1) {恢复社团};
-\end{tikzpicture}
+\includegraphics[width=0.95\textwidth]{chapters/figures/club-state-handdrawn.png}
 \caption{社团状态流转实现}
 \label{fig:club-state}
 \end{figure}
@@ -620,15 +597,91 @@ Map<String, Object> payload = Map.of(
 messagingTemplate.convertAndSend(“/topic/activity/” + activityId + “/checkin”, payload);
 \end{lstlisting}
 
-WebSocket 实时广播的实现基于 STOMP 协议，前端通过订阅特定主题（\texttt{/topic/activity/\{id\}/checkin}）接收服务器推送的消息。这种实时通信机制使得活动管理员可以实时看到签到人数的变化，无需手动刷新页面。
+WebSocket 实时广播的实现基于 STOMP 协议，前端通过订阅特定主题（\path{/topic/activity/\{id\}/checkin}）接收服务器推送的消息。这种实时通信机制使得活动管理员可以实时看到签到人数的变化，无需手动刷新页面。
 
-\subsubsection{活动奖励结算与成员积分档案}
+\subsubsection{活动奖励结算实现}
 
-在活动模块之外，系统还将成员激励能力收敛到社团成员关系中实现。其核心数据结构不是单独维护“全站积分账户”，而是直接在 \texttt{t\_member} 表中保存成员在该社团内的当前积分，并以 \texttt{t\_member\_point\_record} 记录每次增减流水、来源类型、来源业务单据、操作人和结算后余额。这样既能满足成员档案页对当前积分与流水记录的联合展示，也能保证积分口径天然受社团边界约束。
+活动奖励结算直接复用社团成员积分模型。其中，\texttt{t\_member} 记录成员在当前社团下的积分余额，\texttt{t\_member\_point\_record} 记录积分增减流水。结算入口为 \path{/activities/\{id\}/settle-rewards}。其实现重点不是额外设计独立账户体系，而是基于同一套成员积分与流水数据完成可回滚、可重算的奖励校正。
 
-活动奖励结算由 \texttt{MemberArchiveServiceImpl} 统一处理。活动创建和编辑阶段可配置 \texttt{reward\_points}、\texttt{need\_attendance}、\texttt{settlement\_status} 与 \texttt{settled\_at} 等字段；当活动状态已变为 \texttt{ENDED} 后，社团管理员可在活动管理页调用 \texttt{/activities/\{id\}/settle-rewards} 发起结算。若活动要求签到，则以签到记录作为奖励对象；否则以未取消报名记录作为奖励对象。结算过程会先锁定活动与相关成员记录，再根据旧流水回滚历史发放结果，最后按最新口径重建积分流水，因此前端看到的“重新结算”并不是简单追加积分，而是一次可重算的校正过程。
+\begin{enumerate}
+  \item \textbf{结算前提}：活动状态需已变为 \texttt{ENDED}，并结合 \texttt{reward\_points}、\texttt{need\_attendance} 等配置确定本次结算口径；
 
-除活动自动奖励外，系统也保留了面向社团管理员的人工调分接口 \texttt{/clubs/\{id\}/members/\{userId\}/points/adjust}，用来处理补录、纠错等小规模运营场景。为避免异常数据扩散，服务层在调分和重算时都会校验成员积分结果不得为负数；若重算后出现负值风险，则直接拒绝本次操作并提示先处理历史流水。由此，活动结算、人工调整与成员档案查询被统一纳入同一套成员激励模型中。
+  \item \textbf{奖励对象选择}：若活动要求签到，则以签到记录中的成员作为奖励对象；否则以未取消的报名记录作为奖励对象；
+
+  \item \textbf{重算步骤}：服务层先锁定活动与相关成员记录，再删除该活动既有积分流水，最后按最新奖励对象重建成员余额与奖励流水。
+\end{enumerate}
+
+\begin{lstlisting}[language=Java, caption=活动奖励对象选择与积分重算（节选）]
+private List<Long> resolveRecipientIds(Activity activity) {
+    if (Boolean.TRUE.equals(activity.getNeedAttendance())) {
+        return activityAttendanceRepository.findByActivityId(activity.getId()).stream()
+            .map(ActivityAttendance::getUser)
+            .filter(user -> user != null && user.getId() != null)
+            .map(User::getId)
+            .distinct()
+            .sorted()
+            .toList();
+    }
+    return activitySignupRepository.findByActivityId(activity.getId()).stream()
+        .filter(signup -> !"CANCELLED".equalsIgnoreCase(signup.getStatus()))
+        .map(ActivitySignup::getUser)
+        .filter(user -> user != null && user.getId() != null)
+        .map(User::getId)
+        .distinct()
+        .sorted()
+        .toList();
+}
+
+List<Long> recipientIds = resolveRecipientIds(activity);
+memberPointRecordRepository.deleteAll(existingPointRecords);
+
+for (Long userId : validMemberIds) {
+    Member member = lockedMembers.get(userId);
+    int recalculatedPoints = member.getPoints()
+        - effectiveOldPointDeltaMap.getOrDefault(userId, 0)
+        + (settledRecipientIdSet.contains(userId) ? rewardPoints : 0);
+    member.setPoints(recalculatedPoints);
+}
+
+memberPointRecordRepository.saveAll(newPointRecords);
+\end{lstlisting}
+
+这种“先回退旧结果、再按最新口径重建”的做法，使奖励结算天然支持重新结算和结果校正。
+
+\subsubsection{人工调分与积分约束}
+
+除活动自动奖励外，系统还提供面向社团管理员的人工调分接口，用于补录、纠错等小规模运营场景。该接口与活动奖励共享同一套成员积分与流水模型，因此人工调分也需要遵循统一的余额约束和流水留痕规则。
+
+\begin{enumerate}
+  \item \textbf{参数有效性校验}：调分值不能为空且不能为 0，避免产生无意义的积分流水；
+
+  \item \textbf{积分不得为负}：先锁定成员记录，再校验调分后的积分余额是否小于 0，防止异常扣减破坏后续统计口径；
+
+  \item \textbf{写入人工流水}：调分成功后同步更新成员余额，并按增减方向写入一条显式的人工积分流水。
+\end{enumerate}
+
+\begin{lstlisting}[language=Java, caption=人工调分核心约束（节选）]
+if (deltaPoints == null || deltaPoints == 0) {
+    throw new IllegalArgumentException("积分变更值不能为 0");
+}
+
+Member member = getMemberForUpdate(clubId, userId);
+int newBalance = member.getPoints() + deltaPoints;
+if (newBalance < 0) {
+    throw new BusinessException(40924, "成员积分不能为负数");
+}
+
+member.setPoints(newBalance);
+memberRepository.save(member);
+
+MemberPointRecord record = new MemberPointRecord();
+record.setDeltaPoints(deltaPoints);
+record.setBalanceAfter(newBalance);
+record.setSourceType(deltaPoints > 0 ? SOURCE_MANUAL_ADD : SOURCE_MANUAL_DEDUCT);
+memberPointRecordRepository.save(record);
+\end{lstlisting}
+
+因此，无论积分来自活动奖励还是人工修正，后续档案查询、月度统计和重算流程都可以沿用同一条积分流水链。
 
 \subsection{资源与财务审批实现}
 
@@ -736,7 +789,8 @@ public void approveFinance(Long financeId) {
 \begin{enumerate}
   \item \textbf{Exchange}：创建名为 \texttt{notification.topic} 的 Topic Exchange；
 
-  \item \textbf{Routing Key}：使用点分隔的路由键，格式为 \texttt{notification.\{type\}}，如 \texttt{notification.club.approved}、\texttt{notification.recruit.approved} 等；
+  \item \textbf{Routing Key}：使用点分隔的路由键；
+  统一格式为 \path{notification.xxx}，例如 \path{notification.club.approved}，其他业务类型沿用同样命名规则；
 
   \item \textbf{Queue}：创建通知队列 \texttt{notification.queue}，绑定到 Exchange，使用通配符 \texttt{notification.*} 接收所有通知消息；
 
@@ -747,41 +801,12 @@ public void approveFinance(Long financeId) {
 
 \begin{figure}[H]
 \centering
-\begin{tikzpicture}[
-  box/.style={draw, rectangle, rounded corners, minimum width=2.6cm, minimum height=0.82cm, align=center, font=\small},
-  arr/.style={-Stealth, thick},
-  lab/.style={font=\tiny, fill=white, inner sep=1pt}
-]
-\node[box, fill=blue!15] (producer) at (0,2.4) {业务模块\\Club / Recruit / Finance};
-\node[box, fill=orange!20] (exchange) at (5.0,2.4) {Topic Exchange\\notification.topic};
-\node[box, fill=yellow!20] (queue) at (10.0,2.4) {Queue\\notification.queue};
-\node[box, fill=green!20] (consumer) at (15.0,2.4) {NotificationConsumer};
-\node[box, fill=gray!15] (ui) at (10.0,0.0) {前端消息中心\\轮询未读数/列表};
-\node[box, fill=purple!15] (db) at (15.0,0.0) {t\_notification\\站内通知表};
-
-\draw[arr] (producer) -- (exchange);
-\node[lab] at (2.5,2.78) {notification.club.approved 等};
-
-\draw[arr] (exchange) -- (queue);
-\node[lab] at (7.5,2.78) {Routing Key 匹配};
-
-\draw[arr] (queue) -- (consumer);
-\node[lab] at (12.5,2.78) {监听消费};
-
-\draw[arr] (consumer.south) -- (db.north);
-\node[lab] at (15.6,1.2) {落库};
-
-\draw[arr] (db.west) -- (ui.east);
-\node[lab] at (12.5,0.42) {查询通知列表};
-
-\draw[arr] (ui.south east) .. controls (11.4,-1.0) and (14.2,-1.0) .. (db.south west);
-\node[lab] at (12.9,-1.05) {读状态回写};
-\end{tikzpicture}
+\includegraphics[width=0.96\textwidth]{chapters/figures/notice-mq-flow-handdrawn.png}
 \caption{RabbitMQ 异步通知分发链路图}
 \label{fig:notice-mq-flow}
 \end{figure}
 
-图~\ref{fig:notice-mq-flow} 对应了这一节列举的 Exchange、Routing Key、Queue、Producer 与 Consumer 五个核心元素：各业务模块只负责发布标准化消息，通知模块异步消费后写入 \texttt{t\_notification}，前端再以统一入口读取通知列表和未读数。这样既降低了主业务链路与通知发送的耦合度，也便于后续扩展更多通知类型。
+图~\ref{fig:notice-mq-flow} 对应了这一节列举的 Exchange、Routing Key、Queue、Producer 与 Consumer 五个核心元素。各业务模块只负责发布标准化消息，通知模块异步消费后写入 \texttt{t\_notification}，前端再以统一入口读取通知列表和未读数。这样既降低了主业务链路与通知发送的耦合度，也便于后续扩展更多通知类型。
 
 \begin{lstlisting}[language=Java, caption=RabbitMQ 配置（节选）]
 @Configuration
@@ -883,83 +908,35 @@ public @interface AuditLog {
 
 \subsubsection{审计日志切面实现}
 
-通过 AOP 切面拦截带有 \texttt{@AuditLog} 注解的方法，在方法执行后记录审计日志：
+通过 AOP 切面拦截带有 \texttt{@AuditLog} 注解的方法后，系统并不是简单地“统一记一条日志”，而是按固定步骤补全审计上下文。其核心流程包括：
 
-\begin{lstlisting}[language=Java, caption=审计日志切面实现（节选）]
-@Aspect
-@Component
-public class AuditLogAspect {
-    @Autowired
-    private AuditLogRepository auditLogRepository;
+\begin{enumerate}
+  \item 从 \texttt{SecurityContext} 中读取当前登录用户，未认证请求直接跳过；
+  \item 读取注解中的 \texttt{action} 与 \texttt{resourceType} 元数据，确定操作语义；
+  \item 若配置了 \texttt{resourceIdExpression}，则通过 SpEL 结合方法参数或返回值提取资源标识；
+  \item 组装审计实体，补充客户端 IP、操作摘要与创建时间；
+  \item 将日志写入数据库；若写入失败，仅记录错误日志而不回滚主业务事务。
+\end{enumerate}
 
-    @Autowired
-    private SpelExpressionParser parser;
+正文只保留切面中的关键控制逻辑，完整实现见项目源码。其代表性代码如下：
 
-    @AfterReturning(pointcut = "@annotation(auditLog)", returning = "result")
-    public void logAudit(JoinPoint joinPoint, AuditLog auditLog, Object result) {
-        try {
-            // 1. 获取当前用户
-            Authentication auth = SecurityContextHolder.getContext()
-                .getAuthentication();
-            if (auth == null || !auth.isAuthenticated()) {
-                return;
-            }
-            User user = (User) auth.getPrincipal();
+\begin{lstlisting}[language=Java, caption=审计日志切面关键逻辑（节选）]
+@AfterReturning(pointcut = "@annotation(auditLog)", returning = "result")
+public void logAudit(JoinPoint joinPoint, AuditLog auditLog, Object result) {
+    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+    if (auth == null || !auth.isAuthenticated()) return;
 
-            // 2. 提取资源ID（使用SpEL表达式）
-            String resourceId = null;
-            if (!auditLog.resourceIdExpression().isEmpty()) {
-                StandardEvaluationContext context =
-                    new StandardEvaluationContext();
-                context.setVariable("result", result);
-                context.setVariable("args", joinPoint.getArgs());
-
-                Expression expression = parser.parseExpression(
-                    auditLog.resourceIdExpression());
-                Object value = expression.getValue(context);
-                resourceId = value != null ? value.toString() : null;
-            }
-
-            // 3. 获取请求IP
-            ServletRequestAttributes attributes =
-                (ServletRequestAttributes) RequestContextHolder
-                    .getRequestAttributes();
-            String ip = null;
-            if (attributes != null) {
-                HttpServletRequest request = attributes.getRequest();
-                ip = getClientIp(request);
-            }
-
-            // 4. 创建审计日志记录
-            AuditLog log = new AuditLog();
-            log.setUser(user);
-            log.setAction(auditLog.action());
-            log.setResourceType(auditLog.resourceType());
-            log.setResourceId(resourceId);
-            log.setIp(ip);
-            log.setDetail(buildDetail(joinPoint, result));
-            log.setCreateTime(LocalDateTime.now());
-
-            auditLogRepository.save(log);
-        } catch (Exception e) {
-            // 审计日志记录失败不应影响业务流程
-            log.error("Failed to record audit log", e);
-        }
-    }
-
-    private String getClientIp(HttpServletRequest request) {
-        String ip = request.getHeader("X-Forwarded-For");
-        if (ip == null || ip.isEmpty()) {
-            ip = request.getRemoteAddr();
-        }
-        return ip;
-    }
+    String resourceId = resolveResourceId(auditLog.resourceIdExpression(), joinPoint, result);
+    AuditLog record = buildAuditLog((User) auth.getPrincipal(), auditLog, resourceId, result);
+    auditLogRepository.save(record);
 }
 \end{lstlisting}
 
+这种写法把“拦截、解析、组装、持久化”几个步骤集中到切面层处理，业务服务只需要声明“谁的什么操作需要被审计”，而不需要重复编写日志落库代码。
+
 \subsubsection{审计日志使用示例}
 
-在业务方法上添加 \texttt{@AuditLog} 注解即可自动记录审计日志：
+在业务方法上添加 \texttt{@AuditLog} 注解即可自动记录审计日志，正文保留一个代表性示例即可：
 
 \begin{lstlisting}[language=Java, caption=审计日志使用示例]
 @AuditLog(
@@ -969,16 +946,6 @@ public class AuditLogAspect {
 )
 public void approveClub(Long clubId) {
     // 业务逻辑
-}
-
-@AuditLog(
-    action = "终审招新申请",
-    resourceType = "RECRUIT_APPLICATION",
-    resourceIdExpression = "#result.id"
-)
-public RecruitApplication finalReview(Long applicationId, boolean pass) {
-    // 业务逻辑
-    return application;
 }
 \end{lstlisting}
 
@@ -1073,22 +1040,6 @@ router.beforeEach(async (to, from, next) => {
 }
 \end{lstlisting}
 
-\subsection{前端业务辅助页面实现}
-
-除认证与权限控制外，前端还实现了与成员激励、待办聚合和运营观察对应的辅助页面，用来补足管理侧与成员侧的日常使用体验。
-
-\subsubsection{成员积分档案页面}
-
-学生端积分档案页对应路由为 \texttt{/user/archive}。页面首先加载当前用户已加入的社团列表，用户选定社团后，再并行请求 \texttt{/clubs/\{id\}/members/me/archive} 和 \texttt{/clubs/\{id\}/members/me/point-records}，分别获取成员摘要信息与积分流水。这样既能展示成员在当前社团中的角色、加入时间、累计积分和月度积分，也能按时间顺序呈现积分增减原因，避免把不同社团的积分信息混在同一视图中。
-
-社团管理员端的成员管理页则采用抽屉式档案查看方式。管理员点击某位成员后，页面并行请求 \texttt{/clubs/\{id\}/members/\{userId\}/archive} 和 \texttt{/clubs/\{id\}/members/\{userId\}/point-records}，在不离开成员列表的前提下直接查看该成员的积分画像与历史流水。相较于重新设计独立管理页面，这种做法更符合高频运营场景下“边看名单、边查档案”的使用习惯。
-
-\subsubsection{统一待办中心与实时运营看板页面}
-
-统一待办中心页面由管理员端和社团管理员端共用一套视图组件，区别仅在于入口路由分别为 \texttt{/admin/todos} 与 \texttt{/clubadmin/todos}。页面本身不再自行拼接多类待审数据，而是直接消费 \texttt{/api/dashboard/todos} 的聚合结果，并按分组展示待办总量、分组数量、代表性条目和对应跳转入口。这样做的实现重点在于将统计口径固定在后端，使同一账号在首页卡片、待办页和跳转目标页之间保持一致。
-
-实时运营看板页面对应 \texttt{/admin/realtime}，在界面呈现上也可理解为管理端实时大屏。前端通过 \texttt{Promise.allSettled} 并发拉取 \texttt{/dashboard/stats} 与 \texttt{/stats/system}，在成功获取业务统计后绘制趋势图、状态分布图、压力仪表盘和实时折线图，并进一步按社团调用统计接口生成活跃排行。该页面展示的是社团数量、签到量、资源待审量、用户增长和社团活跃度等业务指标，用来支持演示和运营观察，而不是替代专门的系统监控平台。
-
 \subsection{AI 聊天接口实现}
 
 AI 聊天功能为用户提供社团知识问答服务，后端通过限流机制保护 AI 服务不被滥用。
@@ -1145,7 +1096,7 @@ RAG（检索增强生成）问答服务的实现思路比较直接：先把“�
 
 \begin{enumerate}
   \item \textbf{知识库初始化}：启动时从 \texttt{agent/data/} 目录读取 Markdown 知识文件并构建向量索引；
-  \item \textbf{文档切分}：使用 \texttt{RecursiveCharacterTextSplitter} 切分文本，当前参数为 \texttt{chunk\_size=1000}、\texttt{chunk\_overlap=200}；
+  \item \textbf{文档切分}：使用 \texttt{RecursiveCharacterTextSplitter} 切分文本，当前设置为分块长度 1000、重叠长度 200；
   \item \textbf{向量化与持久化}：通过本地封装的嵌入创建函数生成向量，并写入 Chroma 持久目录；
   \item \textbf{问题路由}：公告、活动、招新、资源、财务等问题优先匹配业务工具，直接查询实时数据；
   \item \textbf{权限过滤}：基于 \texttt{user\_context} 解析访问上下文，对实时工具调用和知识检索统一按 \texttt{public/authenticated/admin/club\_admin} 规则过滤；
@@ -1229,7 +1180,7 @@ class RecommendationService:
         return [cid for cid, _ in ranked[:top_k]]
 \end{lstlisting}
 
-这种混合推荐策略先用成员加入、活动报名、活动签到三类行为信号（5.0/2.0/3.0）和时间衰减构建用户偏好，再融合协同过滤与语义内容得分输出候选排序。对没有历史行为的新用户或单侧得分不可用的场景，系统会按社团热度回退，保证结果不断流；若推荐服务内部异常，当前接口会返回空列表，再由业务侧兜底展示。
+这种混合推荐策略先用成员加入、活动报名、活动签到三类行为信号构建用户偏好，并分别赋予 5.0、2.0 和 3.0 的权重，再结合时间衰减与协同过滤、语义内容得分输出候选排序。对没有历史行为的新用户或单侧得分不可用的场景，系统会按社团热度回退，保证结果不断流；若推荐服务内部异常，当前接口会返回空列表，再由业务侧兜底展示。
 
 \section{系统集成与运行支撑}
 

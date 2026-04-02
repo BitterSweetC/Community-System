@@ -352,34 +352,36 @@ onUnmounted(() => {
 </script>
 <style scoped>
 .admin-dashboard {
-  padding: 0;
-  background: transparent;
+  padding: 4px 0 10px;
   min-height: auto;
+  color: var(--text-main, #14314a);
 }
 
 .admin-dashboard h2 {
-  font-size: 28px;
+  margin: 0;
+  font-size: clamp(1.6rem, 2.2vw, 2rem);
   font-weight: 700;
-  color: #0f2e4a;
-  margin-bottom: 8px;
+  color: var(--text-main, #14314a);
+  letter-spacing: 0.01em;
 }
 
 .welcome-text {
-  margin-bottom: 22px;
-  color: var(--panel-muted, #5f738b);
-  font-size: 16px;
+  margin: 8px 0 0;
+  color: var(--text-muted, #5f748b);
+  font-size: 0.98rem;
 }
 
 .dashboard-grid {
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 20px;
+  margin-top: 16px;
 }
 
 .todo-overview-card {
   border-radius: 16px;
   border: 1px solid var(--panel-border, rgba(14, 55, 94, 0.14));
-  background: rgba(255, 255, 255, 0.82);
+  background: var(--panel-bg, rgba(255, 255, 255, 0.84));
   box-shadow: var(--panel-shadow, 0 14px 34px rgba(17, 46, 77, 0.1));
 }
 
@@ -392,38 +394,38 @@ onUnmounted(() => {
 
 .todo-head h3 {
   margin: 0;
-  font-size: 20px;
-  color: #173551;
+  font-size: 1.12rem;
+  color: var(--text-main, #173551);
 }
 
 .todo-subtext {
   margin: 6px 0 0;
-  color: #60748c;
+  color: var(--text-muted, #60748c);
 }
 
 .todo-summary-row {
-  margin-bottom: 18px;
+  margin-bottom: 16px;
 }
 
 .todo-summary-box {
-  min-height: 94px;
+  min-height: 92px;
   border-radius: 12px;
-  padding: 18px 16px;
-  background: linear-gradient(135deg, rgba(23, 93, 158, 0.12), rgba(31, 118, 182, 0.04));
-  border: 1px solid rgba(23, 93, 158, 0.08);
+  padding: 16px;
+  background: linear-gradient(135deg, var(--accent-soft, rgba(23, 93, 158, 0.12)), rgba(255, 255, 255, 0.3));
+  border: 1px solid rgba(23, 93, 158, 0.1);
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .todo-summary-label {
-  color: #60748c;
+  color: var(--text-muted, #60748c);
 }
 
 .todo-summary-value {
-  font-size: 30px;
-  color: #173551;
+  font-size: clamp(1.4rem, 2.5vw, 1.8rem);
+  color: var(--text-main, #173551);
 }
 
 .todo-preview-list {
@@ -434,34 +436,34 @@ onUnmounted(() => {
 
 .todo-preview-item {
   width: 100%;
-  border: 1px solid rgba(17, 64, 106, 0.12);
+  border: 1px solid var(--panel-border, rgba(17, 64, 106, 0.14));
   border-radius: 12px;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.92);
   padding: 14px 16px;
   text-align: left;
   cursor: pointer;
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .todo-preview-item:hover {
   transform: translateY(-2px);
-  border-color: rgba(27, 104, 173, 0.24);
+  border-color: rgba(27, 104, 173, 0.26);
   box-shadow: 0 8px 18px rgba(17, 45, 73, 0.08);
 }
 
 .todo-preview-title {
   font-weight: 600;
-  color: #173551;
+  color: var(--text-main, #173551);
 }
 
 .todo-preview-meta {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #6b8197;
+  color: var(--text-muted, #6b8197);
 }
 
 .quick-actions {
@@ -472,25 +474,24 @@ onUnmounted(() => {
 
 .dashboard-card {
   cursor: pointer;
-  transition: all 0.3s;
-  width: auto;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
   min-height: 168px;
   border-radius: 16px;
   overflow: hidden;
   border: 1px solid var(--panel-border, rgba(14, 55, 94, 0.14));
-  background: rgba(255, 255, 255, 0.84);
+  background: var(--panel-bg, rgba(255, 255, 255, 0.84));
   box-shadow: var(--panel-shadow, 0 14px 34px rgba(17, 46, 77, 0.1));
 }
 
 .dashboard-card:hover {
-  transform: translateY(-4px);
-  border-color: rgba(23, 93, 158, 0.22);
+  transform: translateY(-3px);
+  border-color: rgba(23, 93, 158, 0.26);
   box-shadow: 0 16px 30px rgba(17, 46, 77, 0.14);
 }
 
 :deep(.dashboard-card .el-card__header) {
   background: linear-gradient(180deg, #f7fbff 0%, #eef5fd 100%);
-  color: #123b61;
+  color: var(--text-main, #123b61);
   font-weight: 600;
   font-size: 16px;
   border-bottom: 1px solid rgba(17, 64, 106, 0.1);
@@ -504,30 +505,31 @@ onUnmounted(() => {
 }
 
 .card-content {
-  color: #60748c;
+  color: var(--text-muted, #60748c);
   line-height: 1.7;
 }
 
 .my-clubs-section {
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 .my-clubs-section h3 {
-  font-size: 20px;
+  font-size: 1.14rem;
   font-weight: 600;
-  color: #173551;
-  margin-bottom: 16px;
+  color: var(--text-main, #173551);
+  margin-bottom: 14px;
 }
 
 .club-dashboard-card {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
   border-radius: 14px;
   border: 1px solid var(--panel-border, rgba(14, 55, 94, 0.14));
   box-shadow: var(--panel-shadow, 0 14px 34px rgba(17, 46, 77, 0.1));
-  transition: all 0.3s;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
 .club-dashboard-card:hover {
+  transform: translateY(-2px);
   box-shadow: 0 12px 24px rgba(17, 46, 77, 0.12);
 }
 
@@ -538,70 +540,64 @@ onUnmounted(() => {
 }
 
 :deep(.club-actions .el-button) {
-  border-radius: 6px;
+  border-radius: 8px;
   font-weight: 500;
 }
 
 .stats-section {
-  margin-top: 4px;
+  margin-top: 2px;
   padding-top: 0;
 }
 
 .stats-section h3 {
-  font-size: 20px;
+  font-size: 1.14rem;
   font-weight: 600;
-  color: #173551;
-  margin-bottom: 20px;
+  color: var(--text-main, #173551);
+  margin-bottom: 18px;
 }
 
 .stats-cards {
-  margin-bottom: 30px;
+  margin-bottom: 24px;
 }
 
 :deep(.stats-cards .el-card) {
   border-radius: 14px;
   border: 1px solid var(--panel-border, rgba(14, 55, 94, 0.14));
   box-shadow: var(--panel-shadow, 0 14px 34px rgba(17, 46, 77, 0.1));
-  transition: all 0.3s;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
   overflow: hidden;
 }
 
 :deep(.stats-cards .el-card:hover) {
-  transform: translateY(-4px);
+  transform: translateY(-3px);
   box-shadow: 0 12px 24px rgba(17, 46, 77, 0.12);
 }
 
 :deep(.stats-cards .el-card__header) {
   background: linear-gradient(180deg, #f7fbff 0%, #eef5fd 100%);
   font-weight: 600;
-  color: #60748c;
+  color: var(--text-muted, #60748c);
   border-bottom: 1px solid rgba(17, 64, 106, 0.1);
 }
 
 .stats-value {
-  font-size: 32px;
+  font-size: clamp(1.65rem, 2.8vw, 2rem);
   font-weight: 700;
   text-align: center;
-  color: #173551;
-  padding: 20px 0;
+  color: var(--text-main, #173551);
+  padding: 18px 0;
 }
 
 .text-primary {
-  background: linear-gradient(135deg, #175d9e, #1f76b6);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--accent, #175d9e);
 }
 
 .text-success {
-  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #1b8a70;
 }
 
 .charts-row {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 :deep(.charts-row .el-card) {
@@ -612,8 +608,38 @@ onUnmounted(() => {
 
 :deep(.charts-row .el-card__header) {
   background: linear-gradient(180deg, #f7fbff 0%, #eef5fd 100%);
-  color: #123b61;
+  color: var(--text-main, #123b61);
   font-weight: 600;
 }
-</style>
 
+@media (max-width: 980px) {
+  .todo-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  :deep(.stats-cards .el-col),
+  :deep(.charts-row .el-col),
+  :deep(.my-clubs-section .el-col) {
+    max-width: 100%;
+    flex: 0 0 100%;
+    margin-bottom: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-card,
+  .todo-preview-item,
+  .club-dashboard-card,
+  :deep(.stats-cards .el-card) {
+    transition: none !important;
+  }
+
+  .dashboard-card:hover,
+  .todo-preview-item:hover,
+  .club-dashboard-card:hover,
+  :deep(.stats-cards .el-card:hover) {
+    transform: none !important;
+  }
+}
+</style>

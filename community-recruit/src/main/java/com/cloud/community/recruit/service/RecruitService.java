@@ -4,12 +4,14 @@ import com.cloud.community.core.entity.Club;
 import com.cloud.community.core.entity.RecruitApplication;
 import com.cloud.community.core.entity.RecruitBatch;
 import com.cloud.community.core.entity.RecruitFormField;
+import org.springframework.data.domain.Page;
 
 import java.util.List;
 
 public interface RecruitService {
     RecruitBatch createBatch(RecruitBatch batch, Long operatorId);
     List<RecruitBatch> getBatchesByClub(Long clubId);
+    Page<RecruitBatch> getBatchesByClub(Long clubId, int page, int size);
     RecruitBatch getBatchById(Long batchId);
     
     List<Club> getRecruitingClubs();
@@ -19,6 +21,7 @@ public interface RecruitService {
     
     void submitApplication(RecruitApplication application);
     List<RecruitApplication> getApplicationsByBatch(Long batchId, Long operatorId);
+    Page<RecruitApplication> getApplicationsByBatch(Long batchId, Long operatorId, int page, int size);
     List<RecruitApplication> getMyApplications(Long userId);
     
     void reviewApplicationFirst(Long applicationId, boolean pass, String comment, Long operatorId);

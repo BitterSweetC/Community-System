@@ -3,34 +3,54 @@
 % ============================================================
 % 提交前请将以下元信息替换为最终信息
 \newcommand{\thesisuniversity}{上海电力大学}
-\newcommand{\thesiscollege}{待填写}
-\newcommand{\thesismajor}{待填写}
-\newcommand{\thesisstudentid}{待填写}
-\newcommand{\thesisauthor}{待填写}
-\newcommand{\thesisadvisor}{待填写}
-\newcommand{\thesisdate}{待填写}
+\newcommand{\thesistitle}{基于 Spring Boot 的社团管理系统}
+\newcommand{\thesiscollege}{人工智能学部}
+\newcommand{\thesismajor}{计算机科学与技术}
+\newcommand{\thesisgrade}{大四}
+\newcommand{\thesisstudentid}{20221537}
+\newcommand{\thesisauthor}{郭宇恒}
+\newcommand{\thesisadvisor}{薛梅}
+\newcommand{\thesisdateyear}{2026}
+\newcommand{\thesisdatemonth}{3}
+\newcommand{\thesisdateday}{31}
+\newcommand{\thesisemblem}{chapters/figures/school-emblem.png}
+
+\newcommand{\coverfield}[2]{\underline{\makebox[#1][l]{#2}}}
 
 \begin{titlepage}
 \centering
-\vspace*{2cm}
+\vbox to \textheight{%
+  \vspace*{0.45cm}
 
-{\xiaoer\bfseries \thesisuniversity}\\[0.5cm]
-{\sihao 本科毕业设计（论文）}\\[3cm]
+  {\fontsize{28pt}{34pt}\selectfont\kaishu\bfseries \thesisuniversity}\par
+  \vspace{1.15cm}
+  {\fontsize{26pt}{32pt}\selectfont\kaishu\bfseries 本科毕业设计（论文）}\par
+  \vspace{1.15cm}
+  \includegraphics[width=4.15cm]{\thesisemblem}\par
+  \vspace{0.95cm}
 
-{\erhao\bfseries 基于 Spring Boot 的社团管理系统}\\[1cm]
-{\sihao Design and Implementation of Club Management System Based on Spring Boot}\\[4cm]
+  \begin{minipage}{10.8cm}
+    \raggedright
+    \renewcommand{\arraystretch}{1.25}
+    \begin{tabular}{@{}p{2.65cm}@{}p{8.15cm}@{}}
+      {\sihao 题\qquad 目：} & {\sihao\coverfield{7.95cm}{\thesistitle}} \\[0.6cm]
+                             & {\sihao\coverfield{7.95cm}{}} \\[0.48cm]
+      {\sihao 学院（部）：}   & {\sihao\coverfield{7.95cm}{\thesiscollege}} \\[0.48cm]
+      {\sihao 专\qquad 业：} & {\sihao\coverfield{7.95cm}{\thesismajor}} \\[0.48cm]
+      {\sihao 年\qquad 级：} & {\sihao\coverfield{7.95cm}{\thesisgrade}} \\[0.48cm]
+      {\sihao 学生姓名：}   &
+        {\sihao\coverfield{3.55cm}{\thesisauthor}\hspace{0.45cm}学号：\coverfield{2.25cm}{\thesisstudentid}} \\[0.48cm]
+      {\sihao 指导教师：}   & {\sihao\coverfield{7.95cm}{\thesisadvisor}} \\
+    \end{tabular}
+  \end{minipage}
 
-\begin{tabular}{rl}
-  {\sihao 学\quad 院：} & {\sihao\underline{\makebox[6cm][c]{\thesiscollege}}} \\[0.8cm]
-  {\sihao 专\quad 业：} & {\sihao\underline{\makebox[6cm][c]{\thesismajor}}} \\[0.8cm]
-  {\sihao 学\quad 号：} & {\sihao\underline{\makebox[6cm][c]{\thesisstudentid}}} \\[0.8cm]
-  {\sihao 姓\quad 名：} & {\sihao\underline{\makebox[6cm][c]{\thesisauthor}}} \\[0.8cm]
-  {\sihao 指导教师：}   & {\sihao\underline{\makebox[6cm][c]{\thesisadvisor}}} \\[0.8cm]
-  {\sihao 完成日期：}   & {\sihao\underline{\makebox[6cm][c]{\thesisdate}}} \\[0.8cm]
-\end{tabular}
-
-\vfill
-{\wuhao \thesisuniversity}
+  \vfill
+  {\sihao
+    \coverfield{2.2cm}{\thesisdateyear}\hspace{0.2cm}年\qquad
+    \coverfield{1.4cm}{\thesisdatemonth}\hspace{0.2cm}月\qquad
+    \coverfield{1.4cm}{\thesisdateday}\hspace{0.2cm}日
+  }
+}
 \end{titlepage}
 \newpage
 

@@ -2,6 +2,7 @@ package com.cloud.community.club.service;
 
 import com.cloud.community.core.entity.Club;
 import com.cloud.community.core.entity.Member;
+import org.springframework.data.domain.Page;
 
 import java.util.List;
 
@@ -31,7 +32,9 @@ public interface ClubService {
     
     // Admin
     List<Club> getPendingClubs();
+    org.springframework.data.domain.Page<Club> getPendingClubs(int page, int size);
     List<Club> getDissolvingClubs();
+    org.springframework.data.domain.Page<Club> getDissolvingClubs(int page, int size);
     void deleteClub(Long id, Long adminId);
     
     // Member management
@@ -39,6 +42,7 @@ public interface ClubService {
     void updateMemberRole(Long clubId, Long userId, String role);
     void removeMember(Long clubId, Long userId);
     List<Member> getClubMembers(Long clubId);
+    Page<Member> getClubMembers(Long clubId, int page, int size);
 
     // Dissolution
     void applyDissolution(Long clubId, Long userId, String reason);

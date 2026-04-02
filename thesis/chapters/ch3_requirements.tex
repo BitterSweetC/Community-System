@@ -144,53 +144,12 @@
 
 \begin{figure}[H]
 \centering
-\begin{tikzpicture}[
-  x=0.82cm,
-  y=0.82cm,
-  actor/.style={draw, circle, minimum size=0.6cm},
-  usecase/.style={draw, ellipse, minimum width=2.8cm, minimum height=0.8cm, align=center, font=\small},
-  line/.style={-}
-]
-\draw[thick] (0,0) rectangle (12.4,9.2);
-\node[above] at (6.2,9.2) {\textbf{校园社团管理系统}};
-
-\node[actor] (visitor) at (-1.1,7.6) {};
-\node[below] at (-1.1,7.2) {\small 访客};
-\node[actor] (user) at (-1.1,4.9) {};
-\node[below] at (-1.1,4.5) {\small USER};
-\node[actor] (admin) at (13.5,6.9) {};
-\node[below] at (13.5,6.5) {\small ADMIN};
-\node[actor] (clubadmin) at (13.5,3.5) {};
-\node[below] at (13.5,3.1) {\small CLUB\_ADMIN};
-
-\node[usecase] (browse) at (2.9,7.6) {浏览社团/活动/公告};
-\node[usecase] (auth) at (2.9,5.9) {登录/注册/找回密码};
-\node[usecase] (apply) at (2.9,4.2) {活动报名/签到\\提交招新申请};
-\node[usecase] (aiops) at (6.2,1.6) {AI 问答与推荐};
-
-\node[usecase] (sysops) at (9.4,7.0) {全局审批与审计\\统计看板};
-\node[usecase] (clubops) at (9.4,5.5) {社团管理\\成员与公告管理};
-\node[usecase] (activityops) at (9.4,4.0) {活动发布\\招新审核};
-\node[usecase] (resourceops) at (9.4,2.5) {资源与财务申请};
-
-\draw[line] (visitor) -- (browse.west);
-\draw[line] (visitor) -- (auth.north west);
-\draw[line] (user) -- (auth.south west);
-\draw[line] (user) -- (apply.west);
-\draw[line] (user) -- ++(0.8,0) |- (aiops.west);
-
-\draw[line] (admin) -- (sysops.east);
-\draw[line] (admin) -- ++(-0.9,0) |- (clubops.north east);
-\draw[line] (admin) -- ++(-1.5,0) |- (resourceops.north east);
-
-\draw[line] (clubadmin) -- (resourceops.east);
-\draw[line] (clubadmin) -- ++(-0.8,0) |- (activityops.east);
-\draw[line] (clubadmin) -- ++(-1.4,0) |- (clubops.east);
-\draw[line] (clubadmin) -- ++(-2.0,0) |- (aiops.east);
-\end{tikzpicture}
+\includegraphics[width=0.95\textwidth]{chapters/figures/system-usecase-handdrawn.png}
 \caption{系统总用例图}
 \label{fig:usecase}
 \end{figure}
+
+图~\ref{fig:usecase} 将系统能力划分为公开访问、个人参与、社团治理、平台治理与智能服务五个区域。访客主要对应公开浏览与身份认证，普通用户进一步承担社团创建申请、活动参与和招新申请等行为；社团管理员负责社团内部运营，系统管理员负责审批、审计和平台规则维护，AI 问答与推荐则作为跨场景的辅助能力嵌入整体业务流程。
 
 \subsection{核心用例：活动签到}
 
@@ -222,32 +181,7 @@
 
 \begin{figure}[H]
 \centering
-\begin{tikzpicture}[
-  node distance=0.9cm,
-  step/.style={draw, rectangle, rounded corners, minimum width=4.2cm, minimum height=0.78cm, align=center, font=\small},
-  decision/.style={draw, diamond, aspect=2.3, inner sep=1pt, align=center, font=\small},
-  line/.style={-Stealth, thick}
-]
-\node[step] (start) {用户提交签到请求};
-\node[decision, below=of start] (timecheck) {是否已报名且处于\\签到时间窗口?};
-\node[decision, below=of timecheck] (codecheck) {签到码是否正确\\或无需签到码?};
-\node[decision, below=of codecheck] (duplicate) {是否已经签到?};
-\node[step, below=of duplicate] (save) {写入签到记录并更新报名状态};
-\node[step, below=of save] (push) {广播最新签到人数并返回成功};
-
-\node[step, right=4.2cm of timecheck] (rejecttime) {拒绝签到\\返回未报名/时间不合法原因};
-\node[step, right=4.2cm of codecheck] (rejectcode) {拒绝签到\\返回签到码错误};
-\node[step, right=4.2cm of duplicate] (already) {返回已签到结果\\不重复写入数据};
-
-\draw[line] (start) -- (timecheck);
-\draw[line] (timecheck) -- node[left,font=\tiny]{是} (codecheck);
-\draw[line] (timecheck.east) -- ++(0.7,0) |- node[pos=0.25,above,font=\tiny]{否} (rejecttime.west);
-\draw[line] (codecheck) -- node[left,font=\tiny]{是} (duplicate);
-\draw[line] (codecheck.east) -- ++(0.7,0) |- node[pos=0.25,above,font=\tiny]{否} (rejectcode.west);
-\draw[line] (duplicate) -- node[left,font=\tiny]{否} (save);
-\draw[line] (duplicate.east) -- ++(0.7,0) |- node[pos=0.25,above,font=\tiny]{是} (already.west);
-\draw[line] (save) -- (push);
-\end{tikzpicture}
+\includegraphics[width=0.78\textwidth]{chapters/figures/activity-checkin-flow-handdrawn.png}
 \caption{活动签到业务流程图}
 \label{fig:activity-checkin-flow}
 \end{figure}

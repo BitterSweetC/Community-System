@@ -9,7 +9,14 @@
 
 \subsection{Spring Boot 3.x 与模块化单体}
 
-本课题面向高校社团管理场景，业务模块较多，角色权限层次清晰，事务链路又主要集中在同一系统内部，整体规模仍处于单校内原型可控范围。基于这一约束，后端选择 Spring Boot 3.2.0 与 JDK 21 作为统一开发基础，并采用 Maven 多模块组织方式，将业务代码按领域拆分为 \texttt{community-user}、\texttt{community-club}、\texttt{community-activity}、\texttt{community-recruit}、\texttt{community-notice}、\texttt{community-admin} 等模块，再由 \texttt{community-gateway} 统一聚合启动\cite{springboot_docs}。
+本课题面向高校社团管理场景，业务模块较多，角色权限层次清晰，
+事务链路又主要集中在同一系统内部，整体规模仍处于单校内原型可控范围。
+基于这一约束，后端选择 Spring Boot 3.2.0 与 JDK 21 作为统一开发基础，
+并采用 Maven 多模块组织方式，将业务代码按领域拆分为
+\texttt{community-user}、\allowbreak\texttt{community-club}、\allowbreak\texttt{community-activity}、%
+\allowbreak\texttt{community-recruit}、\allowbreak\texttt{community-notice}、\allowbreak\texttt{community-admin}
+等模块，再由 \texttt{community-gateway}
+统一聚合启动\cite{springboot_docs}。
 
 之所以采用模块化单体而非直接拆分为微服务，主要基于以下考虑：
 \begin{enumerate}
@@ -19,72 +26,102 @@
   \item 在当前单节点原型场景下，本地事务与统一部署比微服务治理更符合课题的实现重点。
 \end{enumerate}
 
-因此，Spring Boot 与模块化单体的组合并不是单纯出于开发习惯，而是为了在实现复杂度、事务一致性和后续可演进性之间取得平衡。这与模块化单体“先控制复杂度、再按需拆分”的思路是一致的\cite{microservices2015,microservices_patterns2018}。
+因此，Spring Boot 与模块化单体的组合并不是单纯出于开发习惯，
+而是为了在实现复杂度、事务一致性和后续可演进性之间取得平衡。
+这与模块化单体“先控制复杂度、再按需拆分”的思路是一致的\cite{microservices2015,microservices_patterns2018}。
 
 \subsection{Spring Security 6 + JWT + Redis 会话校验}
 
-认证体系的设计直接对应第三章提出的安全性、角色隔离与会话可控性要求。本系统采用 Spring Security 6 作为统一安全框架，并使用 JWT 作为认证凭据\cite{spring_security2020,jwt_rfc}。如果完全依赖传统服务端 Session，跨接口调用和部署扩展的灵活性不足；如果只使用纯 JWT，又不利于实现主动失效、统一登出和登录风控。因此，这篇论文采用“Spring Security + JWT + Redis 会话校验”的混合方案：由 JWT 承担轻量身份携带，由 Redis 保留服务端可控的会话状态\cite{redis_docs}。
+认证体系的设计直接对应第三章提出的安全性、角色隔离与会话可控性要求。
+本系统采用 Spring Security 6 作为统一安全框架，并使用 JWT 作为认证凭据\cite{spring_security2020,jwt_rfc}。
+如果完全依赖传统服务端 Session，跨接口调用和部署扩展的灵活性不足；如果只使用纯 JWT，
+又不利于实现主动失效、统一登出和登录风控。
+因此，这篇论文采用“Spring Security + JWT + Redis 会话校验”的混合方案：
+由 JWT 承担轻量身份携带，由 Redis 保留服务端可控的会话状态\cite{redis_docs}。
 
 认证流程的关键点如下：
 \begin{enumerate}
   \item 登录成功后签发 Access Token 与 Refresh Token；
-  \item Access Token 与 Refresh Token 均通过 HttpOnly Cookie 下发，前端通过 \texttt{withCredentials} 自动携带；
+  \item Access Token 与 Refresh Token 均通过 HttpOnly\allowbreak{} Cookie 下发，前端通过 \texttt{with}\allowbreak\texttt{Credentials} 自动携带；
   \item Access Token 默认有效期为 1 小时，Refresh Token 默认有效期为 24 小时；
   \item Access Token 同步写入 Redis 键 \texttt{auth:token:*}，请求到达时先验签再验 Redis；
   \item 登出时删除 Redis 中对应键，并清除 Cookie，实现即时下线。
 \end{enumerate}
 
-在此基础上，系统还通过 Redis 对登录失败次数进行窗口限流（15 分钟内超过 10 次失败将被限制），以补充浏览器场景下的基础风控能力。该方案的核心价值不在于引入更多安全组件，而在于兼顾了访问性能、实现成本和管理侧对会话的可控需求。
+在此基础上，系统还通过 Redis 对登录失败次数进行窗口限流（15 分钟内超过 10 次失败将被限制），
+以补充浏览器场景下的基础风控能力。
 
 \subsection{Spring Data JPA + MySQL 8}
 
-社团审批、活动报名与签到、招新终审、资源审批、财务审批等场景都具有明确的实体关系和较强的事务一致性要求，因此持久层采用 Spring Data JPA 与 MySQL 8 的组合\cite{jpa2022,mysql_docs}。其中，Spring Data JPA 用来降低数据访问层样板代码，统一实体与仓储抽象；实体类集中定义在 \texttt{community-core} 模块中，以保持跨模块数据模型的一致性。
+社团审批、活动报名与签到、招新终审、资源审批、财务审批等场景都具有明确的实体关系和较强的事务一致性要求，
+因此持久层采用 Spring Data JPA 与 MySQL 8 的组合\cite{jpa2022,mysql_docs}。
+其中，Spring Data JPA 用来降低数据访问层样板代码，统一实体与仓储抽象；实体类集中定义在 \texttt{community-core} 模块中。
 
-在高并发写场景下，系统通过悲观锁（\texttt{PESSIMISTIC\_WRITE}）和数据库约束共同控制关键事务，以降低重复报名、重复审批和并发覆盖的风险。这种选择不是追求通用最优，而是针对本课题“写冲突代价高于少量锁等待”的业务特点作出的取舍。
+在高并发写场景下，系统通过悲观锁（\texttt{PESSIMISTIC\_WRITE}）和数据库约束共同控制关键事务，
+降低重复报名、重复审批和并发覆盖的风险。
 
-MySQL 8.0 则承担用户、社团、成员、活动、招新、公告与通知、财务、资源等核心数据存储任务。对于这种以结构化关系数据为主、需要稳定事务支持和成熟生态的校园业务系统，关系型数据库仍然比文档型方案更契合当前论文的实现目标。
+MySQL 8.0 则承担用户、社团、成员、活动、招新、公告与通知、财务、资源等核心数据存储任务。
+对于这种以结构化关系数据为主、需要稳定事务支持和成熟生态的校园业务系统，关系型数据库仍然比文档型方案更契合当前论文的实现目标。
 
 \subsection{Redis、RabbitMQ 与对象存储}
 
-本系统引入 Redis、RabbitMQ 与对象存储，并不是为了简单堆叠技术栈，而是分别对应“高频状态读写”“非关键通知解耦”和“静态文件外置”三类明确需求：
+本系统引入 Redis、RabbitMQ 与对象存储，分别对应“高频状态读写”“非关键通知解耦”和“静态文件外置”三类明确需求：
 
 \begin{enumerate}
-  \item \textbf{Redis}：本系统使用 Redis 7 承担认证会话管理、登录失败计数限流以及部分热点读写场景。由于这些数据访问频率高、结构相对简单、对延迟较敏感，将其放入内存型键值存储有助于减轻数据库压力并提升响应效率\cite{redis_docs}。
+  \item \textbf{Redis}：本系统使用 Redis 7 承担认证会话管理、登录失败计数限流以及部分热点读写场景。
+  由于这些数据访问频率高、结构相对简单、对延迟较敏感，将其放入内存型键值存储有助于减轻数据库压力并提升响应效率\cite{redis_docs}。
 
-  \item \textbf{RabbitMQ}：本系统使用 RabbitMQ 3.12 实现站内通知的异步分发。业务模块在关键操作完成后发布消息，通知模块异步消费并落库，前端再通过轮询接口读取通知变化。这样可以将“业务是否成功”和“通知何时送达”解耦，避免通知处理阻塞主业务链路\cite{rabbitmq_docs}。
+  \item \textbf{RabbitMQ}：本系统使用 RabbitMQ 3.12 实现站内通知的异步分发。业务模块在关键操作完成后发布消息，
+  通知模块异步消费并落库，前端再通过轮询接口读取通知变化。这样可以将“业务是否成功”和“通知何时送达”解耦，
+  避免通知处理阻塞主业务链路\cite{rabbitmq_docs}。
 
-  \item \textbf{阿里云 OSS}：本系统将用户头像、活动封面、社团 Logo 等静态资源存放到 OSS，由数据库保存其访问地址。这样可以避免应用服务器直接承担文件分发压力，使主应用更聚焦于事务处理和接口服务。
+  \item \textbf{阿里云 OSS}：本系统将用户头像、活动封面、社团 Logo 等静态资源存放到 OSS，由数据库保存其访问地址。
+  这样可以避免应用服务器直接承担文件分发压力，使主应用更聚焦于事务处理和接口服务。
 \end{enumerate}
 
 \subsection{WebSocket 与可观测性}
 
-本系统没有将所有消息场景都放入实时推送，而是只在“活动签到人数变化”这类对即时反馈要求较高的链路中使用 Spring WebSocket，结合 STOMP 与 SockJS 构建实时消息能力\cite{websocket_realtime}。相比统一采用轮询，这种做法更适合签到看板等需要及时刷新的页面；相比将所有通知都改为长连接推送，又能控制实现复杂度与连接资源消耗。
+本系统没有将所有消息场景都放入实时推送，而是只在“活动签到人数变化”这类对即时反馈要求较高的链路中
+使用 Spring WebSocket，结合 STOMP 与 SockJS 构建实时消息能力\cite{websocket_realtime}。
+相比统一采用轮询，这种做法更适合签到看板等需要及时刷新的页面；相比将所有通知都改为长连接推送，又能控制实现复杂度与连接资源消耗。
 
-可观测性方面，系统依托 Spring Boot Actuator 暴露 Prometheus 指标端点（\texttt{/actuator/prometheus}），并使用 Grafana 构建可视化看板\cite{prometheus_docs}。这一部分不仅服务于后续运维，也为第六章中的性能基线、运行状态观察和关键业务指标留档提供了统一数据出口。
+可观测性方面，系统依托 Spring Boot Actuator 暴露 Prometheus 指标端点（\texttt{/actuator/prometheus}），
+并使用 Grafana 构建可视化看板\cite{prometheus_docs}。这一部分不仅服务于后续运维，也为第六章中的性能基线、
+运行状态观察和关键业务指标留档提供了统一数据出口。
 
 \section{前端技术栈}
 
 \subsection{Vue 3 + Vite + Element Plus}
 
-前端同时面向学生端与管理端，页面以表单、表格、审批、详情展示等典型后台交互为主，因此这篇论文选择 Vue 3 构建单页应用，并以 Vite 作为构建工具\cite{vue3docs}。这一组合的主要考虑在于：一方面，Vue 3 的组件化与状态管理生态较适合角色较多、页面复用较强的系统；另一方面，Vite 在开发阶段具有较快的启动与热更新效率，便于前后端联调。
+前端同时面向学生端与管理端，页面以表单、表格、审批、详情展示等典型后台交互为主，
+因此这篇论文选择 Vue 3 构建单页应用，并以 Vite 作为构建工具\cite{vue3docs}。
 
-UI 组件库方面，系统统一采用 Element Plus。其价值主要不在于“组件丰富”这一通用优点，而在于它与当前项目的后台型页面需求较匹配：表格、表单、对话框、分页与导航等能力较完整，有助于在学生端和管理端之间维持相对统一的交互风格。
+UI 组件库方面，系统统一采用 Element Plus。其与当前项目的后台型页面需求较匹配：表格、表单、对话框、分页与导航等能力较完整，
+有助于在学生端和管理端之间维持相对统一的交互风格。
 
 \subsection{Pinia 状态管理与路由权限守卫}
 
-本系统使用 Pinia 管理认证态与用户信息，其原因在于本课题存在较多跨页面共享状态，例如登录状态、当前用户角色、个人资料摘要以及部分界面权限信息。当前实现中，前端本地仅保存“已认证标记”与用户对象，真实 JWT 令牌仍由浏览器通过 HttpOnly Cookie 托管，从而避免在前端代码中直接操作令牌。
+本系统使用 Pinia 管理认证态与用户信息。本课题存在较多跨页面共享状态，
+例如登录状态、当前用户角色、个人资料摘要以及部分界面权限信息。当前实现中，
+前端本地仅保存“已认证标记”与用户对象，真实 JWT 令牌仍由浏览器通过 HttpOnly Cookie 托管，从而避免在前端代码中直接操作令牌。
 
-路由层则通过 Vue Router 的全局前置守卫实现角色页面隔离：当用户尝试进入 \texttt{/admin} 或 \texttt{/clubadmin} 等受保护路由时，守卫先调用后端接口刷新用户信息并校验角色权限，不满足条件时再执行重定向。这样做的意义在于，把“后端真实鉴权”和“前端界面层体验”区分开来：后者不能替代前者，但可以减少无效跳转和错误页面暴露。
+路由层则通过 Vue Router 的全局前置守卫实现角色页面隔离：当用户尝试进入 \texttt{/admin} 或 \texttt{/clubadmin} 等受保护路由时，
+守卫先调用后端接口刷新用户信息并校验角色权限，不满足条件时再执行重定向。
 
 \subsection{Axios 通信策略}
 
-在通信层，系统创建统一的 Axios 实例并设置 \texttt{withCredentials=true}，使浏览器能够自动携带 HttpOnly Cookie 中的令牌，无需前端显式管理认证凭据。与此同时，响应拦截器统一处理后端返回结构（\texttt{\{code, message, data\}}），并在遇到 401 或 403 时自动清理会话状态并执行跳转。这样做的重点不在于技术本身，而在于通过统一通信约定减少页面层重复逻辑，保证认证失效时的处理方式保持一致。
+在通信层，系统创建统一的 Axios 实例并设置 \texttt{with}\allowbreak\texttt{Credentials}\allowbreak\texttt{=true}，
+使浏览器能够自动携带 HttpOnly\allowbreak{} Cookie 中的令牌，无需前端显式管理认证凭据。
+与此同时，响应拦截器统一处理后端返回结构（\texttt{\{code, message, data\}}），
+并在遇到 401 或 403 时自动清理会话状态并执行跳转。
 
 \section{AI 智能服务技术}
 
 \subsection{FastAPI 智能服务网关}
 
-本系统把 AI 能力放在独立的 Python 服务里，并用 FastAPI 提供 RESTful 接口\cite{fastapi2020}。这样做主要有两点：一是问答和推荐更依赖 Python 生态，和 Java 主业务拆开后更好维护；二是 AI 链路时延波动更大，单独隔离后不容易拖慢主业务接口。AI 服务当前暴露的主要端点包括：
+本系统把 AI 能力放在独立的 Python 服务里，并用 FastAPI 提供 RESTful 接口\cite{fastapi2020}。
+这样做主要有两点：一是问答和推荐更依赖 Python 生态，和 Java 主业务拆开后更好维护；
+二是 AI 链路时延波动更大，单独隔离后不容易拖慢主业务接口。AI 服务当前暴露的主要端点包括：
 
 \begin{enumerate}
   \item \texttt{POST /chat}：社团知识问答接口，接收用户提问并返回基于知识库的智能回答；
@@ -99,29 +136,50 @@ UI 组件库方面，系统统一采用 Element Plus。其价值主要不在于�
 
 \subsection{LangChain 组件化链路 + RAG}
 
-问答模块的关键不在“接了大模型”，而在“回答能不能贴合业务”。这套实现没有走全自动 Agent，而是采用“规则路由 + 工具调用 + 检索增强 + 提示词编排”的组件化链路，并以 RAG（Retrieval-Augmented Generation）作为主要问答范式\cite{langchain_docs,lewis2020rag,rag_applications2023}。流程比较直接：先按问题类型判断要不要查实时业务工具，再检索知识库片段，最后把实时数据、检索结果和会话上下文一起交给模型生成回答。
+问答模块实现没有走全自动 Agent，而是采用“规则路由 + 工具调用 + 检索增强 + 提示词编排”的组件化链路，
+并以 RAG（Retrieval-Augmented Generation）作为主要问答范式\cite{langchain_docs,lewis2020rag,rag_applications2023}。
+流程比较直接：先按问题类型判断要不要查实时业务工具，再检索知识库片段，最后把实时数据、检索结果和会话上下文一起交给模型生成回答。
 
-公告、活动、招新、资源、财务这类问题里有不少信息必须看实时数据，所以系统没有把所有问题都交给向量检索，而是先用规则路由判断是否直接走业务工具查询。知识库向量存储采用 Chroma\cite{chroma2023}，检索阶段再结合文档可见性元数据和用户上下文做过滤。若检索或模型调用不可用，就走降级路径，返回带边界说明的回答。这种取舍也符合这篇论文把 AI 定位为“业务辅助能力原型”的目标。
+公告、活动、招新、资源、财务这类问题里有不少信息必须看实时数据，所以系统没有把所有问题都交给向量检索，
+而是先用规则路由判断是否直接走业务工具查询。知识库向量存储采用 Chroma\cite{chroma2023}，
+检索阶段再结合文档可见性元数据和用户上下文做过滤。若检索或模型调用不可用，就走降级路径，返回带边界说明的回答。
 
 \subsection{混合推荐算法}
 
-推荐模块采用“协同过滤 + 语义内容”融合策略，主要是因为社团推荐天然有两个难点：一是用户行为数据有限，二是新用户冷启动场景明显\cite{collaborative_filtering2009,recommendation_hybrid2002}。如果只靠协同过滤，数据稀疏和新用户无历史行为会让结果不稳定；如果只看内容相似度，又容易忽略用户群体的真实选择模式。
+推荐模块采用“协同过滤 + 语义内容”融合策略，
+主要是因为社团推荐天然有两个难点：一是用户行为数据有限，
+二是新用户冷启动场景明显\cite{collaborative_filtering2009,recommendation_hybrid2002}。
+如果只靠协同过滤，数据稀疏和新用户无历史行为会让结果不稳定；
+如果只看内容相似度，又容易忽略用户群体的真实选择模式。
 
-因此，协同过滤侧使用 TruncatedSVD 对用户-社团交互矩阵做分解，捕捉隐含兴趣关系\cite{svd_recommend,collaborative_filtering2009}；内容侧依据社团名称、简介、类别等文本信息构建向量相似度分数，补足语义相关性。最终通过加权融合得到候选排序结果；在冷启动情况下，系统再回退到按社团热度排序，保证接口可返回、结果不落空。这种设计更强调工程可用性和场景适配，而不是追求模型复杂度。
+因此，协同过滤侧使用 TruncatedSVD 对用户-社团交互矩阵做分解，
+捕捉隐含兴趣关系\cite{svd_recommend,collaborative_filtering2009}；
+内容侧依据社团名称、简介、类别等文本信息构建向量相似度分数，
+补足语义相关性。最终通过加权融合得到候选排序结果；
+在冷启动情况下，系统再回退到按社团热度排序，
+保证接口可返回、结果不落空。这种设计更强调工程可用性和场景适配，
+而不是追求模型复杂度。
 
 \section{部署与运维技术}
 
 \subsection{Docker Compose 编排}
 
-由于这篇论文包含 Java 主应用、前端、Python AI 服务以及数据库、缓存、消息队列、监控组件等多类运行依赖，仅依靠文字描述很难保证环境复现的一致性。因此，系统采用 Docker Compose 统一编排多容器协作\cite{docker_cloud}，将 MySQL、Redis、RabbitMQ、Spring Boot、Vue 前端、FastAPI AI 服务、Prometheus 与 Grafana 等组件纳入同一运行拓扑。
+由于这篇论文包含 Java 主应用、前端、Python AI 服务以及数据库、
+缓存、消息队列、监控组件等多类运行依赖，仅依靠文字描述很难保证环境复现的一致性。
+因此，系统采用 Docker Compose 统一编排多容器协作\cite{docker_cloud}，
+将 MySQL、Redis、RabbitMQ、Spring Boot、Vue 前端、FastAPI AI 服务、Prometheus 与 Grafana 等组件纳入同一运行拓扑。
 
-这种部署方案对论文而言最重要的意义，不是“容器化本身”，而是它为第六章的功能复跑与性能基线提供了稳定、可重复的单节点环境：各服务版本固定在镜像中，启动方式统一，环境差异带来的偶发问题相对更容易控制。
+这种部署方案对论文而言最重要的意义，不是“容器化本身”，
+而是它为第六章的功能复跑与性能基线提供了稳定、
+可重复的单节点环境：各服务版本固定在镜像中，启动方式统一，
+环境差异带来的偶发问题相对更容易控制。
 
 \subsection{Prometheus + Grafana}
 
-除运行系统本身外，这篇论文还需要对其运行状态进行观察和留档，因此引入 Prometheus 与 Grafana 组成基础监控链路。系统配置 Prometheus 定时抓取后端 \texttt{/actuator/prometheus} 指标端点，抓取间隔为 15 秒；借助 Spring Boot Actuator 与 Micrometer，既可以获得 JVM、线程数、HTTP 请求统计等基础指标，也可以暴露登录成功/失败计数、活跃社团数量、待审批资源数量等业务指标。
+除运行系统本身外，这篇论文还需要对其运行状态进行观察和留档，
+因此引入 Prometheus 与 Grafana 组成基础监控链路。
+系统配置 Prometheus 定时抓取后端 \texttt{/actuator/prometheus} 指标端点，抓取间隔为 15 秒；借助 Spring Boot Actuator 与 Micrometer，既可以获得 JVM、线程数、HTTP 请求统计等基础指标，也可以暴露登录成功/失败计数、活跃社团数量、待审批资源数量等业务指标。
 
-Grafana 则负责将上述指标组织为可视化看板，便于在复跑、压测和演示环境下快速观察系统状态。对这篇论文而言，这套监控体系的价值主要体现在“支撑证据留档”和“辅助运行观察”两个方面，而不是展开完整的生产运维治理。
-
-
-
+Grafana 则负责将上述指标组织为可视化看板，
+便于在复跑、压测和演示环境下快速观察系统状态。
+对本文而言，这套监控体系的价值主要体现在“支撑证据留档”和“辅助运行观察”两个方面，而不是展开完整的生产运维治理。

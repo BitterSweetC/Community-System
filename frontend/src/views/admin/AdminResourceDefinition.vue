@@ -16,7 +16,7 @@
             <el-tag>{{ getTypeLabel(scope.row.type) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="location" label="地点" min-width="150"/>
+        <el-table-column prop="location" label="地点" min-width="150" />
         <el-table-column prop="capacity" label="容量" min-width="100" />
         <el-table-column prop="totalQuantity" label="总数量" min-width="110" />
         <el-table-column prop="status" label="状态" min-width="110">
@@ -35,6 +35,19 @@
           </template>
         </el-table-column>
       </el-table>
+    </div>
+
+    <div class="pagination-wrapper" v-if="total > 0">
+      <el-pagination
+        background
+        layout="total, sizes, prev, pager, next"
+        :total="total"
+        :page-size="pageSize"
+        :page-sizes="[10, 20, 50]"
+        v-model:current-page="currentPage"
+        @size-change="handleSizeChange"
+        @current-change="load"
+      />
     </div>
 
     <el-dialog v-model="dialogVisible" :title="form.id ? '编辑资源' : '新增资源'" width="500px">
@@ -85,6 +98,10 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 const resources = ref([])
 const loading = ref(false)
 const dialogVisible = ref(false)
+const currentPage = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
+
 const form = ref({
   id: null,
   name: '',
@@ -99,10 +116,20 @@ const form = ref({
 const load = async () => {
   loading.value = true
   try {
-    const res = await axios.get('/resources/admin/list')
-    resources.value = res
+    const res = await axios.get('/resources/admin/list', {
+      params: {
+        page: currentPage.value - 1,
+        size: pageSize.value
+      }
+    })
+    resources.value = res?.list || []
+    total.value = Number(res?.total || 0)
+    if (currentPage.value > 1 && resources.value.length === 0 && total.value > 0) {
+      currentPage.value -= 1
+      await load()
+    }
   } catch (error) {
-    ElMessage.error('加载失败')
+    ElMessage.error(error.message || '加载失败')
   } finally {
     loading.value = false
   }
@@ -144,9 +171,9 @@ const submit = async () => {
     }
     ElMessage.success('保存成功')
     dialogVisible.value = false
-    load()
+    await load()
   } catch (error) {
-    ElMessage.error('保存失败')
+    ElMessage.error(error.message || '保存失败')
   }
 }
 
@@ -155,10 +182,16 @@ const remove = async (id) => {
     await ElMessageBox.confirm('确定要删除吗？', '提示', { type: 'warning' })
     await axios.delete(`/resources/admin/${id}`)
     ElMessage.success('删除成功')
-    load()
+    await load()
   } catch (error) {
-    if (error !== 'cancel') ElMessage.error('删除失败')
+    if (error !== 'cancel') ElMessage.error(error.message || '删除失败')
   }
+}
+
+const handleSizeChange = (size) => {
+  pageSize.value = size
+  currentPage.value = 1
+  load()
 }
 
 onMounted(load)
@@ -193,6 +226,12 @@ onMounted(load)
 
 .table-shell {
   width: 100%;
+}
+
+.pagination-wrapper {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .action-buttons {

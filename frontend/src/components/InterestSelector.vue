@@ -1,25 +1,25 @@
 <template>
-  <div class="interest-selector">
-    <div 
-      v-for="interest in displayInterests" 
+  <div class="interest-selector" :class="{ 'is-readonly': readonly }">
+    <button
+      v-for="interest in displayInterests"
       :key="interest.name"
+      type="button"
       class="interest-card"
-      :class="{ 
-        'selected': isSelected(interest.name), 
-        'readonly': readonly,
-        'clickable': !readonly
+      :class="{
+        selected: isSelected(interest.name),
+        readonly,
+        clickable: !readonly
       }"
-      :style="isSelected(interest.name) ? { borderColor: interest.color } : {}"
+      :style="{ '--interest-color': interest.color }"
+      :disabled="readonly"
       @click="toggleInterest(interest.name)"
     >
-      <div class="icon-circle" :style="{ 
-        backgroundColor: interest.color,
-        color: '#fff'
-      }">
-        {{ interest.name.charAt(0).toUpperCase() }}
-      </div>
+      <span class="icon-circle">{{ interest.name.charAt(0).toUpperCase() }}</span>
       <span class="interest-name">{{ interest.name }}</span>
-    </div>
+      <span v-if="!readonly && isSelected(interest.name)" class="selected-mark" aria-hidden="true">
+        <el-icon><Check /></el-icon>
+      </span>
+    </button>
   </div>
 </template>
 
@@ -40,64 +40,55 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue'])
 
-// Predefined interests list with colors (Club related)
 const allInterests = [
-  // Sports
-  { name: '篮球', color: '#FF5722' },
-  { name: '足球', color: '#4CAF50' },
-  { name: '羽毛球', color: '#2196F3' },
-  { name: '乒乓球', color: '#FFC107' },
-  { name: '游泳', color: '#00BCD4' },
-  { name: '跑步', color: '#FF9800' },
-  
-  // Arts
-  { name: '绘画', color: '#E91E63' },
-  { name: '摄影', color: '#607D8B' },
-  { name: '书法', color: '#795548' },
-  { name: '舞蹈', color: '#9C27B0' },
-  { name: '声乐', color: '#673AB7' },
-  { name: '乐器', color: '#3F51B5' },
-  
-  // Academic & Others
-  { name: '编程', color: '#212121' },
-  { name: '阅读', color: '#8D6E63' },
-  { name: '英语', color: '#304FFE' },
-  { name: '志愿服务', color: '#F44336' },
-  { name: '电子竞技', color: '#1A237E' },
-  { name: '棋牌', color: '#009688' },
-  { name: '电影', color: '#607D8B' }
+  { name: '篮球', color: '#f97316' },
+  { name: '足球', color: '#16a34a' },
+  { name: '羽毛球', color: '#0ea5e9' },
+  { name: '乒乓球', color: '#eab308' },
+  { name: '游泳', color: '#06b6d4' },
+  { name: '跑步', color: '#f59e0b' },
+  { name: '绘画', color: '#ec4899' },
+  { name: '摄影', color: '#64748b' },
+  { name: '书法', color: '#8b5e3c' },
+  { name: '舞蹈', color: '#a855f7' },
+  { name: '声乐', color: '#7c3aed' },
+  { name: '乐器', color: '#4f46e5' },
+  { name: '编程', color: '#374151' },
+  { name: '阅读', color: '#8b5e3c' },
+  { name: '英语', color: '#2563eb' },
+  { name: '志愿服务', color: '#ef4444' },
+  { name: '电子游戏', color: '#1e3a8a' },
+  { name: '棋类', color: '#0d9488' },
+  { name: '电影', color: '#475569' }
 ]
 
 const displayInterests = computed(() => {
   if (props.readonly) {
-    // In readonly mode, only show selected interests
-    // Map selected names to full interest objects (to get colors), fallback to default color if not found
-    return props.modelValue.map(name => {
-      const found = allInterests.find(i => i.name === name)
-      return found || { name, color: '#909399' }
+    return props.modelValue.map((name) => {
+      const found = allInterests.find((item) => item.name === name)
+      return found || { name, color: '#7f8fa4' }
     })
-  } else {
-    // In edit mode, show all available interests
-    return allInterests
   }
+
+  return allInterests
 })
 
-const isSelected = (name) => {
-  return props.modelValue.includes(name)
-}
+const isSelected = (name) => props.modelValue.includes(name)
 
 const toggleInterest = (name) => {
-  if (props.readonly) return
+  if (props.readonly) {
+    return
+  }
 
   const newSelection = [...props.modelValue]
   const index = newSelection.indexOf(name)
-  
+
   if (index === -1) {
     newSelection.push(name)
   } else {
     newSelection.splice(index, 1)
   }
-  
+
   emit('update:modelValue', newSelection)
 }
 </script>
@@ -106,31 +97,26 @@ const toggleInterest = (name) => {
 .interest-selector {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 10px;
 }
 
 .interest-card {
-  display: flex;
-  flex-direction: column;
+  --interest-color: #4f46e5;
+
+  position: relative;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 80px;
-  height: 80px;
-  padding: 8px;
-  
-  /* Glassmorphism Style */
-  background: rgba(255, 255, 255, 0.25);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
-  
-  border-radius: 50%;
-  cursor: default;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  gap: 8px;
+  min-height: 42px;
+  border-radius: 999px;
+  border: 1px solid #d7e0ea;
+  background: linear-gradient(180deg, #ffffff 0%, #f5f9ff 100%);
+  padding: 6px 12px 6px 8px;
+  color: #314055;
+  font-size: 13px;
+  line-height: 1;
   user-select: none;
-  position: relative; /* For check mark positioning */
-  box-sizing: border-box;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
 }
 
 .interest-card.clickable {
@@ -138,44 +124,78 @@ const toggleInterest = (name) => {
 }
 
 .interest-card.clickable:hover {
-  border-color: rgba(255, 255, 255, 0.9);
-  transform: translateY(-4px);
-  box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.15);
-  background: rgba(255, 255, 255, 0.4);
+  transform: translateY(-1px);
+  border-color: rgba(79, 70, 229, 0.36);
+  box-shadow: 0 8px 16px rgba(20, 33, 50, 0.08);
 }
 
 .interest-card.selected {
-  /* Border color is set by inline style to match interest color */
-  background: rgba(255, 255, 255, 0.6);
-  transform: translateY(-4px);
-  box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.15);
-  border-width: 2px;
+  border-color: color-mix(in srgb, var(--interest-color) 60%, #d7e0ea);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--interest-color) 12%, #ffffff) 0%,
+    color-mix(in srgb, var(--interest-color) 8%, #f5f9ff) 100%
+  );
+  box-shadow: 0 8px 16px rgba(20, 33, 50, 0.1);
+}
+
+.interest-card.readonly {
+  cursor: default;
 }
 
 .icon-circle {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 4px; /* Space between icon and text */
+  background: var(--interest-color);
+  color: #fff;
   font-size: 12px;
-  font-weight: bold;
-  color: white;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  font-weight: 700;
+  flex-shrink: 0;
 }
 
 .interest-name {
-  font-size: 12px;
-  font-weight: 500;
-  color: #606266;
-  text-align: center;
+  white-space: nowrap;
+  color: #314055;
+  font-weight: 600;
 }
 
-.interest-card.selected .interest-name {
-  color: #303133;
-  font-weight: 600;
+.selected-mark {
+  display: inline-flex;
+  align-items: center;
+  color: var(--interest-color);
+  font-size: 14px;
+}
+
+.interest-selector.is-readonly {
+  gap: 8px;
+}
+
+.interest-selector.is-readonly .interest-card {
+  min-height: 36px;
+  padding: 5px 11px 5px 7px;
+  border-color: #d9e3ef;
+  box-shadow: none;
+}
+
+.interest-selector.is-readonly .interest-name {
+  font-size: 12px;
+}
+
+@media (max-width: 768px) {
+  .interest-card {
+    min-height: 38px;
+    padding: 5px 10px 5px 7px;
+    font-size: 12px;
+  }
+
+  .icon-circle {
+    width: 22px;
+    height: 22px;
+    font-size: 11px;
+  }
 }
 </style>

@@ -29,4 +29,5 @@ public class ActivityUpdateDTO {
     private Boolean needAttendance;
     private String checkinCode;
     private Integer rewardPoints;
+    private Long resourceApplicationId;
 }

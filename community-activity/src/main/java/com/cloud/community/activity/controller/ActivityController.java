@@ -25,6 +25,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 
 import java.io.IOException;
 import java.net.URLEncoder;
@@ -47,7 +48,7 @@ public class ActivityController {
         if (principal instanceof UserDetails) {
             return userService.findByUsername(((UserDetails) principal).getUsername()).orElseThrow();
         }
-        throw new org.springframework.security.authentication.AuthenticationCredentialsNotFoundException("Not authenticated");
+        throw new AuthenticationCredentialsNotFoundException("Not authenticated");
     }
 
     @PostMapping
@@ -60,15 +61,13 @@ public class ActivityController {
             Club club = new Club();
             club.setId(dto.getClubId());
             activity.setClub(club);
-            return Result.success(ActivityVO.from(activityService.createActivity(activity)));
+            return Result.success(ActivityVO.from(activityService.createActivity(activity, dto.getResourceApplicationId())));
         }
-        // If clubId is null, maybe system activity? Assuming club activity for now as per requirement.
-        // If user didn't provide clubId, logic might fail or it's a global activity (Admin only).
-        // Let's assume system admin if clubId is null.
+
         permissionService.checkSystemAdmin(user.getId());
         Activity activity = new Activity();
         BeanUtils.copyProperties(dto, activity);
-        return Result.success(ActivityVO.from(activityService.createActivity(activity)));
+        return Result.success(ActivityVO.from(activityService.createActivity(activity, dto.getResourceApplicationId())));
     }
 
     @GetMapping
@@ -106,8 +105,10 @@ public class ActivityController {
     }
 
     @GetMapping("/club/{clubId}")
-    public Result<List<ActivityVO>> getClubActivities(@PathVariable Long clubId) {
-        return Result.success(activityService.getActivitiesByClub(clubId).stream().map(ActivityVO::from).toList());
+    public Result<PageResult<ActivityVO>> getClubActivities(@PathVariable Long clubId,
+                                                            @RequestParam(defaultValue = "0") int page,
+                                                            @RequestParam(defaultValue = "10") int size) {
+        return Result.success(PageResult.of(activityService.getActivitiesByClub(clubId, page, size)).map(ActivityVO::from));
     }
 
     @GetMapping("/{id}")
@@ -123,7 +124,8 @@ public class ActivityController {
     }
 
     @PostMapping("/{id}/signin")
-    public Result<Void> signIn(@PathVariable Long id, @RequestBody(required = false) java.util.Map<String, String> body) {
+    public Result<Void> signIn(@PathVariable Long id,
+            @RequestBody(required = false) java.util.Map<String, String> body) {
         User user = getCurrentUser();
         String code = body != null ? body.get("code") : null;
         activityService.signIn(id, user.getId(), code);
@@ -172,7 +174,7 @@ public class ActivityController {
         EasyExcel.write(response.getOutputStream(), ActivityCheckInExportVO.class)
                 .sheet("CheckIns")
                 .doWrite(exportList);
-        
+
         response.getOutputStream().flush();
     }
 

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="recruit-management">
     <div class="page-head">
       <div>
@@ -16,16 +16,29 @@
 
           <div class="table-panel">
             <el-table :data="batches" class="table-shell">
-            <el-table-column prop="title" label="标题" />
-            <el-table-column prop="startTime" label="开始时间" width="180" />
-            <el-table-column prop="endTime" label="结束时间" width="180" />
-            <el-table-column prop="quota" label="名额" width="90" />
-            <el-table-column label="操作" align="center" width="140">
-              <template #default="scope">
-                <el-button type="primary" size="small" @click="loadApplications(scope.row.id)">查看申请</el-button>
-              </template>
-            </el-table-column>
+              <el-table-column prop="title" label="标题" />
+              <el-table-column prop="startTime" label="开始时间" width="180" />
+              <el-table-column prop="endTime" label="结束时间" width="180" />
+              <el-table-column prop="quota" label="名额" width="90" />
+              <el-table-column label="操作" align="center" width="140">
+                <template #default="scope">
+                  <el-button type="primary" size="small" @click="openApplications(scope.row.id)">查看申请</el-button>
+                </template>
+              </el-table-column>
             </el-table>
+          </div>
+
+          <div class="pagination-wrapper" v-if="batchesTotal > 0">
+            <el-pagination
+              background
+              layout="total, sizes, prev, pager, next"
+              :total="batchesTotal"
+              :page-size="batchesPageSize"
+              :page-sizes="[10, 20, 50]"
+              v-model:current-page="batchesPage"
+              @size-change="handleBatchesSizeChange"
+              @current-change="loadBatches"
+            />
           </div>
         </div>
       </el-tab-pane>
@@ -38,37 +51,50 @@
 
           <div class="table-panel">
             <el-table :data="applications" class="table-shell">
-            <el-table-column prop="user.username" label="用户" min-width="160" />
-            <el-table-column prop="firstReviewStatus" label="初审状态" width="140">
-              <template #default="scope">
-                <el-tag :type="getStatusType(scope.row.firstReviewStatus)">
-                  {{ getStatusLabel(scope.row.firstReviewStatus) }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column prop="finalReviewStatus" label="复审状态" width="140">
-              <template #default="scope">
-                <el-tag :type="getStatusType(scope.row.finalReviewStatus)">
-                  {{ getStatusLabel(scope.row.finalReviewStatus) }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" min-width="260" align="center" class-name="action-column">
-              <template #default="scope">
-                <div v-if="scope.row.firstReviewStatus === 'PENDING'" class="review-actions">
-                  <el-button size="small" type="success" @click="openReview(scope.row.id, 'first', true)">通过</el-button>
-                  <el-button size="small" type="danger" @click="openReview(scope.row.id, 'first', false)">驳回</el-button>
-                </div>
-                <div
-                  v-else-if="scope.row.firstReviewStatus === 'PASSED' && scope.row.finalReviewStatus === 'PENDING'"
-                  class="review-actions"
-                >
-                  <el-button size="small" type="success" @click="openReview(scope.row.id, 'final', true)">通过</el-button>
-                  <el-button size="small" type="danger" @click="openReview(scope.row.id, 'final', false)">驳回</el-button>
-                </div>
-              </template>
-            </el-table-column>
+              <el-table-column prop="user.username" label="用户" min-width="160" />
+              <el-table-column prop="firstReviewStatus" label="初审状态" width="140">
+                <template #default="scope">
+                  <el-tag :type="getStatusType(scope.row.firstReviewStatus)">
+                    {{ getStatusLabel(scope.row.firstReviewStatus) }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="finalReviewStatus" label="复审状态" width="140">
+                <template #default="scope">
+                  <el-tag :type="getStatusType(scope.row.finalReviewStatus)">
+                    {{ getStatusLabel(scope.row.finalReviewStatus) }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" min-width="260" align="center" class-name="action-column">
+                <template #default="scope">
+                  <div v-if="scope.row.firstReviewStatus === 'PENDING'" class="review-actions">
+                    <el-button size="small" type="success" @click="openReview(scope.row.id, 'first', true)">通过</el-button>
+                    <el-button size="small" type="danger" @click="openReview(scope.row.id, 'first', false)">驳回</el-button>
+                  </div>
+                  <div
+                    v-else-if="scope.row.firstReviewStatus === 'PASSED' && scope.row.finalReviewStatus === 'PENDING'"
+                    class="review-actions"
+                  >
+                    <el-button size="small" type="success" @click="openReview(scope.row.id, 'final', true)">通过</el-button>
+                    <el-button size="small" type="danger" @click="openReview(scope.row.id, 'final', false)">驳回</el-button>
+                  </div>
+                </template>
+              </el-table-column>
             </el-table>
+          </div>
+
+          <div class="pagination-wrapper" v-if="applicationsTotal > 0">
+            <el-pagination
+              background
+              layout="total, sizes, prev, pager, next"
+              :total="applicationsTotal"
+              :page-size="applicationsPageSize"
+              :page-sizes="[10, 20, 50]"
+              v-model:current-page="applicationsPage"
+              @size-change="handleApplicationsSizeChange"
+              @current-change="handleApplicationsPageChange"
+            />
           </div>
         </div>
       </el-tab-pane>
@@ -134,6 +160,14 @@ const applications = ref([])
 const createBatchDialog = ref(false)
 const currentBatchId = ref(null)
 
+const batchesPage = ref(1)
+const batchesPageSize = ref(10)
+const batchesTotal = ref(0)
+
+const applicationsPage = ref(1)
+const applicationsPageSize = ref(10)
+const applicationsTotal = ref(0)
+
 const batchForm = ref({
   title: '',
   startTime: '',
@@ -149,6 +183,12 @@ const reviewDialog = ref({
   pass: true,
   comment: ''
 })
+
+const normalizePageData = (res) => {
+  if (res?.list) return { list: res.list, total: Number(res.total || 0) }
+  if (Array.isArray(res)) return { list: res, total: res.length }
+  return { list: [], total: 0 }
+}
 
 const getStatusType = (status) => {
   switch (status) {
@@ -181,7 +221,9 @@ const syncRouteState = () => {
   const tab = route.query.tab
 
   if (batchId) {
-    loadApplications(batchId, false)
+    currentBatchId.value = Number(batchId)
+    activeTab.value = 'applications'
+    loadApplications(Number(batchId), false)
     return
   }
 
@@ -190,7 +232,20 @@ const syncRouteState = () => {
 
 const loadBatches = async () => {
   try {
-    batches.value = await axios.get(`/recruit/batches?clubId=${clubId}`)
+    const res = await axios.get('/recruit/batches/page', {
+      params: {
+        clubId,
+        page: batchesPage.value - 1,
+        size: batchesPageSize.value
+      }
+    })
+    const pageData = normalizePageData(res)
+    batches.value = pageData.list
+    batchesTotal.value = pageData.total
+    if (batchesPage.value > 1 && batches.value.length === 0 && batchesTotal.value > 0) {
+      batchesPage.value -= 1
+      await loadBatches()
+    }
   } catch {
     ElMessage.error('加载批次失败')
   }
@@ -206,23 +261,44 @@ const submitBatch = async () => {
     ElMessage.success('批次创建成功')
     createBatchDialog.value = false
     batchForm.value = { title: '', startTime: '', endTime: '', quota: null, club: { id: clubId } }
-    loadBatches()
+    batchesPage.value = 1
+    await loadBatches()
   } catch (e) {
     ElMessage.error(e?.response?.data?.message || '创建失败')
   }
 }
 
 const loadApplications = async (batchId, syncQuery = true) => {
-  currentBatchId.value = batchId
+  if (!batchId) return
+  currentBatchId.value = Number(batchId)
   try {
-    applications.value = await axios.get(`/recruit/applications?batchId=${batchId}`)
+    const res = await axios.get('/recruit/applications/page', {
+      params: {
+        batchId: currentBatchId.value,
+        page: applicationsPage.value - 1,
+        size: applicationsPageSize.value
+      }
+    })
+    const pageData = normalizePageData(res)
+    applications.value = pageData.list
+    applicationsTotal.value = pageData.total
+    if (applicationsPage.value > 1 && applications.value.length === 0 && applicationsTotal.value > 0) {
+      applicationsPage.value -= 1
+      await loadApplications(currentBatchId.value, syncQuery)
+      return
+    }
     activeTab.value = 'applications'
     if (syncQuery) {
-      router.replace({ query: { tab: 'applications', batchId } })
+      router.replace({ query: { tab: 'applications', batchId: currentBatchId.value } })
     }
   } catch {
     ElMessage.error('加载申请列表失败')
   }
+}
+
+const openApplications = async (batchId) => {
+  applicationsPage.value = 1
+  await loadApplications(batchId, true)
 }
 
 const exportApplications = async () => {
@@ -252,6 +328,7 @@ const openReview = (id, stage, pass) => {
 
 const handleTabChange = (tabName) => {
   if (tabName === 'batches') {
+    batchesPage.value = 1
     router.replace({ query: {} })
     return
   }
@@ -262,6 +339,24 @@ const handleTabChange = (tabName) => {
   }
 
   router.replace({ query: { tab: 'applications' } })
+}
+
+const handleBatchesSizeChange = (size) => {
+  batchesPageSize.value = size
+  batchesPage.value = 1
+  loadBatches()
+}
+
+const handleApplicationsPageChange = () => {
+  if (currentBatchId.value) {
+    loadApplications(currentBatchId.value, false)
+  }
+}
+
+const handleApplicationsSizeChange = (size) => {
+  applicationsPageSize.value = size
+  applicationsPage.value = 1
+  handleApplicationsPageChange()
 }
 
 const submitReview = async () => {
@@ -276,10 +371,8 @@ const submitReview = async () => {
     })
     ElMessage.success(pass ? '审核通过' : '已驳回')
     reviewDialog.value.visible = false
-    const app = applications.value.find((a) => a.id === applicationId)
-    if (app) {
-      if (stage === 'first') app.firstReviewStatus = pass ? 'PASSED' : 'REJECTED'
-      else app.finalReviewStatus = pass ? 'PASSED' : 'REJECTED'
+    if (currentBatchId.value) {
+      await loadApplications(currentBatchId.value, false)
     }
   } catch (e) {
     ElMessage.error(e?.response?.data?.message || '操作失败')
@@ -330,6 +423,12 @@ onMounted(async () => {
 
 .table-shell {
   width: 100%;
+}
+
+.pagination-wrapper {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .review-actions {

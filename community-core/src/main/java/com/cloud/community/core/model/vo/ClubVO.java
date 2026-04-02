@@ -21,8 +21,11 @@ public class ClubVO {
     private Set<String> tags;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
     private Long memberCount;
     private Long activityCount;
+    private String presidentName;
 
     public static ClubVO from(Club club) {
         if (club == null) {
@@ -30,8 +33,14 @@ public class ClubVO {
         }
         ClubVO vo = new ClubVO();
         BeanUtils.copyProperties(club, vo);
+        // Keep both naming styles for frontend compatibility.
+        vo.setCreateTime(club.getCreatedAt());
+        vo.setUpdateTime(club.getUpdatedAt());
+        vo.setCreatedAt(club.getCreatedAt());
+        vo.setUpdatedAt(club.getUpdatedAt());
         vo.setMemberCount(club.getMemberCount());
         vo.setActivityCount(club.getActivityCount());
+        vo.setPresidentName(club.getPresidentName());
         return vo;
     }
 }

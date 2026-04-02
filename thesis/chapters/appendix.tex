@@ -1,4 +1,4 @@
-﻿% ============================================================
+% ============================================================
 %  附录
 % ============================================================
 \chapter{数据库关键表结构（节选）}
@@ -162,7 +162,7 @@ POST & /api/club/chat & AI 问答入口 & 公开（带频控） \\
 
 \chapter{测试工件留档说明}
 
-JMeter 补测的原始汇总文件、\texttt{JTL}、日志、HTML 报告与复现脚本已作为工程补充材料留档。正文仅引用整理后的关键指标，不直接展示本地绝对路径；如需复现实验，可优先查阅项目根目录下的 \texttt{paper\_outputs/jmeter/run-20260323-110850/}、\texttt{paper\_outputs/e2e/live-browser-20260323-163224/}、\texttt{paper\_outputs/export\_checks/export-check-20260323-141419/}、\texttt{paper\_outputs/permission\_checks/permission-check-20260323-162309/}、\texttt{paper\_outputs/stability\_checks/read-stability-20260323-162309/} 以及 \texttt{scripts/jmeter/run-paper-benchmarks.ps1}、\texttt{scripts/eval/export-xlsx-evidence.ps1}、\texttt{scripts/eval/permission-matrix-evidence.ps1}、\texttt{scripts/eval/read-stability-evidence.ps1}。其中，浏览器补测目录中的 \texttt{summary.md} 与 \texttt{summary.json} 用来说明 6 条 Playwright 页面访问与权限重定向用例的执行结果；导出校验目录中的 \texttt{summary.md}、\texttt{summary.json}、\texttt{context.json} 与三份 \texttt{xlsx} 文件用来说明脚本配置、接口快照与导出内容核验结果；权限矩阵目录中的 \texttt{summary.md}、\texttt{summary.json} 与 \texttt{checks.json} 用来说明 20 条角色与接口组合的检查结果；稳定性目录中的 \texttt{summary.md}、\texttt{summary.json} 与 \texttt{records.json} 用来说明 5 轮 35 次关键读链路请求结果。
+JMeter 补测的原始汇总文件、\texttt{JTL}、日志、HTML 报告与复现脚本已作为工程补充材料留档。正文仅引用整理后的关键指标，不直接展示本地绝对路径；如需复现实验，可优先查阅项目根目录下的 \path{paper_outputs/jmeter/run-20260323-110850/}、\path{paper_outputs/e2e/live-browser-20260323-163224/}、\path{paper_outputs/export_checks/export-check-20260323-141419/}、\path{paper_outputs/permission_checks/permission-check-20260323-162309/}、\path{paper_outputs/stability_checks/read-stability-20260323-162309/} 以及 \path{scripts/jmeter/run-paper-benchmarks.ps1}、\path{scripts/eval/export-xlsx-evidence.ps1}、\path{scripts/eval/permission-matrix-evidence.ps1}、\path{scripts/eval/read-stability-evidence.ps1}。其中，浏览器补测目录中的 \texttt{summary.md} 与 \texttt{summary.json} 用来说明 6 条 Playwright 页面访问与权限重定向用例的执行结果；导出校验目录中的 \texttt{summary.md}、\texttt{summary.json}、\texttt{context.json} 与三份 \texttt{xlsx} 文件用来说明脚本配置、接口快照与导出内容核验结果；权限矩阵目录中的 \texttt{summary.md}、\texttt{summary.json} 与 \texttt{checks.json} 用来说明 20 条角色与接口组合的检查结果；稳定性目录中的 \texttt{summary.md}、\texttt{summary.json} 与 \texttt{records.json} 用来说明 5 轮 35 次关键读链路请求结果。
 
 \input{chapters/appendix_page_screenshots}
 
